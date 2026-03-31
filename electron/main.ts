@@ -151,19 +151,15 @@ function createServiceView(service: Service): WebContentsView {
     }
   });
 
-  // Handle popups: allow same-service and auth flows in-app, open truly external links in browser
+  // Handle popups: navigate in-app for known domains, open external for others
   view.webContents.setWindowOpenHandler(({ url }) => {
     try {
       const parsed = new URL(url);
       const serviceHost = new URL(service.url).hostname.replace(/^www\./, "");
       const popupHost = parsed.hostname.replace(/^www\./, "");
 
-      // Allow if same domain as the service
-      if (popupHost.endsWith(serviceHost) || serviceHost.endsWith(popupHost)) {
-        return { action: "allow" };
-      }
+      const isServiceDomain = popupHost.endsWith(serviceHost) || serviceHost.endsWith(popupHost);
 
-      // Allow common auth/login providers
       const allowedDomains = [
         "google.com", "googleapis.com", "gstatic.com",
         "facebook.com", "fbcdn.net", "messenger.com",
@@ -180,8 +176,12 @@ function createServiceView(service: Service): WebContentsView {
         "whatsapp.com", "whatsapp.net",
       ];
 
-      if (allowedDomains.some((d) => popupHost === d || popupHost.endsWith("." + d))) {
-        return { action: "allow" };
+      const isAllowed = allowedDomains.some((d) => popupHost === d || popupHost.endsWith("." + d));
+
+      if (isServiceDomain || isAllowed) {
+        // Navigate the current view instead of opening a popup window
+        view.webContents.loadURL(url);
+        return { action: "deny" };
       }
     } catch {}
 
