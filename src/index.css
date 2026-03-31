@@ -38,6 +38,12 @@ body,
   background: #585b70;
 }
 
+/* Star twinkle */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.08; }
+  50% { opacity: 0.4; }
+}
+
 /* Titlebar drag region */
 .titlebar-drag {
   -webkit-app-region: drag;
