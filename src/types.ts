@@ -32,6 +32,8 @@ export interface ElectronAPI {
   onNotificationUpdate: (
     callback: (data: { serviceId: string; count: number }) => void
   ) => () => void;
+  getTheme: () => Promise<"dark" | "light">;
+  setTheme: (theme: "dark" | "light") => Promise<void>;
   startSystemStats: () => void;
   stopSystemStats: () => void;
   onSystemStats: (callback: (stats: SystemStats) => void) => () => void;

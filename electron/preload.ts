@@ -49,6 +49,10 @@ const api = {
     return () => ipcRenderer.removeListener("notification-update", handler);
   },
 
+  // Theme
+  getTheme: (): Promise<"dark" | "light"> => ipcRenderer.invoke("get-theme"),
+  setTheme: (theme: "dark" | "light"): Promise<void> => ipcRenderer.invoke("set-theme", theme),
+
   // System stats
   startSystemStats: () => ipcRenderer.send("start-system-stats"),
   stopSystemStats: () => ipcRenderer.send("stop-system-stats"),

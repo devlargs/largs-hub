@@ -42,16 +42,22 @@
   "build": {
     "appId": "com.largshub.app",
     "productName": "Largs Hub",
+    "icon": "assets/ico/icon.ico",
     "files": [
       "dist/**/*",
-      "dist-electron/**/*"
+      "dist-electron/**/*",
+      "assets/ico/**/*"
     ],
     "directories": {
       "output": "release"
     },
     "win": {
       "target": "nsis",
-      "sign": false
+      "sign": false,
+      "icon": "assets/ico/icon.ico"
+    },
+    "nsis": {
+      "artifactName": "${productName} Setup.${ext}"
     },
     "mac": {
       "target": "dmg"

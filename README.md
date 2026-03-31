@@ -2,7 +2,7 @@
 
 An open-source workspace browser — manage all your web apps in one place. A free alternative to [Rambox](https://rambox.app/).
 
-<img width="1910" height="983" alt="Largs Hub screenshot" src="https://github.com/user-attachments/assets/d3521f05-b4b7-4e22-9d93-e55a62bfe6fd" />
+<img width="1912" height="1031" alt="image" src="https://github.com/user-attachments/assets/329e701e-6bce-47ed-82bf-8397a87fb0b5" />
 
 ## Features
 

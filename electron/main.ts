@@ -24,6 +24,7 @@ interface StoreSchema {
   services: Service[];
   sidebarWidth: number;
   windowBounds: { width: number; height: number; x?: number; y?: number };
+  theme: "dark" | "light";
 }
 
 const store = new Store<StoreSchema>({
@@ -31,6 +32,7 @@ const store = new Store<StoreSchema>({
     services: [],
     sidebarWidth: 68,
     windowBounds: { width: 1200, height: 800 },
+    theme: "dark",
   },
 });
 
@@ -53,7 +55,7 @@ function createWindow() {
     frame: false,
     titleBarStyle: "hidden",
     backgroundColor: "#181825",
-    icon: path.join(__dirname, "../assets/ico/icon.png"),
+    icon: path.join(__dirname, "../assets/ico/icon.ico"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -277,6 +279,12 @@ ipcMain.on("go-forward", (_event, serviceId: string) => {
   if (view && view.webContents.canGoForward()) {
     view.webContents.goForward();
   }
+});
+
+// Theme
+ipcMain.handle("get-theme", () => store.get("theme"));
+ipcMain.handle("set-theme", (_event, theme: "dark" | "light") => {
+  store.set("theme", theme);
 });
 
 // System stats

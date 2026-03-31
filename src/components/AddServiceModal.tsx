@@ -86,23 +86,23 @@ export default function AddServiceModal({
       >
         {/* Title */}
         <h2
-          className="text-white text-center"
-          style={{ fontSize: 24, fontWeight: 700, marginBottom: 24 }}
+          className="text-center"
+          style={{ fontSize: 24, fontWeight: 700, marginBottom: 24, color: "var(--text-primary)" }}
         >
           Add a service to your workspace
         </h2>
 
         {/* Search bar */}
         <div
-          className="flex items-center rounded-xl bg-[#11111b]"
-          style={{ padding: "10px 16px", marginBottom: 28, gap: 10 }}
+          className="flex items-center rounded-xl"
+          style={{ padding: "10px 16px", marginBottom: 28, gap: 10, backgroundColor: "var(--panel)" }}
         >
           <svg
             width="18"
             height="18"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#585b70"
+            stroke="var(--text-muted)"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -118,7 +118,8 @@ export default function AddServiceModal({
               setSearch(e.target.value);
               setSelectedIndex(null);
             }}
-            className="bg-transparent text-white text-sm outline-none flex-1 placeholder-[#585b70]"
+            className="bg-transparent text-sm outline-none flex-1"
+            style={{ color: "var(--text-primary)", "--tw-placeholder-color": "var(--text-muted)" } as React.CSSProperties}
           />
         </div>
 
@@ -140,10 +141,10 @@ export default function AddServiceModal({
                   width: 72,
                   height: 72,
                   background:
-                    selectedIndex === i ? "rgba(137,180,250,0.2)" : "#11111b",
+                    selectedIndex === i ? "color-mix(in srgb, var(--accent) 20%, transparent)" : "var(--panel)",
                   border:
                     selectedIndex === i
-                      ? "2px solid #89b4fa"
+                      ? "2px solid var(--accent)"
                       : "2px solid transparent",
                 }}
               >
@@ -157,7 +158,7 @@ export default function AddServiceModal({
                 className="transition-colors"
                 style={{
                   fontSize: 12,
-                  color: selectedIndex === i ? "#cdd6f4" : "#6c7086",
+                  color: selectedIndex === i ? "var(--text-primary)" : "var(--text-muted)",
                 }}
               >
                 {preset.name}
@@ -175,8 +176,8 @@ export default function AddServiceModal({
               padding: "10px 24px",
               borderRadius: 12,
               background: "transparent",
-              border: "1px solid #45475a",
-              color: "#a6adc8",
+              border: "1px solid var(--border)",
+              color: "var(--text-secondary)",
             }}
           >
             Cancel
@@ -189,9 +190,9 @@ export default function AddServiceModal({
               padding: "10px 24px",
               borderRadius: 12,
               background:
-                selectedIndex !== null ? "#89b4fa" : "rgba(137,180,250,0.3)",
+                selectedIndex !== null ? "var(--accent)" : "color-mix(in srgb, var(--accent) 30%, transparent)",
               border: "none",
-              color: selectedIndex !== null ? "#1e1e2e" : "#a6adc8",
+              color: selectedIndex !== null ? "var(--surface)" : "var(--text-secondary)",
               opacity: selectedIndex === null ? 0.5 : 1,
             }}
           >
