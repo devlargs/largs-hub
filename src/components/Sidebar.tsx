@@ -40,7 +40,7 @@ export default function Sidebar({
 
   return (
     <>
-      <div className="w-[68px] bg-sidebar flex flex-col items-center pt-3 pb-2 gap-1 shrink-0 overflow-y-auto">
+      <div className="w-17 bg-sidebar flex flex-col items-center pt-3 pb-2 gap-1 shrink-0 overflow-y-auto">
         {services.map((service) => (
           <button
             key={service.id}

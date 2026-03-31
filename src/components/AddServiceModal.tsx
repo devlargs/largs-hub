@@ -13,7 +13,11 @@ const POPULAR_SERVICES = [
   { name: "Twitter / X", url: "https://x.com", icon: "x.png" },
   { name: "Reddit", url: "https://reddit.com", icon: "reddit.png" },
   { name: "LinkedIn", url: "https://linkedin.com", icon: "linkedin.png" },
-  { name: "Messenger", url: "https://www.messenger.com", icon: "messenger.png" },
+  {
+    name: "Messenger",
+    url: "https://www.messenger.com",
+    icon: "messenger.png",
+  },
 ];
 
 interface AddServiceModalProps {
@@ -53,8 +57,14 @@ export default function AddServiceModal({
       onClick={onClose}
     >
       <div
-        className="bg-[#1e1e2e] rounded-3xl shadow-2xl mx-4"
-        style={{ width: 600, maxHeight: "90vh", padding: "40px 40px 40px", display: "flex", flexDirection: "column" as const }}
+        className="bg-sidebar rounded-3xl shadow-2xl mx-4"
+        style={{
+          width: 600,
+          maxHeight: "90vh",
+          padding: "40px 40px 40px",
+          display: "flex",
+          flexDirection: "column" as const,
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Title */}
@@ -113,9 +123,7 @@ export default function AddServiceModal({
                   width: 72,
                   height: 72,
                   background:
-                    selectedIndex === i
-                      ? "rgba(137,180,250,0.2)"
-                      : "#11111b",
+                    selectedIndex === i ? "rgba(137,180,250,0.2)" : "#11111b",
                   border:
                     selectedIndex === i
                       ? "2px solid #89b4fa"
