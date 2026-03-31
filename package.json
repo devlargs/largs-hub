@@ -1,6 +1,6 @@
 {
   "name": "largs-hub",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "An open-source workspace browser — manage all your web apps in one place",
   "main": "dist-electron/main.js",
   "scripts": {
