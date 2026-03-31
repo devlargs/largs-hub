@@ -4,7 +4,6 @@ import Sidebar from "./components/Sidebar";
 import Titlebar from "./components/Titlebar";
 import AddServiceModal from "./components/AddServiceModal";
 import WelcomeScreen from "./components/WelcomeScreen";
-import UpdateNotification from "./components/UpdateNotification";
 import UpdatePage from "./components/UpdatePage";
 
 function App() {
@@ -127,7 +126,6 @@ function App() {
           {showUpdatePage && !activeServiceId && <UpdatePage />}
         </div>
       </div>
-      <UpdateNotification />
       {showAddModal && (
         <AddServiceModal
           editingService={editingService}

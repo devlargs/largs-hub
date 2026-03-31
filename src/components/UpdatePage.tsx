@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 
-type UpdateStatus = "checking" | "available" | "latest" | "downloading" | "ready" | "error";
+type UpdateStatus = "checking" | "available" | "latest" | "error";
 
 export default function UpdatePage() {
   const [status, setStatus] = useState<UpdateStatus>("checking");
   const [currentVersion, setCurrentVersion] = useState("");
   const [newVersion, setNewVersion] = useState("");
-  const [percent, setPercent] = useState(0);
+  const [downloadUrl, setDownloadUrl] = useState("");
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -16,29 +16,20 @@ export default function UpdatePage() {
     window.electronAPI.checkForUpdates().then((result) => {
       if (result.updateAvailable && result.version) {
         setNewVersion(result.version);
+        setDownloadUrl(result.downloadUrl || "");
         setStatus("available");
       } else {
         setStatus("latest");
       }
     }).catch(() => setStatus("error"));
-
-    const unsub1 = window.electronAPI.onUpdateDownloadProgress((info) => {
-      setPercent(Math.round(info.percent));
-    });
-
-    const unsub2 = window.electronAPI.onUpdateDownloaded(() => {
-      setStatus("ready");
-    });
-
-    return () => {
-      unsub1();
-      unsub2();
-    };
   }, []);
 
   const handleDownload = () => {
-    setStatus("downloading");
-    window.electronAPI.startUpdateDownload();
+    if (downloadUrl) {
+      window.electronAPI.openExternal(downloadUrl);
+    } else {
+      window.electronAPI.openExternal("https://github.com/devlargs/largs-hub/releases/latest");
+    }
   };
 
   return (
@@ -95,57 +86,7 @@ export default function UpdatePage() {
                 border: "none",
               }}
             >
-              Update Version
-            </button>
-          </>
-        )}
-
-        {/* Downloading */}
-        {status === "downloading" && (
-          <>
-            <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)", marginBottom: 8 }}>
-              Downloading Update...
-            </h2>
-            <p className="text-sm" style={{ color: "var(--text-muted)", marginBottom: 16 }}>
-              v{newVersion} — {percent}%
-            </p>
-            <div className="w-full rounded-full" style={{ height: 6, backgroundColor: "var(--border)" }}>
-              <div
-                className="rounded-full transition-all duration-300"
-                style={{ height: 6, width: `${percent}%`, backgroundColor: "var(--accent)" }}
-              />
-            </div>
-          </>
-        )}
-
-        {/* Ready to install */}
-        {status === "ready" && (
-          <>
-            <div
-              className="flex items-center justify-center rounded-full"
-              style={{ width: 56, height: 56, backgroundColor: "rgba(166,227,161,0.15)", marginBottom: 24 }}
-            >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a6e3a1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)", marginBottom: 8 }}>
-              Update Ready
-            </h2>
-            <p className="text-sm" style={{ color: "var(--text-muted)", marginBottom: 24 }}>
-              v{newVersion} has been downloaded. Restart to apply the update.
-            </p>
-            <button
-              onClick={() => window.electronAPI.installUpdate()}
-              className="text-sm font-semibold cursor-pointer transition-opacity hover:opacity-90 rounded-lg"
-              style={{
-                padding: "10px 28px",
-                backgroundColor: "var(--accent)",
-                color: "var(--surface)",
-                border: "none",
-              }}
-            >
-              Restart Now
+              Download Update
             </button>
           </>
         )}

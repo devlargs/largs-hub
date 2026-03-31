@@ -33,7 +33,7 @@ An open-source workspace browser — manage all your web apps in one place. A fr
 ### Installation
 
 ```bash
-git clone https://github.com/AceLargo/largs-hub.git
+git clone https://github.com/devlargs/largs-hub.git
 cd largs-hub
 npm install
 ```

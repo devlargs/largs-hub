@@ -62,26 +62,10 @@ const api = {
     return () => ipcRenderer.removeListener("system-stats", handler);
   },
 
-  // Auto-update
-  onUpdateAvailable: (callback: (info: { version: string }) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, info: { version: string }) => callback(info);
-    ipcRenderer.on("update-available", handler);
-    return () => ipcRenderer.removeListener("update-available", handler);
-  },
-  onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, info: { percent: number }) => callback(info);
-    ipcRenderer.on("update-download-progress", handler);
-    return () => ipcRenderer.removeListener("update-download-progress", handler);
-  },
-  onUpdateDownloaded: (callback: () => void) => {
-    const handler = () => callback();
-    ipcRenderer.on("update-downloaded", handler);
-    return () => ipcRenderer.removeListener("update-downloaded", handler);
-  },
-  startUpdateDownload: () => ipcRenderer.send("start-update-download"),
-  installUpdate: () => ipcRenderer.send("install-update"),
-  checkForUpdates: (): Promise<{ updateAvailable: boolean; version?: string }> => ipcRenderer.invoke("check-for-updates"),
+  // Updates
+  checkForUpdates: (): Promise<{ updateAvailable: boolean; version?: string; downloadUrl?: string }> => ipcRenderer.invoke("check-for-updates"),
   getAppVersion: (): Promise<string> => ipcRenderer.invoke("get-app-version"),
+  openExternal: (url: string): Promise<void> => ipcRenderer.invoke("open-external", url),
 };
 
 contextBridge.exposeInMainWorld("electronAPI", api);

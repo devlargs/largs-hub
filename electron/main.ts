@@ -9,7 +9,6 @@ import {
 import path from "path";
 import os from "os";
 import Store from "electron-store";
-import { autoUpdater } from "electron-updater";
 
 interface Service {
   id: string;
@@ -370,24 +369,21 @@ ipcMain.on("stop-system-stats", () => {
   }
 });
 
-// Auto-update
-ipcMain.on("start-update-download", () => {
-  autoUpdater.downloadUpdate();
-});
-
-ipcMain.on("install-update", () => {
-  autoUpdater.quitAndInstall();
-});
-
+// Update check via GitHub API
 ipcMain.handle("check-for-updates", async () => {
   try {
-    const result = await autoUpdater.checkForUpdates();
-    if (result && result.updateInfo) {
-      const current = app.getVersion();
-      const latest = result.updateInfo.version;
-      if (latest !== current) {
-        return { updateAvailable: true, version: latest };
-      }
+    const response = await fetch(
+      "https://api.github.com/repos/devlargs/largs-hub/releases/latest",
+    );
+    if (!response.ok) return { updateAvailable: false };
+    const data = await response.json();
+    const latest = (data.tag_name || "").replace(/^v/, "");
+    const current = app.getVersion();
+    if (latest && latest !== current) {
+      const downloadUrl = data.assets?.find(
+        (a: { name: string }) => a.name.endsWith(".exe") && !a.name.endsWith(".blockmap"),
+      )?.browser_download_url;
+      return { updateAvailable: true, version: latest, downloadUrl };
     }
     return { updateAvailable: false };
   } catch {
@@ -397,6 +393,10 @@ ipcMain.handle("check-for-updates", async () => {
 
 ipcMain.handle("get-app-version", () => {
   return app.getVersion();
+});
+
+ipcMain.handle("open-external", (_event, url: string) => {
+  require("electron").shell.openExternal(url);
 });
 
 // Window controls
@@ -410,39 +410,7 @@ ipcMain.on("window-maximize", () => {
 });
 ipcMain.on("window-close", () => mainWindow?.close());
 
-function initAutoUpdater() {
-  autoUpdater.autoDownload = false;
-  autoUpdater.autoInstallOnAppQuit = true;
-
-  autoUpdater.on("update-available", (info) => {
-    mainWindow?.webContents.send("update-available", {
-      version: info.version,
-    });
-  });
-
-  autoUpdater.on("download-progress", (progress) => {
-    mainWindow?.webContents.send("update-download-progress", {
-      percent: progress.percent,
-    });
-  });
-
-  autoUpdater.on("update-downloaded", () => {
-    mainWindow?.webContents.send("update-downloaded");
-  });
-
-  autoUpdater.on("error", (err) => {
-    console.error("Auto-update error:", err);
-  });
-}
-
-app.whenReady().then(() => {
-  createWindow();
-
-  if (!process.argv.includes("--dev")) {
-    initAutoUpdater();
-    setTimeout(() => autoUpdater.checkForUpdates(), 3000);
-  }
-});
+app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
