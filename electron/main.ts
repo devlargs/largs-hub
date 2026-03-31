@@ -528,12 +528,13 @@ ipcMain.handle("download-and-install-update", async (_event, downloadUrl: string
 
         file.on("finish", () => {
           file.close(() => {
-            // Launch the installer and quit
-            const { spawn } = require("child_process");
-            spawn(tmpPath, ["/S"], {
+            // Launch the installer silently, then relaunch the app
+            const { exec } = require("child_process");
+            const appPath = process.execPath;
+            exec(`"${tmpPath}" /S && "${appPath}"`, {
               detached: true,
-              stdio: "ignore",
-            }).unref();
+              windowsHide: true,
+            });
             app.quit();
             resolve();
           });
