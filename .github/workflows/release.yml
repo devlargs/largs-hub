@@ -35,7 +35,7 @@ jobs:
         run: npm ci
 
       - name: Build and package
-        run: npm run electron:build
+        run: npm run electron:build -- --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
