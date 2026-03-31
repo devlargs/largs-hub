@@ -96,6 +96,19 @@ function createWindow() {
     mainWindow = null;
     serviceViews.clear();
   });
+
+  // Pre-load all saved services so they're warm on startup
+  mainWindow.webContents.on("did-finish-load", () => {
+    const services = store.get("services");
+    for (const service of services) {
+      if (!serviceViews.has(service.id) && mainWindow) {
+        const view = createServiceView(service);
+        serviceViews.set(service.id, view);
+        mainWindow.contentView.addChildView(view);
+        view.setVisible(false);
+      }
+    }
+  });
 }
 
 function getViewBounds() {
