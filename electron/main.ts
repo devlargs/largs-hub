@@ -8,6 +8,7 @@ import {
 } from "electron";
 import path from "path";
 import Store from "electron-store";
+import { autoUpdater } from "electron-updater";
 
 interface Service {
   id: string;
@@ -277,6 +278,15 @@ ipcMain.on("go-forward", (_event, serviceId: string) => {
   }
 });
 
+// Auto-update
+ipcMain.on("start-update-download", () => {
+  autoUpdater.downloadUpdate();
+});
+
+ipcMain.on("install-update", () => {
+  autoUpdater.quitAndInstall();
+});
+
 // Window controls
 ipcMain.on("window-minimize", () => mainWindow?.minimize());
 ipcMain.on("window-maximize", () => {
@@ -288,7 +298,39 @@ ipcMain.on("window-maximize", () => {
 });
 ipcMain.on("window-close", () => mainWindow?.close());
 
-app.whenReady().then(createWindow);
+function initAutoUpdater() {
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on("update-available", (info) => {
+    mainWindow?.webContents.send("update-available", {
+      version: info.version,
+    });
+  });
+
+  autoUpdater.on("download-progress", (progress) => {
+    mainWindow?.webContents.send("update-download-progress", {
+      percent: progress.percent,
+    });
+  });
+
+  autoUpdater.on("update-downloaded", () => {
+    mainWindow?.webContents.send("update-downloaded");
+  });
+
+  autoUpdater.on("error", (err) => {
+    console.error("Auto-update error:", err);
+  });
+}
+
+app.whenReady().then(() => {
+  createWindow();
+
+  if (!process.argv.includes("--dev")) {
+    initAutoUpdater();
+    setTimeout(() => autoUpdater.checkForUpdates(), 3000);
+  }
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

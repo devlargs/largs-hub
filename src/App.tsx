@@ -4,6 +4,7 @@ import Sidebar from "./components/Sidebar";
 import Titlebar from "./components/Titlebar";
 import AddServiceModal from "./components/AddServiceModal";
 import WelcomeScreen from "./components/WelcomeScreen";
+import UpdateNotification from "./components/UpdateNotification";
 
 function App() {
   const [services, setServices] = useState<Service[]>([]);
@@ -117,6 +118,7 @@ function App() {
           )}
         </div>
       </div>
+      <UpdateNotification />
       {showAddModal && (
         <AddServiceModal
           editingService={editingService}
