@@ -1,4 +1,5 @@
 import { Service } from "../types";
+import appIcon from "../../assets/ico/icon.png";
 
 interface TitlebarProps {
   activeService: Service | null;
@@ -14,10 +15,10 @@ export default function Titlebar({
   onGoForward,
 }: TitlebarProps) {
   return (
-    <div className="titlebar-drag flex items-center h-8 bg-sidebar px-2 select-none shrink-0">
+    <div className="titlebar-drag flex items-center h-10 bg-sidebar px-2 select-none shrink-0">
       {/* Navigation controls */}
       <div className="titlebar-no-drag flex items-center gap-1 ml-[68px]">
-        {activeService && (
+        {activeService ? (
           <>
             <button
               onClick={onGoBack}
@@ -44,6 +45,11 @@ export default function Titlebar({
               {activeService.name}
             </span>
           </>
+        ) : (
+          <div className="flex items-center gap-2">
+            <img src={appIcon} alt="Largs Hub" className="w-4 h-4" />
+            <span className="text-xs text-gray-400 font-medium">Largs Hub</span>
+          </div>
         )}
       </div>
 

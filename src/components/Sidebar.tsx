@@ -48,7 +48,7 @@ export default function Sidebar({
             onContextMenu={(e) => handleContextMenu(e, service)}
             className={`
               relative w-12 h-12 rounded-xl flex items-center justify-center
-              transition-all duration-200 group
+              transition-all duration-200 group cursor-pointer
               ${
                 activeServiceId === service.id
                   ? "bg-accent/20 ring-2 ring-accent"
@@ -94,7 +94,7 @@ export default function Sidebar({
         {/* Add button */}
         <button
           onClick={onAddService}
-          className="w-12 h-12 rounded-xl flex items-center justify-center text-gray-500 hover:text-white hover:bg-sidebar-hover transition-all duration-200 border-2 border-dashed border-gray-600 hover:border-accent mt-1"
+          className="w-12 h-12 rounded-xl flex items-center justify-center text-gray-500 hover:text-white hover:bg-sidebar-hover transition-all duration-200 border-2 border-dashed border-gray-600 hover:border-accent mt-1 cursor-pointer"
           title="Add service"
         >
           <span className="text-2xl leading-none">+</span>

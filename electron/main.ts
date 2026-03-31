@@ -50,6 +50,7 @@ function createWindow() {
     frame: false,
     titleBarStyle: "hidden",
     backgroundColor: "#181825",
+    icon: path.join(__dirname, "../assets/ico/icon.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -89,9 +90,9 @@ function getViewBounds() {
   const [width, height] = mainWindow.getContentSize();
   return {
     x: SIDEBAR_WIDTH,
-    y: 32, // titlebar height
+    y: 40, // titlebar height
     width: Math.max(0, width - SIDEBAR_WIDTH),
-    height: Math.max(0, height - 32),
+    height: Math.max(0, height - 40),
   };
 }
 
