@@ -40,7 +40,7 @@ export default function Sidebar({
 
   return (
     <>
-      <div className="w-[68px] bg-sidebar flex flex-col items-center py-2 gap-1 shrink-0 overflow-y-auto">
+      <div className="w-[68px] bg-sidebar flex flex-col items-center pt-3 pb-2 gap-1 shrink-0 overflow-y-auto">
         {services.map((service) => (
           <button
             key={service.id}
@@ -60,7 +60,13 @@ export default function Sidebar({
             {(() => {
               const resolved = resolveIcon(service.icon, service.name);
               if (resolved) {
-                return <img src={resolved} alt={service.name} className="w-7 h-7 rounded object-contain" />;
+                return (
+                  <img
+                    src={resolved}
+                    alt={service.name}
+                    className="w-7 h-7 rounded object-contain"
+                  />
+                );
               }
               if (service.icon) {
                 return <span className="text-2xl">{service.icon}</span>;
