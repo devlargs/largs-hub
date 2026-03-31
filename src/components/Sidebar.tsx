@@ -27,7 +27,15 @@ export default function Sidebar({
 
   const handleContextMenu = (e: React.MouseEvent, service: Service) => {
     e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, service });
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setContextMenu({ x: rect.right + 8, y: rect.top, service });
+    // Temporarily hide the BrowserView so the context menu is visible
+    window.electronAPI?.setActiveViewVisible(false);
+  };
+
+  const closeContextMenu = () => {
+    setContextMenu(null);
+    window.electronAPI?.setActiveViewVisible(true);
   };
 
   return (
@@ -97,37 +105,47 @@ export default function Sidebar({
       {contextMenu && (
         <>
           <div
-            className="fixed inset-0 z-40"
-            onClick={() => setContextMenu(null)}
+            className="fixed inset-0"
+            style={{ zIndex: 9998 }}
+            onClick={closeContextMenu}
           />
           <div
-            className="fixed z-50 bg-[#313244] rounded-lg shadow-xl border border-[#45475a] py-1 min-w-[160px]"
-            style={{ left: contextMenu.x, top: contextMenu.y }}
+            className="fixed bg-[#1e1e2e] rounded-xl shadow-2xl border border-[#45475a]"
+            style={{
+              zIndex: 9999,
+              left: contextMenu.x,
+              top: contextMenu.y,
+              minWidth: 180,
+              padding: "6px",
+            }}
           >
             <button
-              className="w-full px-4 py-2 text-left text-sm text-gray-200 hover:bg-[#45475a] transition-colors"
+              className="w-full text-left text-sm text-gray-200 hover:bg-[#313244] transition-colors rounded-lg cursor-pointer"
+              style={{ padding: "10px 14px" }}
               onClick={() => {
                 onEditService(contextMenu.service);
-                setContextMenu(null);
+                closeContextMenu();
               }}
             >
               Edit service
             </button>
             <button
-              className="w-full px-4 py-2 text-left text-sm text-gray-200 hover:bg-[#45475a] transition-colors"
+              className="w-full text-left text-sm text-gray-200 hover:bg-[#313244] transition-colors rounded-lg cursor-pointer"
+              style={{ padding: "10px 14px" }}
               onClick={() => {
                 window.electronAPI?.reloadService(contextMenu.service.id);
-                setContextMenu(null);
+                closeContextMenu();
               }}
             >
               Reload
             </button>
-            <div className="border-t border-[#45475a] my-1" />
+            <div style={{ borderTop: "1px solid #313244", margin: "4px 0" }} />
             <button
-              className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-[#45475a] transition-colors"
+              className="w-full text-left text-sm text-red-400 hover:bg-[#313244] transition-colors rounded-lg cursor-pointer"
+              style={{ padding: "10px 14px" }}
               onClick={() => {
                 onRemoveService(contextMenu.service.id);
-                setContextMenu(null);
+                closeContextMenu();
               }}
             >
               Remove service

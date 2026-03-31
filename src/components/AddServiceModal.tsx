@@ -54,7 +54,7 @@ export default function AddServiceModal({
     >
       <div
         className="bg-[#1e1e2e] rounded-3xl shadow-2xl mx-4"
-        style={{ width: 600, padding: "40px 40px 40px" }}
+        style={{ width: 600, maxHeight: "90vh", padding: "40px 40px 40px", display: "flex", flexDirection: "column" as const }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Title */}
@@ -97,8 +97,8 @@ export default function AddServiceModal({
 
         {/* Service grid */}
         <div
-          className="grid grid-cols-5"
-          style={{ gap: "20px 16px", marginBottom: 28 }}
+          className="grid grid-cols-5 overflow-y-auto"
+          style={{ gap: "20px 16px", marginBottom: 28, minHeight: 0 }}
         >
           {filtered.map((preset, i) => (
             <button
@@ -166,8 +166,8 @@ export default function AddServiceModal({
               background:
                 selectedIndex !== null ? "#89b4fa" : "rgba(137,180,250,0.3)",
               border: "none",
-              color: selectedIndex !== null ? "#1e1e2e" : "#585b70",
-              opacity: selectedIndex === null ? 0.6 : 1,
+              color: selectedIndex !== null ? "#1e1e2e" : "#a6adc8",
+              opacity: selectedIndex === null ? 0.5 : 1,
             }}
           >
             Confirm

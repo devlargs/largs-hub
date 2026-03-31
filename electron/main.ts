@@ -239,6 +239,14 @@ ipcMain.handle("hide-service", () => {
   hideActiveService();
 });
 
+ipcMain.on("set-active-view-visible", (_event, visible: boolean) => {
+  if (!activeServiceId) return;
+  const view = serviceViews.get(activeServiceId);
+  if (view) {
+    view.setVisible(visible);
+  }
+});
+
 ipcMain.on("reload-service", (_event, serviceId: string) => {
   const view = serviceViews.get(serviceId);
   if (view) {
