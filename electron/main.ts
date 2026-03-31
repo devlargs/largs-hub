@@ -395,8 +395,62 @@ ipcMain.handle("get-app-version", () => {
   return app.getVersion();
 });
 
-ipcMain.handle("open-external", (_event, url: string) => {
-  require("electron").shell.openExternal(url);
+ipcMain.handle("download-and-install-update", async (_event, downloadUrl: string) => {
+  const fs = require("fs");
+  const https = require("https");
+  const http = require("http");
+  const tmpPath = path.join(app.getPath("temp"), "largs-hub-update.exe");
+
+  return new Promise<void>((resolve, reject) => {
+    const follow = (url: string) => {
+      const mod = url.startsWith("https") ? https : http;
+      mod.get(url, { headers: { "User-Agent": "Largs-Hub-Updater" } }, (res: any) => {
+        // Follow redirects (GitHub uses 302)
+        if (res.statusCode === 301 || res.statusCode === 302) {
+          return follow(res.headers.location);
+        }
+        if (res.statusCode !== 200) {
+          reject(new Error(`Download failed: ${res.statusCode}`));
+          return;
+        }
+
+        const totalBytes = parseInt(res.headers["content-length"] || "0", 10);
+        let downloaded = 0;
+        const file = fs.createWriteStream(tmpPath);
+
+        res.on("data", (chunk: Buffer) => {
+          downloaded += chunk.length;
+          if (totalBytes > 0 && mainWindow) {
+            mainWindow.webContents.send("update-download-progress", {
+              percent: Math.round((downloaded / totalBytes) * 100),
+            });
+          }
+        });
+
+        res.pipe(file);
+
+        file.on("finish", () => {
+          file.close(() => {
+            // Launch the installer and quit
+            const { spawn } = require("child_process");
+            spawn(tmpPath, ["/S"], {
+              detached: true,
+              stdio: "ignore",
+            }).unref();
+            app.quit();
+            resolve();
+          });
+        });
+
+        file.on("error", (err: Error) => {
+          fs.unlink(tmpPath, () => {});
+          reject(err);
+        });
+      }).on("error", reject);
+    };
+
+    follow(downloadUrl);
+  });
 });
 
 // Window controls

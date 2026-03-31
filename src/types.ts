@@ -39,7 +39,8 @@ export interface ElectronAPI {
   onSystemStats: (callback: (stats: SystemStats) => void) => () => void;
   checkForUpdates: () => Promise<{ updateAvailable: boolean; version?: string; downloadUrl?: string }>;
   getAppVersion: () => Promise<string>;
-  openExternal: (url: string) => Promise<void>;
+  downloadAndInstallUpdate: (downloadUrl: string) => Promise<void>;
+  onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
 }
 
 declare global {

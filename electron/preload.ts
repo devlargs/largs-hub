@@ -65,7 +65,12 @@ const api = {
   // Updates
   checkForUpdates: (): Promise<{ updateAvailable: boolean; version?: string; downloadUrl?: string }> => ipcRenderer.invoke("check-for-updates"),
   getAppVersion: (): Promise<string> => ipcRenderer.invoke("get-app-version"),
-  openExternal: (url: string): Promise<void> => ipcRenderer.invoke("open-external", url),
+  downloadAndInstallUpdate: (downloadUrl: string): Promise<void> => ipcRenderer.invoke("download-and-install-update", downloadUrl),
+  onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, info: { percent: number }) => callback(info);
+    ipcRenderer.on("update-download-progress", handler);
+    return () => ipcRenderer.removeListener("update-download-progress", handler);
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", api);
