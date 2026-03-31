@@ -44,6 +44,18 @@ body,
   50% { opacity: 0.4; }
 }
 
+/* Welcome screen – compact layout for short viewports */
+@media (max-height: 640px) {
+  .welcome-globe { margin-bottom: 16px !important; }
+  .welcome-globe svg { width: 96px !important; height: 96px !important; }
+  .welcome-title { font-size: 32px !important; margin-bottom: 10px !important; }
+  .welcome-subtitle { font-size: 15px !important; margin-bottom: 20px !important; }
+  .welcome-cta { padding: 10px 28px !important; margin-bottom: 12px !important; }
+  .welcome-connector-line { height: 24px !important; }
+  .welcome-connector-svg { height: 28px !important; }
+  .welcome-feature-section { display: none !important; }
+}
+
 /* Titlebar drag region */
 .titlebar-drag {
   -webkit-app-region: drag;

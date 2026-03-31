@@ -17,9 +17,9 @@ export default function Titlebar({
   onGoForward,
 }: TitlebarProps) {
   return (
-    <div className="titlebar-drag flex items-center bg-sidebar px-2 select-none shrink-0 border-b border-[#313244]" style={{ height: 46 }}>
+    <div className="titlebar-drag flex items-center bg-sidebar select-none shrink-0 border-b border-[#313244]" style={{ height: 46, paddingLeft: 24, paddingRight: 8 }}>
       {/* Navigation controls */}
-      <div className="titlebar-no-drag flex items-center gap-1 ml-[68px]">
+      <div className="titlebar-no-drag flex items-center gap-1">
         {activeService ? (
           <>
             <button

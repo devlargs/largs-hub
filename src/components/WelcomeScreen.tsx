@@ -5,7 +5,7 @@ interface WelcomeScreenProps {
 export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
   return (
     <div
-      className="relative flex flex-col items-center justify-center h-full text-center overflow-hidden max-sm:px-4 max-sm:py-6"
+      className="relative flex flex-col items-center justify-center min-h-full text-center overflow-y-auto max-sm:px-4 max-sm:py-6"
       style={{ padding: "48px 64px" }}
     >
       {/* Starfield background */}
@@ -35,7 +35,7 @@ export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
       </div>
 
       {/* Globe with glow */}
-      <div className="relative max-sm:mb-6" style={{ marginBottom: 40 }}>
+      <div className="relative welcome-globe max-sm:mb-6" style={{ marginBottom: 40 }}>
         <div
           className="absolute inset-0 rounded-full"
           style={{
@@ -68,7 +68,7 @@ export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
 
       {/* Title */}
       <h1
-        className="relative text-white tracking-tight max-sm:!text-3xl max-sm:!mb-3"
+        className="relative text-white tracking-tight welcome-title max-sm:!text-3xl max-sm:!mb-3"
         style={{ fontSize: 48, fontWeight: 800, marginBottom: 20 }}
       >
         Welcome to Largs Hub
@@ -76,7 +76,7 @@ export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
 
       {/* Subtitle */}
       <p
-        className="relative max-sm:!text-sm max-sm:!mb-6 max-sm:!max-w-xs"
+        className="relative welcome-subtitle max-sm:!text-sm max-sm:!mb-6 max-sm:!max-w-xs"
         style={{
           color: "#a6adc8",
           fontSize: 18,
@@ -92,7 +92,7 @@ export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
       {/* CTA Button */}
       <button
         onClick={onAddService}
-        className="relative z-10 cursor-pointer transition-all max-sm:!text-sm max-sm:!px-6 max-sm:!py-3"
+        className="relative z-10 cursor-pointer transition-all welcome-cta max-sm:!text-sm max-sm:!px-6 max-sm:!py-3"
         style={{
           padding: "16px 40px",
           fontSize: 16,
@@ -109,10 +109,10 @@ export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
       </button>
 
       {/* Feature section with bracket connector */}
-      <div className="relative" style={{ width: "100%", maxWidth: 640 }}>
+      <div className="relative welcome-feature-section" style={{ width: "100%", maxWidth: 640 }}>
         {/* Vertical line from button */}
         <div
-          className="max-sm:hidden"
+          className="welcome-connector-line max-sm:hidden"
           style={{
             width: 1,
             height: 40,
@@ -123,7 +123,7 @@ export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
 
         {/* Bracket connector SVG */}
         <svg
-          className="max-sm:hidden"
+          className="welcome-connector-svg max-sm:hidden"
           style={{ width: "100%", height: 40, display: "block" }}
           viewBox="0 0 640 40"
           fill="none"
@@ -141,7 +141,7 @@ export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
 
         {/* Feature cards */}
         <div
-          className="max-sm:!grid-cols-1 max-sm:!gap-5 max-sm:!mt-0"
+          className="welcome-features max-sm:!grid-cols-1 max-sm:!gap-5 max-sm:!mt-0"
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr 1fr",
