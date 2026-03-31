@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Service } from "../types";
 import { v4 as uuidv4 } from "uuid";
 import serviceIcons from "../assets/serviceIcons";
@@ -32,6 +32,17 @@ export default function AddServiceModal({
 }: AddServiceModalProps) {
   const [search, setSearch] = useState("");
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [visible, setVisible] = useState(false);
+  const [closing, setClosing] = useState(false);
+
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setClosing(true);
+    setTimeout(onClose, 200);
+  }, [onClose]);
 
   const filtered = POPULAR_SERVICES.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase()),
@@ -53,17 +64,23 @@ export default function AddServiceModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center transition-all duration-200 ease-out"
+      style={{
+        backgroundColor: visible && !closing ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0)",
+        backdropFilter: visible && !closing ? "blur(4px)" : "blur(0px)",
+      }}
+      onClick={handleClose}
     >
       <div
-        className="bg-sidebar rounded-3xl shadow-2xl mx-4"
+        className="bg-sidebar rounded-3xl shadow-2xl mx-4 transition-all duration-200 ease-out"
         style={{
           width: 600,
           maxHeight: "90vh",
           padding: "40px 40px 40px",
           display: "flex",
           flexDirection: "column" as const,
+          opacity: visible && !closing ? 1 : 0,
+          transform: visible && !closing ? "scale(1) translateY(0)" : "scale(0.95) translateY(12px)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -152,7 +169,7 @@ export default function AddServiceModal({
         {/* Footer buttons */}
         <div className="flex justify-end" style={{ gap: 12 }}>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-sm cursor-pointer transition-colors"
             style={{
               padding: "10px 24px",
