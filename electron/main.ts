@@ -116,6 +116,13 @@ function createServiceView(service: Service): WebContentsView {
   });
 
   view.setBackgroundColor("#00000000");
+
+  // Spoof user agent so sites like WhatsApp Web don't reject Electron
+  const chromeVersion = process.versions.chrome;
+  view.webContents.setUserAgent(
+    `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`
+  );
+
   view.webContents.loadURL(service.url);
 
   // Track page title changes for notification detection

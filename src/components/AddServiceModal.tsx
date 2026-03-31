@@ -61,7 +61,7 @@ export default function AddServiceModal({
                   <img
                     src={serviceIcons[preset.icon]}
                     alt={preset.name}
-                    className="w-8 h-8"
+                    className="w-8 h-8 object-contain"
                   />
                 </div>
                 <span className="text-[11px] text-gray-500 group-hover:text-gray-300 transition-colors">

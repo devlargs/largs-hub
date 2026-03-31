@@ -52,7 +52,7 @@ export default function Sidebar({
             {(() => {
               const resolved = resolveIcon(service.icon, service.name);
               if (resolved) {
-                return <img src={resolved} alt={service.name} className="w-7 h-7 rounded" />;
+                return <img src={resolved} alt={service.name} className="w-7 h-7 rounded object-contain" />;
               }
               if (service.icon) {
                 return <span className="text-2xl">{service.icon}</span>;
