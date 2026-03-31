@@ -7,6 +7,13 @@ export interface Service {
   notificationCount: number;
 }
 
+export interface SystemStats {
+  cpu: number;
+  memUsed: number;
+  memTotal: number;
+  appMem: number;
+}
+
 export interface ElectronAPI {
   getServices: () => Promise<Service[]>;
   addService: (service: Service) => Promise<Service[]>;
@@ -25,6 +32,9 @@ export interface ElectronAPI {
   onNotificationUpdate: (
     callback: (data: { serviceId: string; count: number }) => void
   ) => () => void;
+  startSystemStats: () => void;
+  stopSystemStats: () => void;
+  onSystemStats: (callback: (stats: SystemStats) => void) => () => void;
   onUpdateAvailable: (callback: (info: { version: string }) => void) => () => void;
   onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
   onUpdateDownloaded: (callback: () => void) => () => void;

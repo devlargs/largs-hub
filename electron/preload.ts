@@ -49,6 +49,15 @@ const api = {
     return () => ipcRenderer.removeListener("notification-update", handler);
   },
 
+  // System stats
+  startSystemStats: () => ipcRenderer.send("start-system-stats"),
+  stopSystemStats: () => ipcRenderer.send("stop-system-stats"),
+  onSystemStats: (callback: (stats: { cpu: number; memUsed: number; memTotal: number; appMem: number }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, stats: { cpu: number; memUsed: number; memTotal: number; appMem: number }) => callback(stats);
+    ipcRenderer.on("system-stats", handler);
+    return () => ipcRenderer.removeListener("system-stats", handler);
+  },
+
   // Auto-update
   onUpdateAvailable: (callback: (info: { version: string }) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, info: { version: string }) => callback(info);
