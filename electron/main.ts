@@ -1,7 +1,7 @@
 import {
   app,
   BrowserWindow,
-  BrowserView,
+  WebContentsView,
   ipcMain,
   session,
   nativeImage,
@@ -33,7 +33,7 @@ const store = new Store<StoreSchema>({
 });
 
 let mainWindow: BrowserWindow | null = null;
-const serviceViews = new Map<string, BrowserView>();
+const serviceViews = new Map<string, WebContentsView>();
 let activeServiceId: string | null = null;
 const SIDEBAR_WIDTH = 68;
 
@@ -103,11 +103,10 @@ function repositionActiveView() {
   }
 }
 
-function createServiceView(service: Service): BrowserView {
+function createServiceView(service: Service): WebContentsView {
   const partition = `persist:service-${service.id}`;
-  const ses = session.fromPartition(partition);
 
-  const view = new BrowserView({
+  const view = new WebContentsView({
     webPreferences: {
       partition,
       contextIsolation: true,
@@ -116,6 +115,7 @@ function createServiceView(service: Service): BrowserView {
     },
   });
 
+  view.setBackgroundColor("#00000000");
   view.webContents.loadURL(service.url);
 
   // Track page title changes for notification detection
@@ -146,7 +146,7 @@ function showService(serviceId: string) {
   if (activeServiceId) {
     const currentView = serviceViews.get(activeServiceId);
     if (currentView) {
-      mainWindow.removeBrowserView(currentView);
+      mainWindow.contentView.removeChildView(currentView);
     }
   }
 
@@ -160,7 +160,7 @@ function showService(serviceId: string) {
     serviceViews.set(serviceId, view);
   }
 
-  mainWindow.addBrowserView(view);
+  mainWindow.contentView.addChildView(view);
   view.setBounds(getViewBounds());
   activeServiceId = serviceId;
 }
@@ -169,7 +169,7 @@ function hideActiveService() {
   if (!mainWindow || !activeServiceId) return;
   const currentView = serviceViews.get(activeServiceId);
   if (currentView) {
-    mainWindow.removeBrowserView(currentView);
+    mainWindow.contentView.removeChildView(currentView);
   }
   activeServiceId = null;
 }
@@ -194,10 +194,10 @@ ipcMain.handle("remove-service", (_event, serviceId: string) => {
   const view = serviceViews.get(serviceId);
   if (view) {
     if (mainWindow && activeServiceId === serviceId) {
-      mainWindow.removeBrowserView(view);
+      mainWindow.contentView.removeChildView(view);
       activeServiceId = null;
     }
-    (view.webContents as any).destroy();
+    view.webContents.close();
     serviceViews.delete(serviceId);
   }
 
