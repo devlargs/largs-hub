@@ -36,6 +36,7 @@ let mainWindow: BrowserWindow | null = null;
 const serviceViews = new Map<string, WebContentsView>();
 let activeServiceId: string | null = null;
 const SIDEBAR_WIDTH = 68;
+const TITLEBAR_HEIGHT = 46;
 
 function createWindow() {
   const bounds = store.get("windowBounds");
@@ -58,7 +59,10 @@ function createWindow() {
     },
   });
 
-  if (process.env.NODE_ENV === "development" || process.argv.includes("--dev")) {
+  if (
+    process.env.NODE_ENV === "development" ||
+    process.argv.includes("--dev")
+  ) {
     mainWindow.loadURL("http://localhost:5173");
   } else {
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
@@ -67,7 +71,11 @@ function createWindow() {
   mainWindow.on("resize", () => {
     if (mainWindow) {
       const [width, height] = mainWindow.getSize();
-      store.set("windowBounds", { ...store.get("windowBounds"), width, height });
+      store.set("windowBounds", {
+        ...store.get("windowBounds"),
+        width,
+        height,
+      });
       repositionActiveView();
     }
   });
@@ -86,13 +94,13 @@ function createWindow() {
 }
 
 function getViewBounds() {
-  if (!mainWindow) return { x: SIDEBAR_WIDTH, y: 32, width: 800, height: 600 };
+  if (!mainWindow) return { x: SIDEBAR_WIDTH, y: TITLEBAR_HEIGHT, width: 800, height: 600 };
   const [width, height] = mainWindow.getContentSize();
   return {
     x: SIDEBAR_WIDTH,
-    y: 40, // titlebar height
+    y: TITLEBAR_HEIGHT,
     width: Math.max(0, width - SIDEBAR_WIDTH),
-    height: Math.max(0, height - 40),
+    height: Math.max(0, height - TITLEBAR_HEIGHT),
   };
 }
 
@@ -121,7 +129,7 @@ function createServiceView(service: Service): WebContentsView {
   // Spoof user agent so sites like WhatsApp Web don't reject Electron
   const chromeVersion = process.versions.chrome;
   view.webContents.setUserAgent(
-    `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`
+    `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`,
   );
 
   view.webContents.loadURL(service.url);
@@ -216,9 +224,9 @@ ipcMain.handle("remove-service", (_event, serviceId: string) => {
 });
 
 ipcMain.handle("update-service", (_event, updated: Service) => {
-  const services = store.get("services").map((s) =>
-    s.id === updated.id ? updated : s
-  );
+  const services = store
+    .get("services")
+    .map((s) => (s.id === updated.id ? updated : s));
   store.set("services", services);
   return services;
 });
