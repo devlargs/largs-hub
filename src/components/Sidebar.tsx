@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Service, SystemStats } from "../types";
 import { resolveIcon } from "../assets/serviceIcons";
+import { IoSunny, IoMoon } from "react-icons/io5";
 
 interface SidebarProps {
   services: Service[];
@@ -41,7 +42,7 @@ function StatRing({
           cy={22}
           r={radius}
           fill="none"
-          stroke="#313244"
+          stroke="var(--stat-ring-bg)"
           strokeWidth={stroke}
         />
         <circle
@@ -61,11 +62,11 @@ function StatRing({
         className="absolute flex flex-col items-center justify-center"
         style={{ width: 44, height: 44 }}
       >
-        <span className="text-[10px] font-bold font-mono text-gray-300">
+        <span className="text-[10px] font-bold font-mono" style={{ color: "var(--text-primary)" }}>
           {value}%
         </span>
       </div>
-      <span className="text-[9px] font-medium text-gray-500 -mt-1">
+      <span className="text-[9px] font-medium -mt-1" style={{ color: "var(--text-muted)" }}>
         {label}
       </span>
     </div>
@@ -81,6 +82,22 @@ export default function Sidebar({
   onEditService,
 }: SidebarProps) {
   const [stats, setStats] = useState<SystemStats | null>(null);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    window.electronAPI.getTheme().then((t) => {
+      setTheme(t);
+      document.documentElement.classList.toggle("light", t === "light");
+    });
+  }, []);
+
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.classList.toggle("light", next === "light");
+    window.electronAPI?.setTheme(next);
+  };
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -212,12 +229,22 @@ export default function Sidebar({
               <span className="text-[10px] font-medium text-[#89b4fa]">
                 APP
               </span>
-              <span className="text-[10px] text-gray-500 font-mono">
+              <span className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>
                 {stats.appMem}M
               </span>
             </div>
           </div>
         )}
+
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer hover:bg-sidebar-hover"
+          style={{ color: "var(--text-muted)", marginBottom: 4 }}
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {theme === "dark" ? <IoSunny size={18} /> : <IoMoon size={18} />}
+        </button>
       </div>
 
       {/* Context menu */}
@@ -229,8 +256,10 @@ export default function Sidebar({
             onClick={closeContextMenu}
           />
           <div
-            className="fixed bg-[#1e1e2e] rounded-xl shadow-2xl border border-[#45475a]"
+            className="fixed rounded-xl shadow-2xl"
             style={{
+              backgroundColor: "var(--context-bg)",
+              border: "1px solid var(--border)",
               zIndex: 9999,
               left: contextMenu.x,
               top: contextMenu.y,
@@ -239,8 +268,10 @@ export default function Sidebar({
             }}
           >
             <button
-              className="w-full text-left text-sm text-gray-200 hover:bg-[#313244] transition-colors rounded-lg cursor-pointer"
-              style={{ padding: "10px 14px" }}
+              className="w-full text-left text-sm transition-colors rounded-lg cursor-pointer"
+              style={{ padding: "10px 14px", color: "var(--text-primary)" }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--context-hover)"}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
               onClick={() => {
                 onEditService(contextMenu.service);
                 closeContextMenu();
@@ -249,8 +280,10 @@ export default function Sidebar({
               Edit service
             </button>
             <button
-              className="w-full text-left text-sm text-gray-200 hover:bg-[#313244] transition-colors rounded-lg cursor-pointer"
-              style={{ padding: "10px 14px" }}
+              className="w-full text-left text-sm transition-colors rounded-lg cursor-pointer"
+              style={{ padding: "10px 14px", color: "var(--text-primary)" }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--context-hover)"}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
               onClick={() => {
                 window.electronAPI?.reloadService(contextMenu.service.id);
                 closeContextMenu();
@@ -258,10 +291,12 @@ export default function Sidebar({
             >
               Reload
             </button>
-            <div style={{ borderTop: "1px solid #313244", margin: "4px 0" }} />
+            <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }} />
             <button
-              className="w-full text-left text-sm text-red-400 hover:bg-[#313244] transition-colors rounded-lg cursor-pointer"
+              className="w-full text-left text-sm text-red-400 transition-colors rounded-lg cursor-pointer"
               style={{ padding: "10px 14px" }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--context-hover)"}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
               onClick={() => {
                 onRemoveService(contextMenu.service.id);
                 closeContextMenu();

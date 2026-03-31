@@ -35,17 +35,17 @@ export default function UpdateNotification() {
   if (state === "idle" || dismissed) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 bg-sidebar border border-sidebar-active rounded-lg shadow-lg p-4 max-w-xs">
+    <div className="fixed bottom-4 right-4 z-50 bg-sidebar rounded-lg shadow-lg p-4 max-w-xs" style={{ border: "1px solid var(--border)" }}>
       <button
         onClick={() => setDismissed(true)}
-        className="absolute top-2 right-2 text-gray-400 hover:text-white text-sm leading-none"
+        className="absolute top-2 right-2 text-sm leading-none" style={{ color: "var(--text-muted)" }}
       >
         &times;
       </button>
 
       {state === "available" && (
         <div>
-          <p className="text-white text-sm mb-2">
+          <p className="text-sm mb-2" style={{ color: "var(--text-primary)" }}>
             Update <span className="text-accent font-semibold">v{version}</span> is available
           </p>
           <button
@@ -62,7 +62,7 @@ export default function UpdateNotification() {
 
       {state === "downloading" && (
         <div>
-          <p className="text-white text-sm mb-2">Downloading update... {percent}%</p>
+          <p className="text-sm mb-2" style={{ color: "var(--text-primary)" }}>Downloading update... {percent}%</p>
           <div className="w-full bg-sidebar-active rounded-full h-1.5">
             <div
               className="bg-accent h-1.5 rounded-full transition-all"
@@ -74,7 +74,7 @@ export default function UpdateNotification() {
 
       {state === "ready" && (
         <div>
-          <p className="text-white text-sm mb-2">Update ready to install</p>
+          <p className="text-sm mb-2" style={{ color: "var(--text-primary)" }}>Update ready to install</p>
           <button
             onClick={() => window.electronAPI.installUpdate()}
             className="bg-accent text-surface text-sm font-medium px-3 py-1.5 rounded hover:opacity-90 transition-opacity"

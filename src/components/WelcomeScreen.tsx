@@ -68,8 +68,8 @@ export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
 
       {/* Title */}
       <h1
-        className="relative text-white tracking-tight welcome-title max-sm:!text-3xl max-sm:!mb-3"
-        style={{ fontSize: 48, fontWeight: 800, marginBottom: 20 }}
+        className="relative tracking-tight welcome-title max-sm:!text-3xl max-sm:!mb-3"
+        style={{ fontSize: 48, fontWeight: 800, marginBottom: 20, color: "var(--text-primary)" }}
       >
         Welcome to Largs Hub
       </h1>
@@ -78,7 +78,7 @@ export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
       <p
         className="relative welcome-subtitle max-sm:!text-sm max-sm:!mb-6 max-sm:!max-w-xs"
         style={{
-          color: "#a6adc8",
+          color: "var(--text-secondary)",
           fontSize: 18,
           lineHeight: 1.7,
           maxWidth: 520,
@@ -97,11 +97,11 @@ export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
           padding: "16px 40px",
           fontSize: 16,
           fontWeight: 600,
-          color: "white",
+          color: "var(--text-primary)",
           borderRadius: 9999,
-          border: "2px solid #89b4fa",
-          background: "rgba(137,180,250,0.15)",
-          boxShadow: "0 0 24px rgba(137,180,250,0.45)",
+          border: "2px solid var(--accent)",
+          background: "color-mix(in srgb, var(--accent) 15%, transparent)",
+          boxShadow: "0 0 24px color-mix(in srgb, var(--accent) 45%, transparent)",
           marginBottom: 24,
         }}
       >
@@ -162,16 +162,16 @@ export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
               style={{ width: 56, height: 56 }}
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#cdd6f4"
+              stroke="var(--text-primary)"
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0110 0v4" />
-              <circle cx="12" cy="16" r="1" fill="#cdd6f4" />
+              <circle cx="12" cy="16" r="1" fill="var(--text-primary)" />
             </svg>
-            <span style={{ color: "white", fontSize: 18, fontWeight: 500 }}>
+            <span style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 500 }}>
               Isolated sessions
             </span>
           </div>
@@ -189,7 +189,7 @@ export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
               style={{ width: 56, height: 56 }}
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#cdd6f4"
+              stroke="var(--text-primary)"
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -197,7 +197,7 @@ export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
               <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 01-3.46 0" />
             </svg>
-            <span style={{ color: "white", fontSize: 18, fontWeight: 500 }}>
+            <span style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 500 }}>
               Notification badges
             </span>
           </div>
@@ -215,14 +215,14 @@ export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
               style={{ width: 56, height: 56 }}
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#cdd6f4"
+              stroke="var(--text-primary)"
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
               <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" />
             </svg>
-            <span style={{ color: "white", fontSize: 18, fontWeight: 500 }}>
+            <span style={{ color: "var(--text-primary)", fontSize: 18, fontWeight: 500 }}>
               Fast switching
             </span>
           </div>
