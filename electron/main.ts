@@ -130,11 +130,13 @@ function createServiceView(service: Service): WebContentsView {
 
   view.setBackgroundColor("#00000000");
 
-  // Spoof user agent so sites like WhatsApp Web don't reject Electron
+  // Spoof user agent so sites like Google and WhatsApp don't reject Electron
   const chromeVersion = process.versions.chrome;
-  view.webContents.setUserAgent(
-    `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`,
-  );
+  const spoofedUA = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
+  view.webContents.setUserAgent(spoofedUA);
+
+  // Also set at session level so OAuth popups inherit the spoofed UA
+  view.webContents.session.setUserAgent(spoofedUA);
 
   view.webContents.loadURL(service.url);
 
@@ -150,8 +152,40 @@ function createServiceView(service: Service): WebContentsView {
     }
   });
 
-  // Open external links in default browser
+  // Handle popups: allow same-service and auth flows in-app, open truly external links in browser
   view.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const parsed = new URL(url);
+      const serviceHost = new URL(service.url).hostname.replace(/^www\./, "");
+      const popupHost = parsed.hostname.replace(/^www\./, "");
+
+      // Allow if same domain as the service
+      if (popupHost.endsWith(serviceHost) || serviceHost.endsWith(popupHost)) {
+        return { action: "allow" };
+      }
+
+      // Allow common auth/login providers
+      const allowedDomains = [
+        "google.com", "googleapis.com", "gstatic.com",
+        "facebook.com", "fbcdn.net", "messenger.com",
+        "apple.com", "icloud.com",
+        "microsoft.com", "live.com", "microsoftonline.com",
+        "github.com",
+        "slack.com",
+        "discord.com", "discordapp.com",
+        "telegram.org",
+        "linkedin.com",
+        "twitter.com", "x.com",
+        "notion.so", "notion-static.com",
+        "reddit.com", "redditstatic.com",
+        "whatsapp.com", "whatsapp.net",
+      ];
+
+      if (allowedDomains.some((d) => popupHost === d || popupHost.endsWith("." + d))) {
+        return { action: "allow" };
+      }
+    } catch {}
+
     require("electron").shell.openExternal(url);
     return { action: "deny" };
   });
