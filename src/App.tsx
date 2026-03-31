@@ -106,7 +106,6 @@ function App() {
             setEditingService(null);
             setActiveServiceId(null);
             await window.electronAPI?.hideService();
-            setShowAddModal(true);
           }}
           onRemoveService={handleRemoveService}
           onEditService={handleEditService}
