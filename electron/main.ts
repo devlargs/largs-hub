@@ -39,6 +39,7 @@ app.setName("Largs Hub");
 
 let mainWindow: BrowserWindow | null = null;
 const serviceViews = new Map<string, WebContentsView>();
+const notificationCounts = new Map<string, number>();
 let activeServiceId: string | null = null;
 const SIDEBAR_WIDTH = 68;
 const TITLEBAR_HEIGHT = 46;
@@ -130,6 +131,37 @@ function repositionActiveView() {
   }
 }
 
+function updateTaskbarBadge() {
+  if (!mainWindow) return;
+  let total = 0;
+  for (const count of notificationCounts.values()) {
+    total += count;
+  }
+  if (total > 0) {
+    mainWindow.setOverlayIcon(
+      createBadgeIcon(total),
+      `${total} notifications`,
+    );
+  } else {
+    mainWindow.setOverlayIcon(null, "");
+  }
+}
+
+function createBadgeIcon(count: number): Electron.NativeImage {
+  const text = count > 99 ? "99+" : String(count);
+  // Use an offscreen BrowserWindow to render badge as PNG
+  // For simplicity, create a data URL PNG via SVG → img conversion isn't available,
+  // so we'll use Electron's built-in approach with a simple colored square
+  const size = 16;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+    <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#ef4444"/>
+    <text x="${size / 2}" y="${size / 2 + 1}" text-anchor="middle" dominant-baseline="central"
+      font-family="Arial" font-size="${text.length > 2 ? 7 : text.length > 1 ? 8 : 10}" font-weight="bold" fill="white">${text}</text>
+  </svg>`;
+  const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+  return nativeImage.createFromDataURL(dataUrl);
+}
+
 function createServiceView(service: Service): WebContentsView {
   const partition = `persist:service-${service.id}`;
 
@@ -155,16 +187,64 @@ function createServiceView(service: Service): WebContentsView {
   view.webContents.loadURL(service.url);
 
   // Track page title changes for notification detection
+  const updateNotificationCount = (count: number) => {
+    const prev = notificationCounts.get(service.id) || 0;
+    if (count !== prev) {
+      notificationCounts.set(service.id, count);
+      updateTaskbarBadge();
+      if (mainWindow) {
+        mainWindow.webContents.send("notification-update", {
+          serviceId: service.id,
+          count,
+        });
+      }
+    }
+  };
+
   view.webContents.on("page-title-updated", (_event, title) => {
     const match = title.match(/\((\d+)\)/);
     const count = match ? parseInt(match[1], 10) : 0;
-    if (mainWindow) {
-      mainWindow.webContents.send("notification-update", {
-        serviceId: service.id,
-        count,
-      });
-    }
+    updateNotificationCount(count);
   });
+
+  // Poll for unread count (title-based + DOM-based for apps like WhatsApp)
+  const pollInterval = setInterval(() => {
+    if (view.webContents.isDestroyed()) {
+      clearInterval(pollInterval);
+      return;
+    }
+
+    // Try title-based detection first
+    view.webContents.executeJavaScript(`
+      (() => {
+        // Check page title for (N) pattern
+        const titleMatch = document.title.match(/\\((\\d+)\\)/);
+        if (titleMatch) return parseInt(titleMatch[1], 10);
+
+        // WhatsApp: check the "Unread N" filter button or unread badge spans
+        const allText = document.body.innerText || "";
+        const unreadTabMatch = allText.match(/Unread\\s+(\\d+)/);
+        if (unreadTabMatch) return parseInt(unreadTabMatch[1], 10);
+
+        // WhatsApp: count green unread indicator dots in chat list
+        const unreadSpans = document.querySelectorAll('span[aria-label*="unread"]');
+        if (unreadSpans.length > 0) {
+          let total = 0;
+          unreadSpans.forEach(el => {
+            const num = parseInt(el.textContent || "0", 10);
+            total += num > 0 ? num : 1;
+          });
+          if (total > 0) return total;
+        }
+
+        return 0;
+      })()
+    `, true)
+      .then((count: number) => {
+        updateNotificationCount(count);
+      })
+      .catch(() => {});
+  }, 5000);
 
   // Handle popups: navigate in-app for known domains, open external for others
   view.webContents.setWindowOpenHandler(({ url }) => {
@@ -271,6 +351,8 @@ ipcMain.handle("remove-service", (_event, serviceId: string) => {
     view.webContents.close();
     serviceViews.delete(serviceId);
   }
+  notificationCounts.delete(serviceId);
+  updateTaskbarBadge();
 
   return services;
 });
