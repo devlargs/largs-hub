@@ -35,6 +35,8 @@ const store = new Store<StoreSchema>({
   },
 });
 
+app.setName("Largs Hub");
+
 let mainWindow: BrowserWindow | null = null;
 const serviceViews = new Map<string, WebContentsView>();
 let activeServiceId: string | null = null;
