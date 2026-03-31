@@ -42,7 +42,7 @@ export default function UpdatePage() {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: "var(--surface)" }}>
+    <div className="flex items-center justify-center" style={{ backgroundColor: "var(--surface)", width: "100%", height: "100%" }}>
       <div
         className="flex flex-col items-center text-center"
         style={{ maxWidth: 400, padding: 40 }}
