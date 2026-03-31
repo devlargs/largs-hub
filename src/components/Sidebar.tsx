@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Service } from "../types";
+import { useState, useEffect } from "react";
+import { Service, SystemStats } from "../types";
 import { resolveIcon } from "../assets/serviceIcons";
 
 interface SidebarProps {
@@ -11,6 +11,67 @@ interface SidebarProps {
   onEditService: (service: Service) => void;
 }
 
+function getStatColor(value: number): string {
+  if (value < 50) return "#a6e3a1";
+  if (value < 80) return "#f9e2af";
+  return "#f38ba8";
+}
+
+function StatRing({
+  label,
+  value,
+  color,
+  tooltip,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  tooltip: string;
+}) {
+  const radius = 18;
+  const stroke = 3;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (value / 100) * circumference;
+
+  return (
+    <div className="relative flex flex-col items-center" title={tooltip}>
+      <svg width={44} height={44} className="-rotate-90">
+        <circle
+          cx={22}
+          cy={22}
+          r={radius}
+          fill="none"
+          stroke="#313244"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={22}
+          cy={22}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-all duration-700 ease-out"
+        />
+      </svg>
+      <div
+        className="absolute flex flex-col items-center justify-center"
+        style={{ width: 44, height: 44 }}
+      >
+        <span className="text-[10px] font-bold font-mono text-gray-300">
+          {value}%
+        </span>
+      </div>
+      <span className="text-[9px] font-medium text-gray-500 -mt-1">
+        {label}
+      </span>
+    </div>
+  );
+}
+
 export default function Sidebar({
   services,
   activeServiceId,
@@ -19,6 +80,18 @@ export default function Sidebar({
   onRemoveService,
   onEditService,
 }: SidebarProps) {
+  const [stats, setStats] = useState<SystemStats | null>(null);
+
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    window.electronAPI.startSystemStats();
+    const unsub = window.electronAPI.onSystemStats(setStats);
+    return () => {
+      unsub();
+      window.electronAPI.stopSystemStats();
+    };
+  }, []);
+
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -40,7 +113,10 @@ export default function Sidebar({
 
   return (
     <>
-      <div className="w-17 bg-sidebar flex flex-col items-center pt-3 pb-2 gap-1 shrink-0 overflow-y-auto">
+      <div
+        className="w-17 bg-sidebar flex flex-col items-center pb-4 shrink-0 overflow-y-auto"
+        style={{ gap: 8, paddingTop: 8 }}
+      >
         {services.map((service) => (
           <button
             key={service.id}
@@ -105,6 +181,43 @@ export default function Sidebar({
         >
           <span className="text-2xl leading-none">+</span>
         </button>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* System stats */}
+        {stats && (
+          <div
+            className="flex flex-col items-center gap-2"
+            style={{ marginBottom: 16 }}
+          >
+            <StatRing
+              label="CPU"
+              value={stats.cpu}
+              color={getStatColor(stats.cpu)}
+              tooltip={`CPU: ${stats.cpu}%`}
+            />
+            <StatRing
+              label="MEM"
+              value={Math.round((stats.memUsed / stats.memTotal) * 100)}
+              color={getStatColor(
+                Math.round((stats.memUsed / stats.memTotal) * 100),
+              )}
+              tooltip={`Memory: ${stats.memUsed} / ${stats.memTotal} MB`}
+            />
+            <div
+              className="flex flex-col items-center"
+              title={`App: ${stats.appMem} MB`}
+            >
+              <span className="text-[10px] font-medium text-[#89b4fa]">
+                APP
+              </span>
+              <span className="text-[10px] text-gray-500 font-mono">
+                {stats.appMem}M
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Context menu */}
