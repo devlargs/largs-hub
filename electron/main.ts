@@ -146,11 +146,11 @@ function showService(serviceId: string) {
   if (activeServiceId) {
     const currentView = serviceViews.get(activeServiceId);
     if (currentView) {
-      mainWindow.contentView.removeChildView(currentView);
+      currentView.setVisible(false);
     }
   }
 
-  // Show requested view
+  // Show or create requested view
   let view = serviceViews.get(serviceId);
   if (!view) {
     const services = store.get("services");
@@ -158,9 +158,10 @@ function showService(serviceId: string) {
     if (!service) return;
     view = createServiceView(service);
     serviceViews.set(serviceId, view);
+    mainWindow.contentView.addChildView(view);
   }
 
-  mainWindow.contentView.addChildView(view);
+  view.setVisible(true);
   view.setBounds(getViewBounds());
   activeServiceId = serviceId;
 }
@@ -169,7 +170,7 @@ function hideActiveService() {
   if (!mainWindow || !activeServiceId) return;
   const currentView = serviceViews.get(activeServiceId);
   if (currentView) {
-    mainWindow.contentView.removeChildView(currentView);
+    currentView.setVisible(false);
   }
   activeServiceId = null;
 }
@@ -193,9 +194,11 @@ ipcMain.handle("remove-service", (_event, serviceId: string) => {
   // Clean up the view
   const view = serviceViews.get(serviceId);
   if (view) {
-    if (mainWindow && activeServiceId === serviceId) {
-      mainWindow.contentView.removeChildView(view);
+    if (activeServiceId === serviceId) {
       activeServiceId = null;
+    }
+    if (mainWindow) {
+      mainWindow.contentView.removeChildView(view);
     }
     view.webContents.close();
     serviceViews.delete(serviceId);
@@ -225,7 +228,7 @@ ipcMain.on("show-service", (_event, serviceId: string) => {
   showService(serviceId);
 });
 
-ipcMain.on("hide-service", () => {
+ipcMain.handle("hide-service", () => {
   hideActiveService();
 });
 

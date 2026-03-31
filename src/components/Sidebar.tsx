@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Service } from "../types";
+import { resolveIcon } from "../assets/serviceIcons";
 
 interface SidebarProps {
   services: Service[];
@@ -48,16 +49,23 @@ export default function Sidebar({
             `}
             title={service.name}
           >
-            {service.icon ? (
-              <span className="text-2xl">{service.icon}</span>
-            ) : (
-              <span
-                className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-                style={{ backgroundColor: service.color || "#6c7086" }}
-              >
-                {service.name.charAt(0).toUpperCase()}
-              </span>
-            )}
+            {(() => {
+              const resolved = resolveIcon(service.icon, service.name);
+              if (resolved) {
+                return <img src={resolved} alt={service.name} className="w-7 h-7 rounded" />;
+              }
+              if (service.icon) {
+                return <span className="text-2xl">{service.icon}</span>;
+              }
+              return (
+                <span
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                  style={{ backgroundColor: service.color || "#6c7086" }}
+                >
+                  {service.name.charAt(0).toUpperCase()}
+                </span>
+              );
+            })()}
 
             {/* Notification badge */}
             {service.notificationCount > 0 && (

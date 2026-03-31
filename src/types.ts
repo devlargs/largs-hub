@@ -14,7 +14,7 @@ export interface ElectronAPI {
   updateService: (service: Service) => Promise<Service[]>;
   reorderServices: (serviceIds: string[]) => Promise<Service[]>;
   showService: (serviceId: string) => void;
-  hideService: () => void;
+  hideService: () => Promise<void>;
   reloadService: (serviceId: string) => void;
   goBack: (serviceId: string) => void;
   goForward: (serviceId: string) => void;

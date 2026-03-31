@@ -7,7 +7,7 @@
     "vite:dev": "vite",
     "build": "tsc && vite build && tsc -p tsconfig.electron.json",
     "preview": "vite preview",
-    "dev": "concurrently \"vite\" \"tsc -p tsconfig.electron.json --watch\" \"electron .\"",
+    "dev": "concurrently \"vite\" \"tsc -p tsconfig.electron.json --watch\" \"electron . --dev\"",
     "electron:build": "npm run build && electron-builder"
   },
   "keywords": [

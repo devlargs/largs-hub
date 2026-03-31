@@ -18,33 +18,33 @@ function App() {
       setServices(loaded);
     });
 
-    const unsub = window.electronAPI.onNotificationUpdate(({ serviceId, count }) => {
-      setServices((prev) =>
-        prev.map((s) =>
-          s.id === serviceId ? { ...s, notificationCount: count } : s
-        )
-      );
-    });
+    const unsub = window.electronAPI.onNotificationUpdate(
+      ({ serviceId, count }) => {
+        setServices((prev) =>
+          prev.map((s) =>
+            s.id === serviceId ? { ...s, notificationCount: count } : s,
+          ),
+        );
+      },
+    );
 
     return unsub;
   }, []);
 
-  const handleSelectService = useCallback(
-    (serviceId: string) => {
-      setActiveServiceId(serviceId);
-      window.electronAPI?.showService(serviceId);
-    },
-    []
-  );
+  const handleSelectService = useCallback((serviceId: string) => {
+    setActiveServiceId(serviceId);
+    window.electronAPI?.showService(serviceId);
+  }, []);
 
   const handleAddService = useCallback(
     async (service: Service) => {
       const updated = await window.electronAPI.addService(service);
       setServices(updated);
       setShowAddModal(false);
-      handleSelectService(service.id);
+      setActiveServiceId(null);
+      await window.electronAPI?.hideService();
     },
-    [handleSelectService]
+    [],
   );
 
   const handleRemoveService = useCallback(
@@ -53,10 +53,10 @@ function App() {
       setServices(updated);
       if (activeServiceId === serviceId) {
         setActiveServiceId(null);
-        window.electronAPI.hideService();
+        await window.electronAPI.hideService();
       }
     },
-    [activeServiceId]
+    [activeServiceId],
   );
 
   const handleEditService = useCallback((service: Service) => {
@@ -64,15 +64,12 @@ function App() {
     setShowAddModal(true);
   }, []);
 
-  const handleUpdateService = useCallback(
-    async (service: Service) => {
-      const updated = await window.electronAPI.updateService(service);
-      setServices(updated);
-      setShowAddModal(false);
-      setEditingService(null);
-    },
-    []
-  );
+  const handleUpdateService = useCallback(async (service: Service) => {
+    const updated = await window.electronAPI.updateService(service);
+    setServices(updated);
+    setShowAddModal(false);
+    setEditingService(null);
+  }, []);
 
   const handleReloadService = useCallback(() => {
     if (activeServiceId) {
@@ -105,8 +102,10 @@ function App() {
           services={services}
           activeServiceId={activeServiceId}
           onSelectService={handleSelectService}
-          onAddService={() => {
+          onAddService={async () => {
             setEditingService(null);
+            setActiveServiceId(null);
+            await window.electronAPI?.hideService();
             setShowAddModal(true);
           }}
           onRemoveService={handleRemoveService}
@@ -114,7 +113,9 @@ function App() {
         />
         {/* BrowserView renders natively on top of this area */}
         <div className="flex-1 relative">
-          {!activeServiceId && <WelcomeScreen onAddService={() => setShowAddModal(true)} />}
+          {!activeServiceId && (
+            <WelcomeScreen onAddService={() => setShowAddModal(true)} />
+          )}
         </div>
       </div>
       {showAddModal && (

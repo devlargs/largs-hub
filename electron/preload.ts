@@ -24,7 +24,7 @@ const api = {
   // View management
   showService: (serviceId: string): void =>
     ipcRenderer.send("show-service", serviceId),
-  hideService: (): void => ipcRenderer.send("hide-service"),
+  hideService: (): Promise<void> => ipcRenderer.invoke("hide-service"),
   reloadService: (serviceId: string): void =>
     ipcRenderer.send("reload-service", serviceId),
   goBack: (serviceId: string): void =>
