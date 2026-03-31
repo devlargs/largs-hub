@@ -1,6 +1,7 @@
 import { Service } from "../types";
 import appIcon from "../../assets/ico/icon.png";
 import { VscChromeMinimize, VscChromeMaximize, VscChromeClose } from "react-icons/vsc";
+import { IoArrowBack, IoArrowForward, IoReload } from "react-icons/io5";
 
 interface TitlebarProps {
   activeService: Service | null;
@@ -23,24 +24,24 @@ export default function Titlebar({
           <>
             <button
               onClick={onGoBack}
-              className="w-7 h-6 flex items-center justify-center rounded hover:bg-sidebar-hover text-gray-400 hover:text-white transition-colors text-sm"
+              className="w-7 h-6 flex items-center justify-center rounded hover:bg-sidebar-hover text-gray-400 hover:text-white transition-colors"
               title="Go back"
             >
-              &#8592;
+              <IoArrowBack size={14} />
             </button>
             <button
               onClick={onGoForward}
-              className="w-7 h-6 flex items-center justify-center rounded hover:bg-sidebar-hover text-gray-400 hover:text-white transition-colors text-sm"
+              className="w-7 h-6 flex items-center justify-center rounded hover:bg-sidebar-hover text-gray-400 hover:text-white transition-colors"
               title="Go forward"
             >
-              &#8594;
+              <IoArrowForward size={14} />
             </button>
             <button
               onClick={onReload}
-              className="w-7 h-6 flex items-center justify-center rounded hover:bg-sidebar-hover text-gray-400 hover:text-white transition-colors text-sm"
+              className="w-7 h-6 flex items-center justify-center rounded hover:bg-sidebar-hover text-gray-400 hover:text-white transition-colors"
               title="Reload"
             >
-              &#8635;
+              <IoReload size={14} />
             </button>
             <span className="text-xs text-gray-500 ml-2 truncate max-w-[300px]">
               {activeService.name}
