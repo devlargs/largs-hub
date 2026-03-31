@@ -345,6 +345,26 @@ ipcMain.on("install-update", () => {
   autoUpdater.quitAndInstall();
 });
 
+ipcMain.handle("check-for-updates", async () => {
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    if (result && result.updateInfo) {
+      const current = app.getVersion();
+      const latest = result.updateInfo.version;
+      if (latest !== current) {
+        return { updateAvailable: true, version: latest };
+      }
+    }
+    return { updateAvailable: false };
+  } catch {
+    return { updateAvailable: false };
+  }
+});
+
+ipcMain.handle("get-app-version", () => {
+  return app.getVersion();
+});
+
 // Window controls
 ipcMain.on("window-minimize", () => mainWindow?.minimize());
 ipcMain.on("window-maximize", () => {

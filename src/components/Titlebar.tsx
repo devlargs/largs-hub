@@ -1,13 +1,15 @@
+import { useState, useRef, useEffect } from "react";
 import { Service } from "../types";
 import appIcon from "../../assets/ico/icon.png";
 import { VscChromeMinimize, VscChromeMaximize, VscChromeClose } from "react-icons/vsc";
-import { IoArrowBack, IoArrowForward, IoReload } from "react-icons/io5";
+import { IoArrowBack, IoArrowForward, IoReload, IoSettingsSharp } from "react-icons/io5";
 
 interface TitlebarProps {
   activeService: Service | null;
   onReload: () => void;
   onGoBack: () => void;
   onGoForward: () => void;
+  onShowUpdatePage: () => void;
 }
 
 export default function Titlebar({
@@ -15,7 +17,22 @@ export default function Titlebar({
   onReload,
   onGoBack,
   onGoForward,
+  onShowUpdatePage,
 }: TitlebarProps) {
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showMenu]);
+
   return (
     <div className="titlebar-drag flex items-center bg-sidebar select-none shrink-0" style={{ height: 46, paddingLeft: 24, paddingRight: 8, borderBottom: "1px solid var(--border)" }}>
       {/* Navigation controls */}
@@ -60,8 +77,44 @@ export default function Titlebar({
 
       <div className="flex-1" />
 
-      {/* Window controls */}
+      {/* Settings gear + Window controls */}
       <div className="titlebar-no-drag flex items-center">
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setShowMenu((v) => !v)}
+            className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors"
+            style={{ height: 46, color: "var(--text-muted)" }}
+            title="Settings"
+          >
+            <IoSettingsSharp size={15} />
+          </button>
+          {showMenu && (
+            <div
+              className="absolute right-0 rounded-xl shadow-2xl"
+              style={{
+                top: 46,
+                minWidth: 200,
+                padding: 6,
+                backgroundColor: "var(--context-bg)",
+                border: "1px solid var(--border)",
+                zIndex: 9999,
+              }}
+            >
+              <button
+                className="w-full text-left text-sm transition-colors rounded-lg cursor-pointer"
+                style={{ padding: "10px 14px", color: "var(--text-primary)" }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--context-hover)"}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                onClick={() => {
+                  setShowMenu(false);
+                  onShowUpdatePage();
+                }}
+              >
+                Check for Updates
+              </button>
+            </div>
+          )}
+        </div>
         <button
           onClick={() => window.electronAPI?.minimize()}
           className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors" style={{ height: 46, color: "var(--text-muted)" }}

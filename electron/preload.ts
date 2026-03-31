@@ -80,6 +80,8 @@ const api = {
   },
   startUpdateDownload: () => ipcRenderer.send("start-update-download"),
   installUpdate: () => ipcRenderer.send("install-update"),
+  checkForUpdates: (): Promise<{ updateAvailable: boolean; version?: string }> => ipcRenderer.invoke("check-for-updates"),
+  getAppVersion: (): Promise<string> => ipcRenderer.invoke("get-app-version"),
 };
 
 contextBridge.exposeInMainWorld("electronAPI", api);

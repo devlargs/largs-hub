@@ -5,12 +5,14 @@ import Titlebar from "./components/Titlebar";
 import AddServiceModal from "./components/AddServiceModal";
 import WelcomeScreen from "./components/WelcomeScreen";
 import UpdateNotification from "./components/UpdateNotification";
+import UpdatePage from "./components/UpdatePage";
 
 function App() {
   const [services, setServices] = useState<Service[]>([]);
   const [activeServiceId, setActiveServiceId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
+  const [showUpdatePage, setShowUpdatePage] = useState(false);
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -34,6 +36,7 @@ function App() {
 
   const handleSelectService = useCallback((serviceId: string) => {
     setActiveServiceId(serviceId);
+    setShowUpdatePage(false);
     window.electronAPI?.showService(serviceId);
   }, []);
 
@@ -97,6 +100,11 @@ function App() {
         onReload={handleReloadService}
         onGoBack={handleGoBack}
         onGoForward={handleGoForward}
+        onShowUpdatePage={async () => {
+          setShowUpdatePage(true);
+          setActiveServiceId(null);
+          await window.electronAPI?.hideService();
+        }}
       />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
@@ -113,9 +121,10 @@ function App() {
         />
         {/* BrowserView renders natively on top of this area */}
         <div className="flex-1 relative">
-          {!activeServiceId && (
+          {!activeServiceId && !showUpdatePage && (
             <WelcomeScreen onAddService={() => setShowAddModal(true)} />
           )}
+          {showUpdatePage && !activeServiceId && <UpdatePage />}
         </div>
       </div>
       <UpdateNotification />
