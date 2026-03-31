@@ -65,6 +65,8 @@ function createWindow() {
     },
   });
 
+  mainWindow.maximize();
+
   if (
     process.env.NODE_ENV === "development" ||
     process.argv.includes("--dev")
