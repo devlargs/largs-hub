@@ -34,8 +34,8 @@ const api = {
   showService: (serviceId: string): void =>
     ipcRenderer.send("show-service", serviceId),
   hideService: (): Promise<void> => ipcRenderer.invoke("hide-service"),
-  setActiveViewVisible: (visible: boolean): void =>
-    ipcRenderer.send("set-active-view-visible", visible),
+  bringUiToFront: (): void => ipcRenderer.send("bring-ui-to-front"),
+  sendUiToBack: (): void => ipcRenderer.send("send-ui-to-back"),
   reloadService: (serviceId: string): void =>
     ipcRenderer.send("reload-service", serviceId),
   goBack: (serviceId: string): void =>

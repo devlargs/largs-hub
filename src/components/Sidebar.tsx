@@ -205,13 +205,13 @@ export default function Sidebar({
     e.preventDefault();
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setContextMenu({ x: rect.right + 8, y: rect.top, service });
-    // Temporarily hide the BrowserView so the context menu is visible
-    window.electronAPI?.setActiveViewVisible(false);
+    // Bring React UI layer above service views so the context menu is visible
+    window.electronAPI?.bringUiToFront();
   };
 
   const closeContextMenu = () => {
     setContextMenu(null);
-    window.electronAPI?.setActiveViewVisible(true);
+    window.electronAPI?.sendUiToBack();
   };
 
   return (

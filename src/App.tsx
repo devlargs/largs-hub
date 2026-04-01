@@ -147,8 +147,17 @@ function App() {
     }
   }, [activeServiceId]);
 
+  // Bring UI to front when modal is open so it renders above service views
+  useEffect(() => {
+    if (!showAddModal) return;
+    window.electronAPI?.bringUiToFront();
+    return () => {
+      window.electronAPI?.sendUiToBack();
+    };
+  }, [showAddModal]);
+
   return (
-    <div className="flex flex-col h-screen w-screen bg-surface">
+    <div className="flex flex-col h-screen w-screen">
       <Titlebar
         activeService={services.find((s) => s.id === activeServiceId) ?? null}
         onReload={handleReloadService}

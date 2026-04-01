@@ -28,7 +28,8 @@ export interface ElectronAPI {
   toggleServiceNotifications: (serviceId: string) => Promise<Service[]>;
   showService: (serviceId: string) => void;
   hideService: () => Promise<void>;
-  setActiveViewVisible: (visible: boolean) => void;
+  bringUiToFront: () => void;
+  sendUiToBack: () => void;
   reloadService: (serviceId: string) => void;
   goBack: (serviceId: string) => void;
   goForward: (serviceId: string) => void;

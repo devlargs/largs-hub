@@ -7,7 +7,7 @@ export default function WelcomeScreen({ onAddService, hasServices }: WelcomeScre
   return (
     <div
       className="relative flex flex-col items-center justify-center min-h-full text-center overflow-y-auto max-sm:px-4 max-sm:py-6"
-      style={{ padding: "48px 64px" }}
+      style={{ padding: "48px 64px", backgroundColor: "var(--surface)" }}
     >
       {/* Starfield background */}
       <div className="absolute inset-0 pointer-events-none">

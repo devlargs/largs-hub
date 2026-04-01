@@ -41,6 +41,8 @@ const store = new Store<StoreSchema>({
 app.setName("Largs Hub");
 
 let mainWindow: BrowserWindow | null = null;
+let uiView: WebContentsView | null = null;
+let uiLayerRefCount = 0;
 const serviceViews = new Map<string, WebContentsView>();
 const notificationCounts = new Map<string, number>();
 let activeServiceId: string | null = null;
@@ -63,6 +65,12 @@ function createWindow() {
     titleBarStyle: "hidden",
     backgroundColor: "#181825",
     icon: path.join(__dirname, "../assets/ico/icon.ico"),
+  });
+
+  mainWindow.maximize();
+
+  // Create the UI view (React app) as a WebContentsView for z-order control
+  uiView = new WebContentsView({
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -70,15 +78,23 @@ function createWindow() {
     },
   });
 
-  mainWindow.maximize();
+  uiView.setBackgroundColor("#00000000");
+  mainWindow.contentView.addChildView(uiView);
+
+  const resizeUiView = () => {
+    if (!mainWindow || !uiView) return;
+    const [width, height] = mainWindow.getContentSize();
+    uiView.setBounds({ x: 0, y: 0, width, height });
+  };
+  resizeUiView();
 
   if (
     process.env.NODE_ENV === "development" ||
     process.argv.includes("--dev")
   ) {
-    mainWindow.loadURL("http://localhost:5173");
+    uiView.webContents.loadURL("http://localhost:5173");
   } else {
-    mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
+    uiView.webContents.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
   mainWindow.on("resize", () => {
@@ -89,6 +105,7 @@ function createWindow() {
         width,
         height,
       });
+      resizeUiView();
       repositionActiveView();
     }
   });
@@ -102,11 +119,12 @@ function createWindow() {
 
   mainWindow.on("closed", () => {
     mainWindow = null;
+    uiView = null;
     serviceViews.clear();
   });
 
   // Pre-load all saved services so they're warm on startup
-  mainWindow.webContents.on("did-finish-load", () => {
+  uiView.webContents.on("did-finish-load", () => {
     const services = store.get("services");
     for (const service of services) {
       if (!serviceViews.has(service.id) && mainWindow && service.enabled !== false) {
@@ -230,7 +248,7 @@ function createServiceView(service: Service): WebContentsView {
     notificationCounts.set(service.id, count);
     updateTaskbarBadge();
     if (mainWindow) {
-      mainWindow.webContents.send("notification-update", {
+      uiView?.webContents.send("notification-update", {
         serviceId: service.id,
         count,
       });
@@ -499,11 +517,21 @@ ipcMain.handle("hide-service", () => {
   hideActiveService();
 });
 
-ipcMain.on("set-active-view-visible", (_event, visible: boolean) => {
-  if (!activeServiceId) return;
-  const view = serviceViews.get(activeServiceId);
-  if (view) {
-    view.setVisible(visible);
+// Z-order control: bring the React UI layer above service views (for modals/menus)
+// Ref-counted so nested overlays (context menu → modal) work correctly
+ipcMain.on("bring-ui-to-front", () => {
+  uiLayerRefCount++;
+  if (uiLayerRefCount === 1 && mainWindow && uiView) {
+    // Move uiView to the end (on top of all service views)
+    mainWindow.contentView.addChildView(uiView);
+  }
+});
+
+ipcMain.on("send-ui-to-back", () => {
+  uiLayerRefCount = Math.max(0, uiLayerRefCount - 1);
+  if (uiLayerRefCount === 0 && mainWindow && uiView) {
+    // Move uiView to index 0 (behind all service views)
+    mainWindow.contentView.addChildView(uiView, 0);
   }
 });
 
@@ -567,7 +595,7 @@ ipcMain.on("start-system-stats", () => {
     const totalMem = os.totalmem();
     const freeMem = os.freemem();
 
-    mainWindow.webContents.send("system-stats", {
+    uiView?.webContents.send("system-stats", {
       cpu: getCpuUsage(),
       memUsed: Math.round((totalMem - freeMem) / 1024 / 1024),
       memTotal: Math.round(totalMem / 1024 / 1024),
@@ -635,7 +663,7 @@ ipcMain.handle("download-and-install-update", async (_event, downloadUrl: string
         res.on("data", (chunk: Buffer) => {
           downloaded += chunk.length;
           if (totalBytes > 0 && mainWindow) {
-            mainWindow.webContents.send("update-download-progress", {
+            uiView?.webContents.send("update-download-progress", {
               percent: Math.round((downloaded / totalBytes) * 100),
             });
           }

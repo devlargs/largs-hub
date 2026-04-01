@@ -24,13 +24,17 @@ export default function Titlebar({
 
   useEffect(() => {
     if (!showMenu) return;
+    window.electronAPI?.bringUiToFront();
     const handleClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setShowMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      window.electronAPI?.sendUiToBack();
+    };
   }, [showMenu]);
 
   return (
