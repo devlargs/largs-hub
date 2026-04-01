@@ -5,6 +5,7 @@ import Titlebar from "./components/Titlebar";
 import AddServiceModal from "./components/AddServiceModal";
 import WelcomeScreen from "./components/WelcomeScreen";
 import UpdatePage from "./components/UpdatePage";
+import DisabledServiceScreen from "./components/DisabledServiceScreen";
 import { useNotificationStore } from "./store/notifications";
 
 function App() {
@@ -35,7 +36,15 @@ function App() {
   const handleSelectService = useCallback((serviceId: string) => {
     setActiveServiceId(serviceId);
     setShowUpdatePage(false);
-    window.electronAPI?.showService(serviceId);
+    setServices((current) => {
+      const svc = current.find((s) => s.id === serviceId);
+      if (svc?.enabled !== false) {
+        window.electronAPI?.showService(serviceId);
+      } else {
+        window.electronAPI?.hideService();
+      }
+      return current;
+    });
   }, []);
 
   useEffect(() => {
@@ -99,6 +108,27 @@ function App() {
     setServices(updated);
   }, []);
 
+  const handleToggleMuteService = useCallback(async (serviceId: string) => {
+    const updated = await window.electronAPI.toggleMuteService(serviceId);
+    setServices(updated);
+  }, []);
+
+  const handleToggleServiceEnabled = useCallback(async (serviceId: string) => {
+    const updated = await window.electronAPI.toggleServiceEnabled(serviceId);
+    setServices(updated);
+    // If disabling the active service, go home
+    const svc = updated.find((s) => s.id === serviceId);
+    if (svc?.enabled === false && activeServiceId === serviceId) {
+      setActiveServiceId(null);
+      await window.electronAPI.hideService();
+    }
+  }, [activeServiceId]);
+
+  const handleToggleServiceNotifications = useCallback(async (serviceId: string) => {
+    const updated = await window.electronAPI.toggleServiceNotifications(serviceId);
+    setServices(updated);
+  }, []);
+
   const handleReloadService = useCallback(() => {
     if (activeServiceId) {
       window.electronAPI?.reloadService(activeServiceId);
@@ -143,6 +173,9 @@ function App() {
           onRemoveService={handleRemoveService}
           onEditService={handleEditService}
           onReorderServices={handleReorderServices}
+          onToggleMuteService={handleToggleMuteService}
+          onToggleServiceEnabled={handleToggleServiceEnabled}
+          onToggleServiceNotifications={handleToggleServiceNotifications}
         />
         {/* BrowserView renders natively on top of this area */}
         <div className="flex-1 relative">
@@ -150,6 +183,15 @@ function App() {
             <WelcomeScreen onAddService={() => setShowAddModal(true)} hasServices={services.length > 0} />
           )}
           {showUpdatePage && !activeServiceId && <UpdatePage />}
+          {activeServiceId && (() => {
+            const svc = services.find((s) => s.id === activeServiceId);
+            return svc?.enabled === false ? (
+              <DisabledServiceScreen
+                serviceName={svc.name}
+                onEnable={() => handleToggleServiceEnabled(svc.id)}
+              />
+            ) : null;
+          })()}
         </div>
       </div>
       {showAddModal && (

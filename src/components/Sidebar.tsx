@@ -12,6 +12,9 @@ interface SidebarProps {
   onRemoveService: (id: string) => void;
   onEditService: (service: Service) => void;
   onReorderServices: (serviceIds: string[]) => void;
+  onToggleMuteService: (serviceId: string) => void;
+  onToggleServiceEnabled: (serviceId: string) => void;
+  onToggleServiceNotifications: (serviceId: string) => void;
 }
 
 function getStatColor(value: number): string {
@@ -83,6 +86,9 @@ export default function Sidebar({
   onRemoveService,
   onEditService,
   onReorderServices,
+  onToggleMuteService,
+  onToggleServiceEnabled,
+  onToggleServiceNotifications,
 }: SidebarProps) {
   const notificationCounts = useNotificationStore((s) => s.counts);
   const [stats, setStats] = useState<SystemStats | null>(null);
@@ -253,6 +259,7 @@ export default function Sidebar({
               }
               ${draggedId === service.id ? "opacity-40 scale-90" : ""}
               ${dropTargetId === service.id && draggedId !== service.id ? "ring-2 ring-accent/50" : ""}
+              ${service.enabled === false ? "opacity-30 grayscale" : ""}
             `}
             title={service.name}
           >
@@ -360,10 +367,139 @@ export default function Sidebar({
               zIndex: 9999,
               left: contextMenu.x,
               top: contextMenu.y,
-              minWidth: 180,
+              minWidth: 200,
               padding: "6px",
             }}
           >
+            {/* Service name header */}
+            <div
+              className="text-sm font-semibold"
+              style={{ padding: "8px 14px", color: "var(--text-primary)" }}
+            >
+              {contextMenu.service.name}
+            </div>
+
+            <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }} />
+
+            {/* Enabled toggle */}
+            <div
+              className="flex items-center justify-between rounded-lg"
+              style={{ padding: "8px 14px" }}
+            >
+              <span className="text-sm" style={{ color: "var(--text-primary)" }}>Enabled</span>
+              <button
+                className="relative cursor-pointer"
+                style={{
+                  width: 36,
+                  height: 20,
+                  borderRadius: 10,
+                  backgroundColor: contextMenu.service.enabled !== false ? "var(--accent)" : "var(--border)",
+                  border: "none",
+                  transition: "background-color 0.2s",
+                }}
+                onClick={() => {
+                  onToggleServiceEnabled(contextMenu.service.id);
+                  setContextMenu((prev) => prev ? {
+                    ...prev,
+                    service: { ...prev.service, enabled: prev.service.enabled === false },
+                  } : null);
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    left: contextMenu.service.enabled !== false ? 18 : 2,
+                    width: 16,
+                    height: 16,
+                    borderRadius: "50%",
+                    backgroundColor: "#fff",
+                    transition: "left 0.2s",
+                  }}
+                />
+              </button>
+            </div>
+
+            {/* Sound toggle */}
+            <div
+              className="flex items-center justify-between rounded-lg"
+              style={{ padding: "8px 14px" }}
+            >
+              <span className="text-sm" style={{ color: "var(--text-primary)" }}>Sound</span>
+              <button
+                className="relative cursor-pointer"
+                style={{
+                  width: 36,
+                  height: 20,
+                  borderRadius: 10,
+                  backgroundColor: !contextMenu.service.muted ? "var(--accent)" : "var(--border)",
+                  border: "none",
+                  transition: "background-color 0.2s",
+                }}
+                onClick={() => {
+                  onToggleMuteService(contextMenu.service.id);
+                  setContextMenu((prev) => prev ? {
+                    ...prev,
+                    service: { ...prev.service, muted: !prev.service.muted },
+                  } : null);
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    left: !contextMenu.service.muted ? 18 : 2,
+                    width: 16,
+                    height: 16,
+                    borderRadius: "50%",
+                    backgroundColor: "#fff",
+                    transition: "left 0.2s",
+                  }}
+                />
+              </button>
+            </div>
+
+            {/* Notifications toggle */}
+            <div
+              className="flex items-center justify-between rounded-lg"
+              style={{ padding: "8px 14px" }}
+            >
+              <span className="text-sm" style={{ color: "var(--text-primary)" }}>Notifications</span>
+              <button
+                className="relative cursor-pointer"
+                style={{
+                  width: 36,
+                  height: 20,
+                  borderRadius: 10,
+                  backgroundColor: contextMenu.service.notificationsEnabled !== false ? "var(--accent)" : "var(--border)",
+                  border: "none",
+                  transition: "background-color 0.2s",
+                }}
+                onClick={() => {
+                  onToggleServiceNotifications(contextMenu.service.id);
+                  setContextMenu((prev) => prev ? {
+                    ...prev,
+                    service: { ...prev.service, notificationsEnabled: prev.service.notificationsEnabled === false },
+                  } : null);
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    left: contextMenu.service.notificationsEnabled !== false ? 18 : 2,
+                    width: 16,
+                    height: 16,
+                    borderRadius: "50%",
+                    backgroundColor: "#fff",
+                    transition: "left 0.2s",
+                  }}
+                />
+              </button>
+            </div>
+
+            <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }} />
+
             <button
               className="w-full text-left text-sm transition-colors rounded-lg cursor-pointer"
               style={{ padding: "10px 14px", color: "var(--text-primary)" }}

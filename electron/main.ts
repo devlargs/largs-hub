@@ -17,6 +17,9 @@ interface Service {
   icon: string;
   color: string;
   notificationCount: number;
+  muted?: boolean;
+  enabled?: boolean;
+  notificationsEnabled?: boolean;
 }
 
 interface StoreSchema {
@@ -106,7 +109,7 @@ function createWindow() {
   mainWindow.webContents.on("did-finish-load", () => {
     const services = store.get("services");
     for (const service of services) {
-      if (!serviceViews.has(service.id) && mainWindow) {
+      if (!serviceViews.has(service.id) && mainWindow && service.enabled !== false) {
         const view = createServiceView(service);
         serviceViews.set(service.id, view);
         mainWindow.contentView.addChildView(view);
@@ -190,9 +193,20 @@ function createServiceView(service: Service): WebContentsView {
 
   view.webContents.loadURL(service.url);
 
+  // Apply mute state
+  if (service.muted) {
+    view.webContents.setAudioMuted(true);
+  }
+
   // Track page title changes for notification detection
   // Debounce decreases to avoid blinking badges during page transitions
   const updateNotificationCount = (count: number) => {
+    // Check if notifications are disabled for this service
+    const currentService = store.get("services").find((s) => s.id === service.id);
+    if (currentService?.notificationsEnabled === false) {
+      count = 0;
+    }
+
     const prev = notificationCounts.get(service.id) || 0;
     if (count === prev) {
       pendingDecrease.delete(service.id);
@@ -231,7 +245,7 @@ function createServiceView(service: Service): WebContentsView {
 
   // Poll for unread count (title-based + DOM-based for apps like WhatsApp)
   const pollInterval = setInterval(() => {
-    if (view.webContents.isDestroyed()) {
+    if (!view.webContents || view.webContents.isDestroyed()) {
       clearInterval(pollInterval);
       return;
     }
@@ -346,7 +360,7 @@ function showService(serviceId: string) {
   if (!view) {
     const services = store.get("services");
     const service = services.find((s) => s.id === serviceId);
-    if (!service) return;
+    if (!service || service.enabled === false) return;
     view = createServiceView(service);
     serviceViews.set(serviceId, view);
     mainWindow.contentView.addChildView(view);
@@ -415,6 +429,66 @@ ipcMain.handle("reorder-services", (_event, serviceIds: string[]) => {
     .filter(Boolean) as Service[];
   store.set("services", reordered);
   return reordered;
+});
+
+ipcMain.handle("toggle-mute-service", (_event, serviceId: string) => {
+  const services = store.get("services");
+  const updated = services.map((s) => {
+    if (s.id === serviceId) {
+      const muted = !s.muted;
+      // Apply mute to the live view
+      const view = serviceViews.get(serviceId);
+      if (view) {
+        view.webContents.setAudioMuted(muted);
+      }
+      return { ...s, muted };
+    }
+    return s;
+  });
+  store.set("services", updated);
+  return updated;
+});
+
+ipcMain.handle("toggle-service-enabled", (_event, serviceId: string) => {
+  const services = store.get("services");
+  const updated = services.map((s) => {
+    if (s.id === serviceId) {
+      const enabled = s.enabled === false; // toggle: undefined/true -> false, false -> true
+      if (!enabled) {
+        // Destroy the view when disabling
+        const view = serviceViews.get(serviceId);
+        if (view) {
+          if (activeServiceId === serviceId) {
+            activeServiceId = null;
+          }
+          if (mainWindow) {
+            mainWindow.contentView.removeChildView(view);
+          }
+          view.webContents.close();
+          serviceViews.delete(serviceId);
+        }
+        notificationCounts.delete(serviceId);
+        pendingDecrease.delete(serviceId);
+        updateTaskbarBadge();
+      }
+      return { ...s, enabled };
+    }
+    return s;
+  });
+  store.set("services", updated);
+  return updated;
+});
+
+ipcMain.handle("toggle-service-notifications", (_event, serviceId: string) => {
+  const services = store.get("services");
+  const updated = services.map((s) => {
+    if (s.id === serviceId) {
+      return { ...s, notificationsEnabled: s.notificationsEnabled === false };
+    }
+    return s;
+  });
+  store.set("services", updated);
+  return updated;
 });
 
 ipcMain.on("show-service", (_event, serviceId: string) => {

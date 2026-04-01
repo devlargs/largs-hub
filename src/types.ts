@@ -5,6 +5,9 @@ export interface Service {
   icon: string;
   color: string;
   notificationCount: number;
+  muted?: boolean;
+  enabled?: boolean;
+  notificationsEnabled?: boolean;
 }
 
 export interface SystemStats {
@@ -20,6 +23,9 @@ export interface ElectronAPI {
   removeService: (serviceId: string) => Promise<Service[]>;
   updateService: (service: Service) => Promise<Service[]>;
   reorderServices: (serviceIds: string[]) => Promise<Service[]>;
+  toggleMuteService: (serviceId: string) => Promise<Service[]>;
+  toggleServiceEnabled: (serviceId: string) => Promise<Service[]>;
+  toggleServiceNotifications: (serviceId: string) => Promise<Service[]>;
   showService: (serviceId: string) => void;
   hideService: () => Promise<void>;
   setActiveViewVisible: (visible: boolean) => void;
