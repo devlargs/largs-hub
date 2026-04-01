@@ -432,10 +432,27 @@ ipcMain.handle("remove-service", (_event, serviceId: string) => {
 });
 
 ipcMain.handle("update-service", (_event, updated: Service) => {
+  const old = store.get("services").find((s) => s.id === updated.id);
   const services = store
     .get("services")
     .map((s) => (s.id === updated.id ? updated : s));
   store.set("services", services);
+
+  // If the URL changed, destroy the old view so it gets recreated with the new URL
+  if (old && old.url !== updated.url) {
+    const view = serviceViews.get(updated.id);
+    if (view) {
+      if (activeServiceId === updated.id) {
+        activeServiceId = null;
+      }
+      if (mainWindow) {
+        mainWindow.contentView.removeChildView(view);
+      }
+      view.webContents.close();
+      serviceViews.delete(updated.id);
+    }
+  }
+
   return services;
 });
 
