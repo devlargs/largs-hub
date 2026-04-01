@@ -39,6 +39,26 @@ function App() {
     window.electronAPI?.showService(serviceId);
   }, []);
 
+  useEffect(() => {
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || e.shiftKey || e.altKey || e.metaKey) return;
+      const num = parseInt(e.key, 10);
+      if (num >= 1 && num <= 9) {
+        e.preventDefault();
+        setServices((current) => {
+          const service = current[num - 1];
+          if (service) {
+            handleSelectService(service.id);
+          }
+          return current;
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
+  }, [handleSelectService]);
+
   const handleAddService = useCallback(
     async (service: Service) => {
       const updated = await window.electronAPI.addService(service);
