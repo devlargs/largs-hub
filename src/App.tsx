@@ -30,8 +30,47 @@ function App() {
       },
     );
 
-    return unsub;
-  }, [updateNotificationCount]);
+    // Listen for services updated from native context menu actions
+    const unsubServices = window.electronAPI.onServicesUpdated((updated) => {
+      setServices(updated);
+    });
+
+    // Listen for context menu actions that need renderer handling
+    const unsubActions = window.electronAPI.onContextMenuAction(({ action, serviceId }) => {
+      if (action === "edit-service") {
+        setServices((current) => {
+          const svc = current.find((s) => s.id === serviceId);
+          if (svc) {
+            setEditingService(svc);
+            setShowAddModal(true);
+          }
+          return current;
+        });
+      } else if (action === "remove-service") {
+        window.electronAPI.removeService(serviceId).then((updated) => {
+          setServices(updated);
+          removeNotificationService(serviceId);
+          setActiveServiceId((prev) => {
+            if (prev === serviceId) {
+              window.electronAPI.hideService();
+              return null;
+            }
+            return prev;
+          });
+        });
+      } else if (action === "show-service") {
+        setActiveServiceId(serviceId);
+        setShowUpdatePage(false);
+        window.electronAPI.showService(serviceId);
+      }
+    });
+
+    return () => {
+      unsub();
+      unsubServices();
+      unsubActions();
+    };
+  }, [updateNotificationCount, removeNotificationService]);
 
   const handleSelectService = useCallback((serviceId: string) => {
     setActiveServiceId(serviceId);
@@ -78,24 +117,6 @@ function App() {
     [],
   );
 
-  const handleRemoveService = useCallback(
-    async (serviceId: string) => {
-      const updated = await window.electronAPI.removeService(serviceId);
-      setServices(updated);
-      removeNotificationService(serviceId);
-      if (activeServiceId === serviceId) {
-        setActiveServiceId(null);
-        await window.electronAPI.hideService();
-      }
-    },
-    [activeServiceId, removeNotificationService],
-  );
-
-  const handleEditService = useCallback((service: Service) => {
-    setEditingService(service);
-    setShowAddModal(true);
-  }, []);
-
   const handleUpdateService = useCallback(async (service: Service) => {
     const updated = await window.electronAPI.updateService(service);
     setServices(updated);
@@ -105,27 +126,6 @@ function App() {
 
   const handleReorderServices = useCallback(async (serviceIds: string[]) => {
     const updated = await window.electronAPI.reorderServices(serviceIds);
-    setServices(updated);
-  }, []);
-
-  const handleToggleMuteService = useCallback(async (serviceId: string) => {
-    const updated = await window.electronAPI.toggleMuteService(serviceId);
-    setServices(updated);
-  }, []);
-
-  const handleToggleServiceEnabled = useCallback(async (serviceId: string) => {
-    const updated = await window.electronAPI.toggleServiceEnabled(serviceId);
-    setServices(updated);
-    // If disabling the active service, go home
-    const svc = updated.find((s) => s.id === serviceId);
-    if (svc?.enabled === false && activeServiceId === serviceId) {
-      setActiveServiceId(null);
-      await window.electronAPI.hideService();
-    }
-  }, [activeServiceId]);
-
-  const handleToggleServiceNotifications = useCallback(async (serviceId: string) => {
-    const updated = await window.electronAPI.toggleServiceNotifications(serviceId);
     setServices(updated);
   }, []);
 
@@ -179,12 +179,7 @@ function App() {
             setActiveServiceId(null);
             await window.electronAPI?.hideService();
           }}
-          onRemoveService={handleRemoveService}
-          onEditService={handleEditService}
           onReorderServices={handleReorderServices}
-          onToggleMuteService={handleToggleMuteService}
-          onToggleServiceEnabled={handleToggleServiceEnabled}
-          onToggleServiceNotifications={handleToggleServiceNotifications}
         />
         {/* BrowserView renders natively on top of this area */}
         <div className="flex-1 relative">
@@ -197,7 +192,11 @@ function App() {
             return svc?.enabled === false ? (
               <DisabledServiceScreen
                 serviceName={svc.name}
-                onEnable={() => handleToggleServiceEnabled(svc.id)}
+                onEnable={async () => {
+                  const updated = await window.electronAPI.toggleServiceEnabled(svc.id);
+                  setServices(updated);
+                  window.electronAPI?.showService(svc.id);
+                }}
               />
             ) : null;
           })()}

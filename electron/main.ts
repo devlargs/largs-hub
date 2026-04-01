@@ -7,6 +7,7 @@ import {
   nativeImage,
   protocol,
   net,
+  Menu,
 } from "electron";
 import path from "path";
 import fs from "fs";
@@ -391,6 +392,7 @@ function showService(serviceId: string) {
   view.setVisible(true);
   view.setBounds(getViewBounds());
   activeServiceId = serviceId;
+
 }
 
 function hideActiveService() {
@@ -540,20 +542,125 @@ ipcMain.handle("hide-service", () => {
 
 // Z-order control: bring the React UI layer above service views (for modals/menus)
 // Ref-counted so nested overlays (context menu → modal) work correctly
+// Z-order control: WebContentsView child reordering doesn't reliably
+// control z-order on Windows, so we hide the active service view instead.
+// Ref-counted so nested overlays (context menu → modal) work correctly.
 ipcMain.on("bring-ui-to-front", () => {
   uiLayerRefCount++;
-  if (uiLayerRefCount === 1 && mainWindow && uiView) {
-    // Move uiView to the end (on top of all service views)
-    mainWindow.contentView.addChildView(uiView);
+  // Always hide the active service view when any overlay is open
+  if (activeServiceId) {
+    const view = serviceViews.get(activeServiceId);
+    if (view) view.setVisible(false);
   }
 });
 
 ipcMain.on("send-ui-to-back", () => {
   uiLayerRefCount = Math.max(0, uiLayerRefCount - 1);
-  if (uiLayerRefCount === 0 && mainWindow && uiView) {
-    // Move uiView to index 0 (behind all service views)
-    mainWindow.contentView.addChildView(uiView, 0);
+  // Only show the service view when ALL overlays are closed
+  if (uiLayerRefCount === 0 && activeServiceId) {
+    const view = serviceViews.get(activeServiceId);
+    if (view) view.setVisible(true);
   }
+});
+
+// Native context menu for services — always renders on top of WebContentsViews
+ipcMain.on("show-service-context-menu", (_event, serviceId: string) => {
+  const services = store.get("services");
+  const service = services.find((s) => s.id === serviceId);
+  if (!service || !mainWindow || !uiView) return;
+
+  const sendUpdated = () => {
+    const updated = store.get("services");
+    uiView?.webContents.send("services-updated", updated);
+  };
+
+  const menu = Menu.buildFromTemplate([
+    { label: service.name, enabled: false },
+    { type: "separator" },
+    {
+      label: "Enabled",
+      type: "checkbox",
+      checked: service.enabled !== false,
+      click: () => {
+        const svc = store.get("services").find((s) => s.id === serviceId);
+        if (!svc) return;
+        const enabled = svc.enabled === false;
+        if (!enabled) {
+          const view = serviceViews.get(serviceId);
+          if (view) {
+            if (activeServiceId === serviceId) activeServiceId = null;
+            mainWindow!.contentView.removeChildView(view);
+            view.webContents.close();
+            serviceViews.delete(serviceId);
+          }
+          notificationCounts.delete(serviceId);
+          pendingDecrease.delete(serviceId);
+          updateTaskbarBadge();
+        }
+        const updated = store.get("services").map((s) =>
+          s.id === serviceId ? { ...s, enabled } : s,
+        );
+        store.set("services", updated);
+        uiView?.webContents.send("services-updated", updated);
+        // If re-enabling the active service, show it
+        if (enabled) {
+          uiView?.webContents.send("context-menu-action", { action: "show-service", serviceId });
+        }
+      },
+    },
+    {
+      label: "Sound",
+      type: "checkbox",
+      checked: !service.muted,
+      click: () => {
+        const muted = !service.muted;
+        const view = serviceViews.get(serviceId);
+        if (view) view.webContents.setAudioMuted(muted);
+        const updated = store.get("services").map((s) =>
+          s.id === serviceId ? { ...s, muted } : s,
+        );
+        store.set("services", updated);
+        sendUpdated();
+      },
+    },
+    {
+      label: "Notifications",
+      type: "checkbox",
+      checked: service.notificationsEnabled !== false,
+      click: () => {
+        const updated = store.get("services").map((s) =>
+          s.id === serviceId
+            ? { ...s, notificationsEnabled: s.notificationsEnabled === false }
+            : s,
+        );
+        store.set("services", updated);
+        sendUpdated();
+      },
+    },
+    { type: "separator" },
+    {
+      label: "Edit service",
+      click: () => {
+        uiView?.webContents.send("context-menu-action", { action: "edit-service", serviceId });
+      },
+    },
+    {
+      label: "Reload",
+      click: () => {
+        const view = serviceViews.get(serviceId);
+        if (view) view.webContents.reload();
+      },
+    },
+    { type: "separator" },
+    {
+      label: "Remove service",
+      click: () => {
+        uiView?.webContents.send("context-menu-action", { action: "remove-service", serviceId });
+      },
+    },
+  ]);
+
+  menu.popup({ window: mainWindow! });
 });
 
 ipcMain.on("reload-service", (_event, serviceId: string) => {

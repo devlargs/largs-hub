@@ -36,6 +36,18 @@ const api = {
   hideService: (): Promise<void> => ipcRenderer.invoke("hide-service"),
   bringUiToFront: (): void => ipcRenderer.send("bring-ui-to-front"),
   sendUiToBack: (): void => ipcRenderer.send("send-ui-to-back"),
+  showServiceContextMenu: (serviceId: string): void =>
+    ipcRenderer.send("show-service-context-menu", serviceId),
+  onServicesUpdated: (callback: (services: Service[]) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, services: Service[]) => callback(services);
+    ipcRenderer.on("services-updated", handler);
+    return () => ipcRenderer.removeListener("services-updated", handler);
+  },
+  onContextMenuAction: (callback: (data: { action: string; serviceId: string }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { action: string; serviceId: string }) => callback(data);
+    ipcRenderer.on("context-menu-action", handler);
+    return () => ipcRenderer.removeListener("context-menu-action", handler);
+  },
   reloadService: (serviceId: string): void =>
     ipcRenderer.send("reload-service", serviceId),
   goBack: (serviceId: string): void =>

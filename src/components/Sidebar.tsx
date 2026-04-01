@@ -9,12 +9,7 @@ interface SidebarProps {
   activeServiceId: string | null;
   onSelectService: (id: string) => void;
   onAddService: () => void;
-  onRemoveService: (id: string) => void;
-  onEditService: (service: Service) => void;
   onReorderServices: (serviceIds: string[]) => void;
-  onToggleMuteService: (serviceId: string) => void;
-  onToggleServiceEnabled: (serviceId: string) => void;
-  onToggleServiceNotifications: (serviceId: string) => void;
 }
 
 export default function Sidebar({
@@ -22,12 +17,7 @@ export default function Sidebar({
   activeServiceId,
   onSelectService,
   onAddService,
-  onRemoveService,
-  onEditService,
   onReorderServices,
-  onToggleMuteService,
-  onToggleServiceEnabled,
-  onToggleServiceNotifications,
 }: SidebarProps) {
   const notificationCounts = useNotificationStore((s) => s.counts);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -123,23 +113,9 @@ export default function Sidebar({
     window.electronAPI?.setTheme(next);
   };
 
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    service: Service;
-  } | null>(null);
-
   const handleContextMenu = (e: React.MouseEvent, service: Service) => {
     e.preventDefault();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setContextMenu({ x: rect.right + 8, y: rect.top, service });
-    // Bring React UI layer above service views so the context menu is visible
-    window.electronAPI?.bringUiToFront();
-  };
-
-  const closeContextMenu = () => {
-    setContextMenu(null);
-    window.electronAPI?.sendUiToBack();
+    window.electronAPI?.showServiceContextMenu(service.id);
   };
 
   return (
@@ -244,196 +220,6 @@ export default function Sidebar({
           {theme === "dark" ? <IoSunny size={18} /> : <IoMoon size={18} />}
         </button>
       </div>
-
-      {/* Context menu */}
-      {contextMenu && (
-        <>
-          <div
-            className="fixed inset-0"
-            style={{ zIndex: 9998 }}
-            onClick={closeContextMenu}
-          />
-          <div
-            className="fixed rounded-xl shadow-2xl"
-            style={{
-              backgroundColor: "var(--context-bg)",
-              border: "1px solid var(--border)",
-              zIndex: 9999,
-              left: contextMenu.x,
-              top: contextMenu.y,
-              minWidth: 200,
-              padding: "6px",
-            }}
-          >
-            {/* Service name header */}
-            <div
-              className="text-sm font-semibold"
-              style={{ padding: "8px 14px", color: "var(--text-primary)" }}
-            >
-              {contextMenu.service.name}
-            </div>
-
-            <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }} />
-
-            {/* Enabled toggle */}
-            <div
-              className="flex items-center justify-between rounded-lg"
-              style={{ padding: "8px 14px" }}
-            >
-              <span className="text-sm" style={{ color: "var(--text-primary)" }}>Enabled</span>
-              <button
-                className="relative cursor-pointer"
-                style={{
-                  width: 36,
-                  height: 20,
-                  borderRadius: 10,
-                  backgroundColor: contextMenu.service.enabled !== false ? "var(--accent)" : "var(--border)",
-                  border: "none",
-                  transition: "background-color 0.2s",
-                }}
-                onClick={() => {
-                  onToggleServiceEnabled(contextMenu.service.id);
-                  setContextMenu((prev) => prev ? {
-                    ...prev,
-                    service: { ...prev.service, enabled: prev.service.enabled === false },
-                  } : null);
-                }}
-              >
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 2,
-                    left: contextMenu.service.enabled !== false ? 18 : 2,
-                    width: 16,
-                    height: 16,
-                    borderRadius: "50%",
-                    backgroundColor: "#fff",
-                    transition: "left 0.2s",
-                  }}
-                />
-              </button>
-            </div>
-
-            {/* Sound toggle */}
-            <div
-              className="flex items-center justify-between rounded-lg"
-              style={{ padding: "8px 14px" }}
-            >
-              <span className="text-sm" style={{ color: "var(--text-primary)" }}>Sound</span>
-              <button
-                className="relative cursor-pointer"
-                style={{
-                  width: 36,
-                  height: 20,
-                  borderRadius: 10,
-                  backgroundColor: !contextMenu.service.muted ? "var(--accent)" : "var(--border)",
-                  border: "none",
-                  transition: "background-color 0.2s",
-                }}
-                onClick={() => {
-                  onToggleMuteService(contextMenu.service.id);
-                  setContextMenu((prev) => prev ? {
-                    ...prev,
-                    service: { ...prev.service, muted: !prev.service.muted },
-                  } : null);
-                }}
-              >
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 2,
-                    left: !contextMenu.service.muted ? 18 : 2,
-                    width: 16,
-                    height: 16,
-                    borderRadius: "50%",
-                    backgroundColor: "#fff",
-                    transition: "left 0.2s",
-                  }}
-                />
-              </button>
-            </div>
-
-            {/* Notifications toggle */}
-            <div
-              className="flex items-center justify-between rounded-lg"
-              style={{ padding: "8px 14px" }}
-            >
-              <span className="text-sm" style={{ color: "var(--text-primary)" }}>Notifications</span>
-              <button
-                className="relative cursor-pointer"
-                style={{
-                  width: 36,
-                  height: 20,
-                  borderRadius: 10,
-                  backgroundColor: contextMenu.service.notificationsEnabled !== false ? "var(--accent)" : "var(--border)",
-                  border: "none",
-                  transition: "background-color 0.2s",
-                }}
-                onClick={() => {
-                  onToggleServiceNotifications(contextMenu.service.id);
-                  setContextMenu((prev) => prev ? {
-                    ...prev,
-                    service: { ...prev.service, notificationsEnabled: prev.service.notificationsEnabled === false },
-                  } : null);
-                }}
-              >
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 2,
-                    left: contextMenu.service.notificationsEnabled !== false ? 18 : 2,
-                    width: 16,
-                    height: 16,
-                    borderRadius: "50%",
-                    backgroundColor: "#fff",
-                    transition: "left 0.2s",
-                  }}
-                />
-              </button>
-            </div>
-
-            <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }} />
-
-            <button
-              className="w-full text-left text-sm transition-colors rounded-lg cursor-pointer"
-              style={{ padding: "10px 14px", color: "var(--text-primary)" }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--context-hover)"}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-              onClick={() => {
-                onEditService(contextMenu.service);
-                closeContextMenu();
-              }}
-            >
-              Edit service
-            </button>
-            <button
-              className="w-full text-left text-sm transition-colors rounded-lg cursor-pointer"
-              style={{ padding: "10px 14px", color: "var(--text-primary)" }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--context-hover)"}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-              onClick={() => {
-                window.electronAPI?.reloadService(contextMenu.service.id);
-                closeContextMenu();
-              }}
-            >
-              Reload
-            </button>
-            <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }} />
-            <button
-              className="w-full text-left text-sm text-red-400 transition-colors rounded-lg cursor-pointer"
-              style={{ padding: "10px 14px" }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--context-hover)"}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-              onClick={() => {
-                onRemoveService(contextMenu.service.id);
-                closeContextMenu();
-              }}
-            >
-              Remove service
-            </button>
-          </div>
-        </>
-      )}
     </>
   );
 }
