@@ -147,7 +147,7 @@ function App() {
         {/* BrowserView renders natively on top of this area */}
         <div className="flex-1 relative">
           {!activeServiceId && !showUpdatePage && (
-            <WelcomeScreen onAddService={() => setShowAddModal(true)} />
+            <WelcomeScreen onAddService={() => setShowAddModal(true)} hasServices={services.length > 0} />
           )}
           {showUpdatePage && !activeServiceId && <UpdatePage />}
         </div>

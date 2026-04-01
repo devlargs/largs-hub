@@ -1,8 +1,9 @@
 interface WelcomeScreenProps {
   onAddService: () => void;
+  hasServices: boolean;
 }
 
-export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
+export default function WelcomeScreen({ onAddService, hasServices }: WelcomeScreenProps) {
   return (
     <div
       className="relative flex flex-col items-center justify-center min-h-full text-center overflow-y-auto max-sm:px-4 max-sm:py-6"
@@ -105,7 +106,7 @@ export default function WelcomeScreen({ onAddService }: WelcomeScreenProps) {
           marginBottom: 24,
         }}
       >
-        Add Your First Service
+        {hasServices ? "Add Service" : "Add Your First Service"}
       </button>
 
       {/* Feature section with bracket connector */}
