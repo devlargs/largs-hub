@@ -5,6 +5,7 @@ import Titlebar from "./components/Titlebar";
 import AddServiceModal from "./components/AddServiceModal";
 import WelcomeScreen from "./components/WelcomeScreen";
 import UpdatePage from "./components/UpdatePage";
+import { useNotificationStore } from "./store/notifications";
 
 function App() {
   const [services, setServices] = useState<Service[]>([]);
@@ -12,6 +13,8 @@ function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [showUpdatePage, setShowUpdatePage] = useState(false);
+  const updateNotificationCount = useNotificationStore((s) => s.updateCount);
+  const removeNotificationService = useNotificationStore((s) => s.removeService);
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -22,16 +25,12 @@ function App() {
 
     const unsub = window.electronAPI.onNotificationUpdate(
       ({ serviceId, count }) => {
-        setServices((prev) =>
-          prev.map((s) =>
-            s.id === serviceId ? { ...s, notificationCount: count } : s,
-          ),
-        );
+        updateNotificationCount(serviceId, count);
       },
     );
 
     return unsub;
-  }, []);
+  }, [updateNotificationCount]);
 
   const handleSelectService = useCallback((serviceId: string) => {
     setActiveServiceId(serviceId);
@@ -74,12 +73,13 @@ function App() {
     async (serviceId: string) => {
       const updated = await window.electronAPI.removeService(serviceId);
       setServices(updated);
+      removeNotificationService(serviceId);
       if (activeServiceId === serviceId) {
         setActiveServiceId(null);
         await window.electronAPI.hideService();
       }
     },
-    [activeServiceId],
+    [activeServiceId, removeNotificationService],
   );
 
   const handleEditService = useCallback((service: Service) => {

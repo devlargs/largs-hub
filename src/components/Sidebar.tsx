@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Service, SystemStats } from "../types";
 import { resolveIcon } from "../assets/serviceIcons";
 import { IoSunny, IoMoon, IoHome } from "react-icons/io5";
+import { useNotificationStore } from "../store/notifications";
 
 interface SidebarProps {
   services: Service[];
@@ -81,6 +82,7 @@ export default function Sidebar({
   onRemoveService,
   onEditService,
 }: SidebarProps) {
+  const notificationCounts = useNotificationStore((s) => s.counts);
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
@@ -189,11 +191,11 @@ export default function Sidebar({
             })()}
 
             {/* Notification badge */}
-            {service.notificationCount > 0 && (
+            {(notificationCounts[service.id] || 0) > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                {service.notificationCount > 99
+                {(notificationCounts[service.id] || 0) > 99
                   ? "99+"
-                  : service.notificationCount}
+                  : notificationCounts[service.id]}
               </span>
             )}
 
