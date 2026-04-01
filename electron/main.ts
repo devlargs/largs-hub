@@ -663,6 +663,20 @@ ipcMain.on("show-service-context-menu", (_event, serviceId: string) => {
   menu.popup({ window: mainWindow! });
 });
 
+// Native settings menu
+ipcMain.on("show-settings-menu", () => {
+  if (!mainWindow || !uiView) return;
+  const menu = Menu.buildFromTemplate([
+    {
+      label: "Check for Updates",
+      click: () => {
+        uiView?.webContents.send("context-menu-action", { action: "show-update-page", serviceId: "" });
+      },
+    },
+  ]);
+  menu.popup({ window: mainWindow! });
+});
+
 ipcMain.on("reload-service", (_event, serviceId: string) => {
   const view = serviceViews.get(serviceId);
   if (view) {

@@ -24,6 +24,7 @@ export interface ElectronAPI {
   bringUiToFront: () => void;
   sendUiToBack: () => void;
   showServiceContextMenu: (serviceId: string) => void;
+  showSettingsMenu: () => void;
   onServicesUpdated: (callback: (services: Service[]) => void) => () => void;
   onContextMenuAction: (callback: (data: { action: string; serviceId: string }) => void) => () => void;
   reloadService: (serviceId: string) => void;

@@ -62,6 +62,10 @@ function App() {
         setActiveServiceId(serviceId);
         setShowUpdatePage(false);
         window.electronAPI.showService(serviceId);
+      } else if (action === "show-update-page") {
+        setShowUpdatePage(true);
+        setActiveServiceId(null);
+        window.electronAPI.hideService();
       }
     });
 
@@ -163,11 +167,6 @@ function App() {
         onReload={handleReloadService}
         onGoBack={handleGoBack}
         onGoForward={handleGoForward}
-        onShowUpdatePage={async () => {
-          setShowUpdatePage(true);
-          setActiveServiceId(null);
-          await window.electronAPI?.hideService();
-        }}
       />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar

@@ -38,6 +38,7 @@ const api = {
   sendUiToBack: (): void => ipcRenderer.send("send-ui-to-back"),
   showServiceContextMenu: (serviceId: string): void =>
     ipcRenderer.send("show-service-context-menu", serviceId),
+  showSettingsMenu: (): void => ipcRenderer.send("show-settings-menu"),
   onServicesUpdated: (callback: (services: Service[]) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, services: Service[]) => callback(services);
     ipcRenderer.on("services-updated", handler);
