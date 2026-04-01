@@ -7,6 +7,9 @@ export interface Service {
   icon: string;
   color: string;
   notificationCount: number;
+  muted?: boolean;
+  enabled?: boolean;
+  notificationsEnabled?: boolean;
 }
 
 const api = {
@@ -20,6 +23,12 @@ const api = {
     ipcRenderer.invoke("update-service", service),
   reorderServices: (serviceIds: string[]): Promise<Service[]> =>
     ipcRenderer.invoke("reorder-services", serviceIds),
+  toggleMuteService: (serviceId: string): Promise<Service[]> =>
+    ipcRenderer.invoke("toggle-mute-service", serviceId),
+  toggleServiceEnabled: (serviceId: string): Promise<Service[]> =>
+    ipcRenderer.invoke("toggle-service-enabled", serviceId),
+  toggleServiceNotifications: (serviceId: string): Promise<Service[]> =>
+    ipcRenderer.invoke("toggle-service-notifications", serviceId),
 
   // View management
   showService: (serviceId: string): void =>

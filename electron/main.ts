@@ -17,6 +17,9 @@ interface Service {
   icon: string;
   color: string;
   notificationCount: number;
+  muted?: boolean;
+  enabled?: boolean;
+  notificationsEnabled?: boolean;
 }
 
 interface StoreSchema {
@@ -41,6 +44,8 @@ let mainWindow: BrowserWindow | null = null;
 const serviceViews = new Map<string, WebContentsView>();
 const notificationCounts = new Map<string, number>();
 let activeServiceId: string | null = null;
+const pendingDecrease = new Map<string, { count: number; streak: number }>();
+const DECREASE_THRESHOLD = 3; // require 3 consecutive lower readings before decreasing
 const SIDEBAR_WIDTH = 68;
 const TITLEBAR_HEIGHT = 46;
 
@@ -104,7 +109,7 @@ function createWindow() {
   mainWindow.webContents.on("did-finish-load", () => {
     const services = store.get("services");
     for (const service of services) {
-      if (!serviceViews.has(service.id) && mainWindow) {
+      if (!serviceViews.has(service.id) && mainWindow && service.enabled !== false) {
         const view = createServiceView(service);
         serviceViews.set(service.id, view);
         mainWindow.contentView.addChildView(view);
@@ -188,18 +193,47 @@ function createServiceView(service: Service): WebContentsView {
 
   view.webContents.loadURL(service.url);
 
+  // Apply mute state
+  if (service.muted) {
+    view.webContents.setAudioMuted(true);
+  }
+
   // Track page title changes for notification detection
+  // Debounce decreases to avoid blinking badges during page transitions
   const updateNotificationCount = (count: number) => {
+    // Check if notifications are disabled for this service
+    const currentService = store.get("services").find((s) => s.id === service.id);
+    if (currentService?.notificationsEnabled === false) {
+      count = 0;
+    }
+
     const prev = notificationCounts.get(service.id) || 0;
-    if (count !== prev) {
-      notificationCounts.set(service.id, count);
-      updateTaskbarBadge();
-      if (mainWindow) {
-        mainWindow.webContents.send("notification-update", {
-          serviceId: service.id,
-          count,
-        });
+    if (count === prev) {
+      pendingDecrease.delete(service.id);
+      return;
+    }
+
+    if (count < prev) {
+      const pending = pendingDecrease.get(service.id);
+      if (pending && pending.count === count) {
+        pending.streak++;
+        if (pending.streak < DECREASE_THRESHOLD) return;
+      } else {
+        pendingDecrease.set(service.id, { count, streak: 1 });
+        return;
       }
+      pendingDecrease.delete(service.id);
+    } else {
+      pendingDecrease.delete(service.id);
+    }
+
+    notificationCounts.set(service.id, count);
+    updateTaskbarBadge();
+    if (mainWindow) {
+      mainWindow.webContents.send("notification-update", {
+        serviceId: service.id,
+        count,
+      });
     }
   };
 
@@ -211,7 +245,7 @@ function createServiceView(service: Service): WebContentsView {
 
   // Poll for unread count (title-based + DOM-based for apps like WhatsApp)
   const pollInterval = setInterval(() => {
-    if (view.webContents.isDestroyed()) {
+    if (!view.webContents || view.webContents.isDestroyed()) {
       clearInterval(pollInterval);
       return;
     }
@@ -223,20 +257,41 @@ function createServiceView(service: Service): WebContentsView {
         const titleMatch = document.title.match(/\\((\\d+)\\)/);
         if (titleMatch) return parseInt(titleMatch[1], 10);
 
-        // WhatsApp: check the "Unread N" filter button or unread badge spans
+        // Check for "Unread N" text in the page (e.g. WhatsApp filter button)
         const allText = document.body.innerText || "";
-        const unreadTabMatch = allText.match(/Unread\\s+(\\d+)/);
+        const unreadTabMatch = allText.match(/Unread\\s+(\\d+)/i);
         if (unreadTabMatch) return parseInt(unreadTabMatch[1], 10);
 
-        // WhatsApp: count green unread indicator dots in chat list
-        const unreadSpans = document.querySelectorAll('span[aria-label*="unread"]');
-        if (unreadSpans.length > 0) {
-          let total = 0;
-          unreadSpans.forEach(el => {
+        // Count elements with aria-label containing "unread" (case-insensitive)
+        const allElements = document.querySelectorAll('[aria-label]');
+        let unreadTotal = 0;
+        allElements.forEach(el => {
+          if (el.getAttribute('aria-label').toLowerCase().includes('unread')) {
             const num = parseInt(el.textContent || "0", 10);
-            total += num > 0 ? num : 1;
+            unreadTotal += num > 0 ? num : 1;
+          }
+        });
+        if (unreadTotal > 0) return unreadTotal;
+
+        // Messenger: count chat rows with unread delivery status indicators
+        const messengerUnread = document.querySelectorAll('[data-testid="unread-indicator"], [aria-label*="Delivered"], [aria-label*="Sent"]');
+        if (messengerUnread.length === 0) {
+          // Fallback: count bold/unread chat previews in Messenger
+          // Messenger marks unread chat names with heavier font weight
+          const chatRows = document.querySelectorAll('[role="row"], [role="listitem"]');
+          let boldCount = 0;
+          chatRows.forEach(row => {
+            const spans = row.querySelectorAll('span');
+            spans.forEach(span => {
+              const weight = window.getComputedStyle(span).fontWeight;
+              if ((weight === 'bold' || parseInt(weight) >= 700) && span.textContent && span.textContent.trim().length > 0 && span.closest('[role="row"], [role="listitem"]') === row) {
+                // Check if this row also has a small colored dot (unread indicator)
+                const dots = row.querySelectorAll('span[data-visualcompletion="ignore"]');
+                if (dots.length > 0) boldCount++;
+              }
+            });
           });
-          if (total > 0) return total;
+          if (boldCount > 0) return boldCount;
         }
 
         return 0;
@@ -305,7 +360,7 @@ function showService(serviceId: string) {
   if (!view) {
     const services = store.get("services");
     const service = services.find((s) => s.id === serviceId);
-    if (!service) return;
+    if (!service || service.enabled === false) return;
     view = createServiceView(service);
     serviceViews.set(serviceId, view);
     mainWindow.contentView.addChildView(view);
@@ -374,6 +429,66 @@ ipcMain.handle("reorder-services", (_event, serviceIds: string[]) => {
     .filter(Boolean) as Service[];
   store.set("services", reordered);
   return reordered;
+});
+
+ipcMain.handle("toggle-mute-service", (_event, serviceId: string) => {
+  const services = store.get("services");
+  const updated = services.map((s) => {
+    if (s.id === serviceId) {
+      const muted = !s.muted;
+      // Apply mute to the live view
+      const view = serviceViews.get(serviceId);
+      if (view) {
+        view.webContents.setAudioMuted(muted);
+      }
+      return { ...s, muted };
+    }
+    return s;
+  });
+  store.set("services", updated);
+  return updated;
+});
+
+ipcMain.handle("toggle-service-enabled", (_event, serviceId: string) => {
+  const services = store.get("services");
+  const updated = services.map((s) => {
+    if (s.id === serviceId) {
+      const enabled = s.enabled === false; // toggle: undefined/true -> false, false -> true
+      if (!enabled) {
+        // Destroy the view when disabling
+        const view = serviceViews.get(serviceId);
+        if (view) {
+          if (activeServiceId === serviceId) {
+            activeServiceId = null;
+          }
+          if (mainWindow) {
+            mainWindow.contentView.removeChildView(view);
+          }
+          view.webContents.close();
+          serviceViews.delete(serviceId);
+        }
+        notificationCounts.delete(serviceId);
+        pendingDecrease.delete(serviceId);
+        updateTaskbarBadge();
+      }
+      return { ...s, enabled };
+    }
+    return s;
+  });
+  store.set("services", updated);
+  return updated;
+});
+
+ipcMain.handle("toggle-service-notifications", (_event, serviceId: string) => {
+  const services = store.get("services");
+  const updated = services.map((s) => {
+    if (s.id === serviceId) {
+      return { ...s, notificationsEnabled: s.notificationsEnabled === false };
+    }
+    return s;
+  });
+  store.set("services", updated);
+  return updated;
 });
 
 ipcMain.on("show-service", (_event, serviceId: string) => {
