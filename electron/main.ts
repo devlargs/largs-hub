@@ -7,7 +7,6 @@ import {
   nativeImage,
 } from "electron";
 import path from "path";
-import os from "os";
 import Store from "electron-store";
 
 interface Service {
@@ -560,55 +559,6 @@ ipcMain.on("go-forward", (_event, serviceId: string) => {
 ipcMain.handle("get-theme", () => store.get("theme"));
 ipcMain.handle("set-theme", (_event, theme: "dark" | "light") => {
   store.set("theme", theme);
-});
-
-// System stats
-let prevCpuTimes: { idle: number; total: number } | null = null;
-
-function getCpuUsage(): number {
-  const cpus = os.cpus();
-  let idle = 0;
-  let total = 0;
-  for (const cpu of cpus) {
-    idle += cpu.times.idle;
-    total += cpu.times.user + cpu.times.nice + cpu.times.sys + cpu.times.irq + cpu.times.idle;
-  }
-  if (!prevCpuTimes) {
-    prevCpuTimes = { idle, total };
-    return 0;
-  }
-  const idleDiff = idle - prevCpuTimes.idle;
-  const totalDiff = total - prevCpuTimes.total;
-  prevCpuTimes = { idle, total };
-  return totalDiff > 0 ? Math.round((1 - idleDiff / totalDiff) * 100) : 0;
-}
-
-let systemStatsInterval: ReturnType<typeof setInterval> | null = null;
-
-ipcMain.on("start-system-stats", () => {
-  if (systemStatsInterval) return;
-  getCpuUsage();
-
-  systemStatsInterval = setInterval(() => {
-    if (!mainWindow) return;
-    const mem = process.memoryUsage();
-    const totalMem = os.totalmem();
-    const freeMem = os.freemem();
-
-    uiView?.webContents.send("system-stats", {
-      cpu: getCpuUsage(),
-      memUsed: Math.round((totalMem - freeMem) / 1024 / 1024),
-      memTotal: Math.round(totalMem / 1024 / 1024),
-      appMem: Math.round(mem.rss / 1024 / 1024),
-    });
-  }, 2000);
-});
-
-ipcMain.on("stop-system-stats", () => {
-  if (systemStatsInterval) {
-    clearInterval(systemStatsInterval);
-    systemStatsInterval = null;
-  }
 });
 
 // Update check via GitHub API

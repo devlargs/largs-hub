@@ -62,15 +62,6 @@ const api = {
   getTheme: (): Promise<"dark" | "light"> => ipcRenderer.invoke("get-theme"),
   setTheme: (theme: "dark" | "light"): Promise<void> => ipcRenderer.invoke("set-theme", theme),
 
-  // System stats
-  startSystemStats: () => ipcRenderer.send("start-system-stats"),
-  stopSystemStats: () => ipcRenderer.send("stop-system-stats"),
-  onSystemStats: (callback: (stats: { cpu: number; memUsed: number; memTotal: number; appMem: number }) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, stats: { cpu: number; memUsed: number; memTotal: number; appMem: number }) => callback(stats);
-    ipcRenderer.on("system-stats", handler);
-    return () => ipcRenderer.removeListener("system-stats", handler);
-  },
-
   // Updates
   checkForUpdates: (): Promise<{ updateAvailable: boolean; version?: string; downloadUrl?: string }> => ipcRenderer.invoke("check-for-updates"),
   getAppVersion: (): Promise<string> => ipcRenderer.invoke("get-app-version"),

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Service, SystemStats } from "../types";
+import { Service } from "../types";
 import { resolveIcon } from "../assets/serviceIcons";
 import { IoSunny, IoMoon, IoHome } from "react-icons/io5";
 import { useNotificationStore } from "../store/notifications";
@@ -17,67 +17,6 @@ interface SidebarProps {
   onToggleServiceNotifications: (serviceId: string) => void;
 }
 
-function getStatColor(value: number): string {
-  if (value < 50) return "#a6e3a1";
-  if (value < 80) return "#f9e2af";
-  return "#f38ba8";
-}
-
-function StatRing({
-  label,
-  value,
-  color,
-  tooltip,
-}: {
-  label: string;
-  value: number;
-  color: string;
-  tooltip: string;
-}) {
-  const radius = 18;
-  const stroke = 3;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (value / 100) * circumference;
-
-  return (
-    <div className="relative flex flex-col items-center" title={tooltip}>
-      <svg width={44} height={44} className="-rotate-90">
-        <circle
-          cx={22}
-          cy={22}
-          r={radius}
-          fill="none"
-          stroke="var(--stat-ring-bg)"
-          strokeWidth={stroke}
-        />
-        <circle
-          cx={22}
-          cy={22}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          className="transition-all duration-700 ease-out"
-        />
-      </svg>
-      <div
-        className="absolute flex flex-col items-center justify-center"
-        style={{ width: 44, height: 44 }}
-      >
-        <span className="text-[10px] font-bold font-mono" style={{ color: "var(--text-primary)" }}>
-          {value}%
-        </span>
-      </div>
-      <span className="text-[9px] font-medium -mt-1" style={{ color: "var(--text-muted)" }}>
-        {label}
-      </span>
-    </div>
-  );
-}
-
 export default function Sidebar({
   services,
   activeServiceId,
@@ -91,7 +30,6 @@ export default function Sidebar({
   onToggleServiceNotifications,
 }: SidebarProps) {
   const notificationCounts = useNotificationStore((s) => s.counts);
-  const [stats, setStats] = useState<SystemStats | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   // Drag and drop state
@@ -184,16 +122,6 @@ export default function Sidebar({
     document.documentElement.classList.toggle("light", next === "light");
     window.electronAPI?.setTheme(next);
   };
-
-  useEffect(() => {
-    if (!window.electronAPI) return;
-    window.electronAPI.startSystemStats();
-    const unsub = window.electronAPI.onSystemStats(setStats);
-    return () => {
-      unsub();
-      window.electronAPI.stopSystemStats();
-    };
-  }, []);
 
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -305,40 +233,6 @@ export default function Sidebar({
 
         {/* Spacer */}
         <div className="flex-1" />
-
-        {/* System stats */}
-        {stats && (
-          <div
-            className="flex flex-col items-center gap-2"
-            style={{ marginBottom: 16 }}
-          >
-            <StatRing
-              label="CPU"
-              value={stats.cpu}
-              color={getStatColor(stats.cpu)}
-              tooltip={`CPU: ${stats.cpu}%`}
-            />
-            <StatRing
-              label="MEM"
-              value={Math.round((stats.memUsed / stats.memTotal) * 100)}
-              color={getStatColor(
-                Math.round((stats.memUsed / stats.memTotal) * 100),
-              )}
-              tooltip={`Memory: ${stats.memUsed} / ${stats.memTotal} MB`}
-            />
-            <div
-              className="flex flex-col items-center"
-              title={`App: ${stats.appMem} MB`}
-            >
-              <span className="text-[10px] font-medium text-[#89b4fa]">
-                APP
-              </span>
-              <span className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>
-                {stats.appMem}M
-              </span>
-            </div>
-          </div>
-        )}
 
         {/* Theme toggle */}
         <button

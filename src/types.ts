@@ -10,13 +10,6 @@ export interface Service {
   notificationsEnabled?: boolean;
 }
 
-export interface SystemStats {
-  cpu: number;
-  memUsed: number;
-  memTotal: number;
-  appMem: number;
-}
-
 export interface ElectronAPI {
   getServices: () => Promise<Service[]>;
   addService: (service: Service) => Promise<Service[]>;
@@ -41,9 +34,6 @@ export interface ElectronAPI {
   ) => () => void;
   getTheme: () => Promise<"dark" | "light">;
   setTheme: (theme: "dark" | "light") => Promise<void>;
-  startSystemStats: () => void;
-  stopSystemStats: () => void;
-  onSystemStats: (callback: (stats: SystemStats) => void) => () => void;
   checkForUpdates: () => Promise<{ updateAvailable: boolean; version?: string; downloadUrl?: string }>;
   getAppVersion: () => Promise<string>;
   downloadAndInstallUpdate: (downloadUrl: string) => Promise<void>;
