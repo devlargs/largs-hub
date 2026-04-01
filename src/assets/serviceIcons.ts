@@ -37,6 +37,10 @@ const serviceIconsByName: Record<string, string> = {
 };
 
 export function resolveIcon(icon: string, name: string): string | undefined {
+  if (icon.startsWith("custom:")) {
+    const fileName = icon.slice(7);
+    return `custom-icon://${encodeURIComponent(fileName)}`;
+  }
   return serviceIcons[icon] || serviceIconsByName[name.toLowerCase()];
 }
 

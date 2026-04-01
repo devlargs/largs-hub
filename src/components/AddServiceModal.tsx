@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Service } from "../types";
 import { v4 as uuidv4 } from "uuid";
-import serviceIcons from "../assets/serviceIcons";
+import serviceIcons, { resolveIcon } from "../assets/serviceIcons";
+import { IoCloudUploadOutline, IoTrashOutline } from "react-icons/io5";
 
 const POPULAR_SERVICES = [
   { name: "Gmail", url: "https://mail.google.com", icon: "gmail.png" },
@@ -36,8 +37,16 @@ export default function AddServiceModal({
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [editName, setEditName] = useState(editingService?.name || "");
   const [editUrl, setEditUrl] = useState(editingService?.url || "");
+  const [editIcon, setEditIcon] = useState(editingService?.icon || "");
+  const [iconPreview, setIconPreview] = useState<string | null>(() => {
+    if (editingService?.icon) {
+      return resolveIcon(editingService.icon, editingService.name) || null;
+    }
+    return null;
+  });
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
@@ -52,6 +61,32 @@ export default function AddServiceModal({
     s.name.toLowerCase().includes(search.toLowerCase()),
   );
 
+  const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      setIconPreview(dataUrl);
+      const ext = file.name.split(".").pop() || "png";
+      const fileName = `${uuidv4()}.${ext}`;
+      await window.electronAPI.saveCustomIcon(fileName, dataUrl);
+      setEditIcon(`custom:${fileName}`);
+    };
+    reader.readAsDataURL(file);
+    // Reset input so the same file can be selected again
+    e.target.value = "";
+  };
+
+  const handleDeleteIcon = async () => {
+    if (editIcon.startsWith("custom:")) {
+      const fileName = editIcon.slice(7);
+      await window.electronAPI.deleteCustomIcon(fileName);
+    }
+    setEditIcon("");
+    setIconPreview(null);
+  };
+
   const handleConfirm = () => {
     if (isEditing) {
       if (!editName.trim() || !editUrl.trim()) return;
@@ -59,6 +94,7 @@ export default function AddServiceModal({
         ...editingService!,
         name: editName.trim(),
         url: editUrl.trim(),
+        icon: editIcon || editingService!.icon,
       });
     } else {
       if (selectedIndex === null) return;
@@ -68,7 +104,7 @@ export default function AddServiceModal({
         id: uuidv4(),
         name: preset.name,
         url: preset.url,
-        icon: preset.icon,
+        icon: editIcon || preset.icon,
         color: "#06b6d4",
         notificationCount: 0,
       });
@@ -112,6 +148,61 @@ export default function AddServiceModal({
         {isEditing ? (
           /* Edit form */
           <div className="flex flex-col" style={{ gap: 16, marginBottom: 28 }}>
+            {/* Icon upload */}
+            <div className="flex flex-col items-center" style={{ gap: 8 }}>
+              <label className="text-xs font-medium self-start" style={{ color: "var(--text-muted)" }}>Icon</label>
+              <div className="flex items-center" style={{ gap: 12 }}>
+                <div
+                  className="flex items-center justify-center rounded-2xl"
+                  style={{
+                    width: 64,
+                    height: 64,
+                    backgroundColor: "var(--panel)",
+                    border: "1px solid var(--border)",
+                    overflow: "hidden",
+                  }}
+                >
+                  {iconPreview ? (
+                    <img src={iconPreview} alt="Icon" style={{ width: 40, height: 40, objectFit: "contain" }} />
+                  ) : (
+                    <span
+                      className="flex items-center justify-center text-white font-bold text-lg"
+                      style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: editingService?.color || "#6c7086" }}
+                    >
+                      {editName.charAt(0).toUpperCase() || "?"}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col" style={{ gap: 6 }}>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center text-xs font-medium cursor-pointer rounded-lg transition-colors hover:opacity-80"
+                    style={{ gap: 6, padding: "6px 12px", backgroundColor: "var(--panel)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+                  >
+                    <IoCloudUploadOutline size={14} />
+                    Upload
+                  </button>
+                  {iconPreview && editIcon.startsWith("custom:") && (
+                    <button
+                      onClick={handleDeleteIcon}
+                      className="flex items-center text-xs font-medium cursor-pointer rounded-lg transition-colors hover:opacity-80"
+                      style={{ gap: 6, padding: "6px 12px", color: "#f38ba8", backgroundColor: "transparent", border: "1px solid var(--border)" }}
+                    >
+                      <IoTrashOutline size={14} />
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleIconUpload}
+                  className="hidden"
+                />
+              </div>
+            </div>
+
             <div className="flex flex-col" style={{ gap: 6 }}>
               <label className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Name</label>
               <input

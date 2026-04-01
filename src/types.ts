@@ -34,6 +34,8 @@ export interface ElectronAPI {
   ) => () => void;
   getTheme: () => Promise<"dark" | "light">;
   setTheme: (theme: "dark" | "light") => Promise<void>;
+  saveCustomIcon: (fileName: string, dataUrl: string) => Promise<string>;
+  deleteCustomIcon: (fileName: string) => Promise<void>;
   checkForUpdates: () => Promise<{ updateAvailable: boolean; version?: string; downloadUrl?: string }>;
   getAppVersion: () => Promise<string>;
   downloadAndInstallUpdate: (downloadUrl: string) => Promise<void>;

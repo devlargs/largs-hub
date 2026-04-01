@@ -5,8 +5,11 @@ import {
   ipcMain,
   session,
   nativeImage,
+  protocol,
+  net,
 } from "electron";
 import path from "path";
+import fs from "fs";
 import Store from "electron-store";
 
 interface Service {
@@ -578,6 +581,26 @@ ipcMain.handle("set-theme", (_event, theme: "dark" | "light") => {
   store.set("theme", theme);
 });
 
+// Custom icons
+const customIconsDir = path.join(app.getPath("userData"), "custom-icons");
+
+ipcMain.handle("save-custom-icon", async (_event, { fileName, dataUrl }: { fileName: string; dataUrl: string }) => {
+  if (!fs.existsSync(customIconsDir)) {
+    fs.mkdirSync(customIconsDir, { recursive: true });
+  }
+  const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, "");
+  const filePath = path.join(customIconsDir, fileName);
+  fs.writeFileSync(filePath, Buffer.from(base64, "base64"));
+  return filePath;
+});
+
+ipcMain.handle("delete-custom-icon", async (_event, fileName: string) => {
+  const filePath = path.join(customIconsDir, fileName);
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+});
+
 // Update check via GitHub API
 ipcMain.handle("check-for-updates", async () => {
   try {
@@ -679,7 +702,16 @@ ipcMain.on("window-maximize", () => {
 });
 ipcMain.on("window-close", () => mainWindow?.close());
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  // Register protocol to serve custom icon files
+  protocol.handle("custom-icon", (request) => {
+    const fileName = decodeURIComponent(request.url.replace("custom-icon://", ""));
+    const filePath = path.join(app.getPath("userData"), "custom-icons", fileName);
+    return net.fetch(`file://${filePath}`);
+  });
+
+  createWindow();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

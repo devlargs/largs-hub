@@ -62,6 +62,12 @@ const api = {
   getTheme: (): Promise<"dark" | "light"> => ipcRenderer.invoke("get-theme"),
   setTheme: (theme: "dark" | "light"): Promise<void> => ipcRenderer.invoke("set-theme", theme),
 
+  // Custom icons
+  saveCustomIcon: (fileName: string, dataUrl: string): Promise<string> =>
+    ipcRenderer.invoke("save-custom-icon", { fileName, dataUrl }),
+  deleteCustomIcon: (fileName: string): Promise<void> =>
+    ipcRenderer.invoke("delete-custom-icon", fileName),
+
   // Updates
   checkForUpdates: (): Promise<{ updateAvailable: boolean; version?: string; downloadUrl?: string }> => ipcRenderer.invoke("check-for-updates"),
   getAppVersion: (): Promise<string> => ipcRenderer.invoke("get-app-version"),
