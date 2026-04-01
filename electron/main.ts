@@ -673,15 +673,20 @@ ipcMain.handle("download-and-install-update", async (_event, downloadUrl: string
 
         file.on("finish", () => {
           file.close(() => {
-            // Launch the installer silently, then relaunch the app
-            const { exec } = require("child_process");
-            const appPath = process.execPath;
-            exec(`"${tmpPath}" /S && "${appPath}"`, {
+            // Launch the NSIS installer silently in a fully detached process.
+            // The installer will replace app files and auto-relaunch when done.
+            const { spawn } = require("child_process");
+            const child = spawn(tmpPath, ["/S"], {
               detached: true,
+              stdio: "ignore",
               windowsHide: true,
             });
-            app.quit();
-            resolve();
+            child.unref();
+            // Give the spawned process a moment to start before quitting
+            setTimeout(() => {
+              app.quit();
+              resolve();
+            }, 500);
           });
         });
 
