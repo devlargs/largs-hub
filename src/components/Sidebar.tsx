@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Service, SystemStats } from "../types";
 import { resolveIcon } from "../assets/serviceIcons";
 import { IoSunny, IoMoon, IoHome } from "react-icons/io5";
@@ -11,6 +11,7 @@ interface SidebarProps {
   onAddService: () => void;
   onRemoveService: (id: string) => void;
   onEditService: (service: Service) => void;
+  onReorderServices: (serviceIds: string[]) => void;
 }
 
 function getStatColor(value: number): string {
@@ -81,10 +82,87 @@ export default function Sidebar({
   onAddService,
   onRemoveService,
   onEditService,
+  onReorderServices,
 }: SidebarProps) {
   const notificationCounts = useNotificationStore((s) => s.counts);
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  // Drag and drop state
+  const [dragEnabled, setDragEnabled] = useState(false);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didDrag = useRef(false);
+
+  const clearLongPress = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const handlePointerDown = useCallback((serviceId: string) => {
+    didDrag.current = false;
+    longPressTimer.current = setTimeout(() => {
+      setDragEnabled(true);
+      setDraggedId(serviceId);
+    }, 300);
+  }, []);
+
+  const handlePointerUp = useCallback(() => {
+    clearLongPress();
+  }, [clearLongPress]);
+
+  const handleDragStart = useCallback((e: React.DragEvent, serviceId: string) => {
+    if (!dragEnabled) {
+      e.preventDefault();
+      return;
+    }
+    didDrag.current = true;
+    e.dataTransfer.effectAllowed = "move";
+    // Use a transparent image as drag ghost (we show our own indicator)
+    const img = new Image();
+    img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+    e.dataTransfer.setDragImage(img, 0, 0);
+    setDraggedId(serviceId);
+  }, [dragEnabled]);
+
+  const handleDragOver = useCallback((e: React.DragEvent, serviceId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDropTargetId(serviceId);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedId || draggedId === targetId) {
+      setDraggedId(null);
+      setDropTargetId(null);
+      setDragEnabled(false);
+      return;
+    }
+
+    const oldIds = services.map((s) => s.id);
+    const fromIndex = oldIds.indexOf(draggedId);
+    const toIndex = oldIds.indexOf(targetId);
+    if (fromIndex === -1 || toIndex === -1) return;
+
+    const newIds = [...oldIds];
+    newIds.splice(fromIndex, 1);
+    newIds.splice(toIndex, 0, draggedId);
+    onReorderServices(newIds);
+
+    setDraggedId(null);
+    setDropTargetId(null);
+    setDragEnabled(false);
+  }, [draggedId, services, onReorderServices]);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedId(null);
+    setDropTargetId(null);
+    setDragEnabled(false);
+  }, []);
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -153,7 +231,17 @@ export default function Sidebar({
         {services.map((service) => (
           <button
             key={service.id}
-            onClick={() => onSelectService(service.id)}
+            draggable={dragEnabled && draggedId === service.id}
+            onClick={() => {
+              if (!didDrag.current) onSelectService(service.id);
+            }}
+            onPointerDown={() => handlePointerDown(service.id)}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={clearLongPress}
+            onDragStart={(e) => handleDragStart(e, service.id)}
+            onDragOver={(e) => handleDragOver(e, service.id)}
+            onDrop={(e) => handleDrop(e, service.id)}
+            onDragEnd={handleDragEnd}
             onContextMenu={(e) => handleContextMenu(e, service)}
             className={`
               relative w-12 h-12 rounded-xl flex items-center justify-center
@@ -163,6 +251,8 @@ export default function Sidebar({
                   ? "bg-accent/20 ring-2 ring-accent"
                   : "hover:bg-sidebar-hover"
               }
+              ${draggedId === service.id ? "opacity-40 scale-90" : ""}
+              ${dropTargetId === service.id && draggedId !== service.id ? "ring-2 ring-accent/50" : ""}
             `}
             title={service.name}
           >

@@ -94,6 +94,11 @@ function App() {
     setEditingService(null);
   }, []);
 
+  const handleReorderServices = useCallback(async (serviceIds: string[]) => {
+    const updated = await window.electronAPI.reorderServices(serviceIds);
+    setServices(updated);
+  }, []);
+
   const handleReloadService = useCallback(() => {
     if (activeServiceId) {
       window.electronAPI?.reloadService(activeServiceId);
@@ -137,6 +142,7 @@ function App() {
           }}
           onRemoveService={handleRemoveService}
           onEditService={handleEditService}
+          onReorderServices={handleReorderServices}
         />
         {/* BrowserView renders natively on top of this area */}
         <div className="flex-1 relative">
