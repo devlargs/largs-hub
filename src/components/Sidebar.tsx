@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Service, SystemStats } from "../types";
 import { resolveIcon } from "../assets/serviceIcons";
-import { IoSunny, IoMoon } from "react-icons/io5";
+import { IoSunny, IoMoon, IoHome } from "react-icons/io5";
 
 interface SidebarProps {
   services: Service[];
@@ -134,6 +134,20 @@ export default function Sidebar({
         className="w-17 bg-sidebar flex flex-col items-center pb-4 shrink-0 overflow-y-auto"
         style={{ gap: 8, paddingTop: 8 }}
       >
+        {/* Home button */}
+        <button
+          onClick={onAddService}
+          className={`
+            w-12 h-12 rounded-xl flex items-center justify-center
+            transition-all duration-200 cursor-pointer
+            ${!activeServiceId ? "bg-accent/20 ring-2 ring-accent" : "hover:bg-sidebar-hover"}
+          `}
+          title="Home"
+          style={{ color: !activeServiceId ? "var(--accent)" : "var(--text-muted)" }}
+        >
+          <IoHome size={22} />
+        </button>
+
         {services.map((service) => (
           <button
             key={service.id}
@@ -189,15 +203,6 @@ export default function Sidebar({
             )}
           </button>
         ))}
-
-        {/* Add button */}
-        <button
-          onClick={onAddService}
-          className="w-12 h-12 rounded-xl flex items-center justify-center text-gray-500 hover:text-white hover:bg-sidebar-hover transition-all duration-200 border-2 border-dashed border-gray-600 hover:border-accent mt-1 cursor-pointer"
-          title="Add service"
-        >
-          <span className="text-2xl leading-none">+</span>
-        </button>
 
         {/* Spacer */}
         <div className="flex-1" />
