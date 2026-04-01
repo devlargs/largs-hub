@@ -50,7 +50,7 @@ const serviceViews = new Map<string, WebContentsView>();
 const notificationCounts = new Map<string, number>();
 let activeServiceId: string | null = null;
 const pendingDecrease = new Map<string, { count: number; streak: number }>();
-const DECREASE_THRESHOLD = 3; // require 3 consecutive lower readings before decreasing
+const DECREASE_THRESHOLD = 2; // require 2 consecutive lower readings before decreasing
 const SIDEBAR_WIDTH = 68;
 const TITLEBAR_HEIGHT = 46;
 
@@ -118,6 +118,7 @@ function createWindow() {
   // When the window regains focus (e.g. Alt+Tab), focus the active service view
   // so keyboard input goes to it (e.g. typing in a Messenger chat)
   mainWindow.on("focus", () => {
+    mainWindow?.flashFrame(false); // Stop taskbar flashing
     if (activeServiceId) {
       const view = serviceViews.get(activeServiceId);
       if (view && !view.webContents.isDestroyed()) {
@@ -261,6 +262,7 @@ function createServiceView(service: Service): WebContentsView {
       pendingDecrease.delete(service.id);
     }
 
+    const wasIncrease = count > prev;
     notificationCounts.set(service.id, count);
     updateTaskbarBadge();
     if (mainWindow) {
@@ -268,65 +270,55 @@ function createServiceView(service: Service): WebContentsView {
         serviceId: service.id,
         count,
       });
+      // Flash taskbar when new notifications arrive and window isn't focused
+      if (wasIncrease && !mainWindow.isFocused()) {
+        mainWindow.flashFrame(true);
+      }
     }
   };
 
+  // Title-based notification detection — most reliable method
+  // Works for Gmail "(3)", Messenger "(1)", Slack "(2)", etc.
   view.webContents.on("page-title-updated", (_event, title) => {
     const match = title.match(/\((\d+)\)/);
     const count = match ? parseInt(match[1], 10) : 0;
     updateNotificationCount(count);
   });
 
-  // Poll for unread count (title-based + DOM-based for apps like WhatsApp)
+  // Poll for apps that don't reliably put counts in the title (WhatsApp, etc.)
+  // Only uses targeted selectors per app — no broad heuristics that cause false positives
+  const serviceHost = new URL(service.url).hostname.replace(/^www\./, "");
   const pollInterval = setInterval(() => {
     if (!view.webContents || view.webContents.isDestroyed()) {
       clearInterval(pollInterval);
       return;
     }
 
-    // Try title-based detection first
     view.webContents.executeJavaScript(`
       (() => {
-        // Check page title for (N) pattern
+        // 1. Title-based: always check first — this is the most reliable
         const titleMatch = document.title.match(/\\((\\d+)\\)/);
         if (titleMatch) return parseInt(titleMatch[1], 10);
 
-        // Check for "Unread N" text in the page (e.g. WhatsApp filter button)
-        const allText = document.body.innerText || "";
-        const unreadTabMatch = allText.match(/Unread\\s+(\\d+)/i);
-        if (unreadTabMatch) return parseInt(unreadTabMatch[1], 10);
-
-        // Count elements with aria-label containing "unread" (case-insensitive)
-        const allElements = document.querySelectorAll('[aria-label]');
-        let unreadTotal = 0;
-        allElements.forEach(el => {
-          if (el.getAttribute('aria-label').toLowerCase().includes('unread')) {
+        // 2. WhatsApp-specific: unread count in filter badge
+        ${serviceHost.includes("whatsapp") ? `
+        const unreadBadges = document.querySelectorAll('span[aria-label*="unread message"], span[aria-label*="unread messages"]');
+        if (unreadBadges.length > 0) {
+          let total = 0;
+          unreadBadges.forEach(el => {
             const num = parseInt(el.textContent || "0", 10);
-            unreadTotal += num > 0 ? num : 1;
-          }
-        });
-        if (unreadTotal > 0) return unreadTotal;
-
-        // Messenger: count chat rows with unread delivery status indicators
-        const messengerUnread = document.querySelectorAll('[data-testid="unread-indicator"], [aria-label*="Delivered"], [aria-label*="Sent"]');
-        if (messengerUnread.length === 0) {
-          // Fallback: count bold/unread chat previews in Messenger
-          // Messenger marks unread chat names with heavier font weight
-          const chatRows = document.querySelectorAll('[role="row"], [role="listitem"]');
-          let boldCount = 0;
-          chatRows.forEach(row => {
-            const spans = row.querySelectorAll('span');
-            spans.forEach(span => {
-              const weight = window.getComputedStyle(span).fontWeight;
-              if ((weight === 'bold' || parseInt(weight) >= 700) && span.textContent && span.textContent.trim().length > 0 && span.closest('[role="row"], [role="listitem"]') === row) {
-                // Check if this row also has a small colored dot (unread indicator)
-                const dots = row.querySelectorAll('span[data-visualcompletion="ignore"]');
-                if (dots.length > 0) boldCount++;
-              }
-            });
+            total += num > 0 ? num : 1;
           });
-          if (boldCount > 0) return boldCount;
+          if (total > 0) return total;
         }
+        ` : ""}
+
+        // 3. Messenger-specific: favicon badge or unread dot indicators
+        ${serviceHost.includes("messenger") || serviceHost.includes("facebook") ? `
+        // Check the favicon link for a badge indicator
+        const favicon = document.querySelector('link[rel*="icon"]');
+        if (favicon && favicon.href && favicon.href.includes('badge')) return 1;
+        ` : ""}
 
         return 0;
       })()
@@ -335,7 +327,7 @@ function createServiceView(service: Service): WebContentsView {
         updateNotificationCount(count);
       })
       .catch(() => {});
-  }, 5000);
+  }, 3000);
 
   // Handle popups: navigate in-app for known domains, open external for others
   view.webContents.setWindowOpenHandler(({ url }) => {
