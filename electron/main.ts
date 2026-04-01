@@ -66,7 +66,9 @@ function createWindow() {
     frame: false,
     titleBarStyle: "hidden",
     backgroundColor: "#181825",
-    icon: path.join(__dirname, "../assets/ico/icon.ico"),
+    ...(process.env.NODE_ENV !== "development" && !process.argv.includes("--dev")
+      ? { icon: path.join(__dirname, "../assets/ico/icon.ico") }
+      : {}),
   });
 
   mainWindow.maximize();
