@@ -115,6 +115,17 @@ function createWindow() {
     }
   });
 
+  // When the window regains focus (e.g. Alt+Tab), focus the active service view
+  // so keyboard input goes to it (e.g. typing in a Messenger chat)
+  mainWindow.on("focus", () => {
+    if (activeServiceId) {
+      const view = serviceViews.get(activeServiceId);
+      if (view && !view.webContents.isDestroyed()) {
+        view.webContents.focus();
+      }
+    }
+  });
+
   mainWindow.on("move", () => {
     if (mainWindow) {
       const [x, y] = mainWindow.getPosition();
