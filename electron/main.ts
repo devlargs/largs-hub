@@ -247,6 +247,21 @@ function createServiceView(service: Service): WebContentsView {
     }
   });
 
+  // Context menu for service views — "Copy Image" when right-clicking images
+  view.webContents.on("context-menu", (_event, params) => {
+    if (params.mediaType === "image") {
+      const menu = Menu.buildFromTemplate([
+        {
+          label: "Copy Image",
+          click: () => {
+            view.webContents.copyImageAt(params.x, params.y);
+          },
+        },
+      ]);
+      menu.popup({ window: mainWindow! });
+    }
+  });
+
   // Track page title changes for notification detection
   // Debounce decreases to avoid blinking badges during page transitions
   const updateNotificationCount = (count: number) => {
