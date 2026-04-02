@@ -4,7 +4,7 @@ import Sidebar from "./components/Sidebar";
 import Titlebar from "./components/Titlebar";
 import AddServiceModal from "./components/AddServiceModal";
 import WelcomeScreen from "./components/WelcomeScreen";
-import UpdatePage from "./components/UpdatePage";
+import SettingsPage from "./components/SettingsPage";
 import DisabledServiceScreen from "./components/DisabledServiceScreen";
 import { useNotificationStore } from "./store/notifications";
 
@@ -13,7 +13,7 @@ function App() {
   const [activeServiceId, setActiveServiceId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
-  const [showUpdatePage, setShowUpdatePage] = useState(false);
+  const [showSettingsPage, setShowSettingsPage] = useState(false);
   const updateNotificationCount = useNotificationStore((s) => s.updateCount);
   const removeNotificationService = useNotificationStore((s) => s.removeService);
 
@@ -39,7 +39,7 @@ function App() {
     // (fired when a service WebContentsView has focus)
     const unsubSwitched = window.electronAPI.onServiceSwitched((serviceId) => {
       setActiveServiceId(serviceId);
-      setShowUpdatePage(false);
+      setShowSettingsPage(false);
     });
 
     // Listen for context menu actions that need renderer handling
@@ -67,10 +67,10 @@ function App() {
         });
       } else if (action === "show-service") {
         setActiveServiceId(serviceId);
-        setShowUpdatePage(false);
+        setShowSettingsPage(false);
         window.electronAPI.showService(serviceId);
       } else if (action === "show-update-page") {
-        setShowUpdatePage(true);
+        setShowSettingsPage(true);
         setActiveServiceId(null);
         window.electronAPI.hideService();
       }
@@ -86,7 +86,7 @@ function App() {
 
   const handleSelectService = useCallback((serviceId: string) => {
     setActiveServiceId(serviceId);
-    setShowUpdatePage(false);
+    setShowSettingsPage(false);
     setServices((current) => {
       const svc = current.find((s) => s.id === serviceId);
       if (svc?.enabled !== false) {
@@ -175,6 +175,11 @@ function App() {
         onReload={handleReloadService}
         onGoBack={handleGoBack}
         onGoForward={handleGoForward}
+        onOpenSettings={async () => {
+          setActiveServiceId(null);
+          setShowSettingsPage(true);
+          await window.electronAPI?.hideService();
+        }}
       />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
@@ -184,16 +189,17 @@ function App() {
           onAddService={async () => {
             setEditingService(null);
             setActiveServiceId(null);
+            setShowSettingsPage(false);
             await window.electronAPI?.hideService();
           }}
           onReorderServices={handleReorderServices}
         />
         {/* BrowserView renders natively on top of this area */}
         <div className="flex-1 relative">
-          {!activeServiceId && !showUpdatePage && (
+          {!activeServiceId && !showSettingsPage && (
             <WelcomeScreen onAddService={() => setShowAddModal(true)} hasServices={services.length > 0} />
           )}
-          {showUpdatePage && !activeServiceId && <UpdatePage />}
+          {showSettingsPage && !activeServiceId && <SettingsPage />}
           {activeServiceId && (() => {
             const svc = services.find((s) => s.id === activeServiceId);
             return svc?.enabled === false ? (

@@ -80,6 +80,14 @@ const api = {
   getTheme: (): Promise<"dark" | "light"> => ipcRenderer.invoke("get-theme"),
   setTheme: (theme: "dark" | "light"): Promise<void> => ipcRenderer.invoke("set-theme", theme),
 
+  // Settings
+  getSettings: (): Promise<{ downloadFolder: string; wakeServicesAutomatically: boolean }> =>
+    ipcRenderer.invoke("get-settings"),
+  updateSetting: (key: string, value: unknown): Promise<void> =>
+    ipcRenderer.invoke("update-setting", key, value),
+  selectDownloadFolder: (): Promise<string | null> =>
+    ipcRenderer.invoke("select-download-folder"),
+
   // Custom icons
   saveCustomIcon: (fileName: string, dataUrl: string): Promise<string> =>
     ipcRenderer.invoke("save-custom-icon", { fileName, dataUrl }),
