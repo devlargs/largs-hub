@@ -1,3 +1,8 @@
+export interface AppSettings {
+  downloadFolder: string;
+  wakeServicesAutomatically: boolean;
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -39,6 +44,9 @@ export interface ElectronAPI {
   ) => () => void;
   getTheme: () => Promise<"dark" | "light">;
   setTheme: (theme: "dark" | "light") => Promise<void>;
+  getSettings: () => Promise<AppSettings>;
+  updateSetting: (key: string, value: unknown) => Promise<void>;
+  selectDownloadFolder: () => Promise<string | null>;
   saveCustomIcon: (fileName: string, dataUrl: string) => Promise<string>;
   deleteCustomIcon: (fileName: string) => Promise<void>;
   checkForUpdates: () => Promise<{ updateAvailable: boolean; version?: string; downloadUrl?: string }>;

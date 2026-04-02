@@ -8,6 +8,7 @@ import {
   protocol,
   net,
   Menu,
+  dialog,
 } from "electron";
 import path from "path";
 import fs from "fs";
@@ -30,6 +31,8 @@ interface StoreSchema {
   sidebarWidth: number;
   windowBounds: { width: number; height: number; x?: number; y?: number };
   theme: "dark" | "light";
+  downloadFolder: string;
+  wakeServicesAutomatically: boolean;
 }
 
 const store = new Store<StoreSchema>({
@@ -38,6 +41,8 @@ const store = new Store<StoreSchema>({
     sidebarWidth: 68,
     windowBounds: { width: 1200, height: 800 },
     theme: "dark",
+    downloadFolder: "",
+    wakeServicesAutomatically: true,
   },
 });
 
@@ -140,8 +145,9 @@ function createWindow() {
     serviceViews.clear();
   });
 
-  // Pre-load all saved services so they're warm on startup
+  // Pre-load all saved services so they're warm on startup (if enabled)
   uiView.webContents.on("did-finish-load", () => {
+    if (!store.get("wakeServicesAutomatically")) return;
     const services = store.get("services");
     for (const service of services) {
       if (!serviceViews.has(service.id) && mainWindow && service.enabled !== false) {
@@ -232,6 +238,29 @@ function createServiceView(service: Service): WebContentsView {
   if (service.muted) {
     view.webContents.setAudioMuted(true);
   }
+
+  // Apply download folder setting
+  view.webContents.session.on("will-download", (_event, item) => {
+    const downloadFolder = store.get("downloadFolder");
+    if (downloadFolder) {
+      item.setSavePath(path.join(downloadFolder, item.getFilename()));
+    }
+  });
+
+  // Context menu for service views — "Copy Image" when right-clicking images
+  view.webContents.on("context-menu", (_event, params) => {
+    if (params.mediaType === "image") {
+      const menu = Menu.buildFromTemplate([
+        {
+          label: "Copy Image",
+          click: () => {
+            view.webContents.copyImageAt(params.x, params.y);
+          },
+        },
+      ]);
+      menu.popup({ window: mainWindow! });
+    }
+  });
 
   // Track page title changes for notification detection
   // Debounce decreases to avoid blinking badges during page transitions
@@ -728,6 +757,35 @@ ipcMain.on("go-forward", (_event, serviceId: string) => {
 ipcMain.handle("get-theme", () => store.get("theme"));
 ipcMain.handle("set-theme", (_event, theme: "dark" | "light") => {
   store.set("theme", theme);
+});
+
+// Settings
+ipcMain.handle("get-settings", () => {
+  return {
+    downloadFolder: store.get("downloadFolder"),
+    wakeServicesAutomatically: store.get("wakeServicesAutomatically"),
+  };
+});
+
+ipcMain.handle("update-setting", (_event, key: string, value: unknown) => {
+  if (key === "downloadFolder" && typeof value === "string") {
+    store.set("downloadFolder", value);
+  } else if (key === "wakeServicesAutomatically" && typeof value === "boolean") {
+    store.set("wakeServicesAutomatically", value);
+  }
+});
+
+ipcMain.handle("select-download-folder", async () => {
+  if (!mainWindow) return null;
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openDirectory"],
+    title: "Select Download Folder",
+    defaultPath: store.get("downloadFolder") || undefined,
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  const folder = result.filePaths[0];
+  store.set("downloadFolder", folder);
+  return folder;
 });
 
 // Custom icons

@@ -8,6 +8,7 @@ interface TitlebarProps {
   onReload: () => void;
   onGoBack: () => void;
   onGoForward: () => void;
+  onOpenSettings: () => void;
 }
 
 export default function Titlebar({
@@ -15,6 +16,7 @@ export default function Titlebar({
   onReload,
   onGoBack,
   onGoForward,
+  onOpenSettings,
 }: TitlebarProps) {
   return (
     <div className="titlebar-drag flex items-center bg-sidebar select-none shrink-0" style={{ height: 46, paddingLeft: 24, paddingRight: 8, borderBottom: "1px solid var(--border)" }}>
@@ -63,7 +65,7 @@ export default function Titlebar({
       {/* Settings gear + Window controls */}
       <div className="titlebar-no-drag flex items-center">
         <button
-          onClick={() => window.electronAPI?.showSettingsMenu()}
+          onClick={onOpenSettings}
           className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors"
           style={{ height: 46, color: "var(--text-muted)" }}
           title="Settings"
