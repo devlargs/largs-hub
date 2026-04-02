@@ -329,6 +329,28 @@ function createServiceView(service: Service): WebContentsView {
       .catch(() => {});
   }, 3000);
 
+  // Intercept Ctrl+Number shortcuts so they work even when a service view has focus
+  view.webContents.on("before-input-event", (event, input) => {
+    if (
+      input.type === "keyDown" &&
+      input.control &&
+      !input.shift &&
+      !input.alt &&
+      !input.meta
+    ) {
+      const num = parseInt(input.key, 10);
+      if (num >= 1 && num <= 9) {
+        const services = store.get("services");
+        const target = services[num - 1];
+        if (target) {
+          event.preventDefault();
+          showService(target.id);
+          uiView?.webContents.send("service-switched", target.id);
+        }
+      }
+    }
+  });
+
   // Handle popups: navigate in-app for known domains, open external for others
   view.webContents.setWindowOpenHandler(({ url }) => {
     try {
@@ -394,6 +416,7 @@ function showService(serviceId: string) {
 
   view.setVisible(true);
   view.setBounds(getViewBounds());
+  view.webContents.focus();
   activeServiceId = serviceId;
 
 }

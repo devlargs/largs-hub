@@ -35,6 +35,13 @@ function App() {
       setServices(updated);
     });
 
+    // Listen for Ctrl+Number service switches from the main process
+    // (fired when a service WebContentsView has focus)
+    const unsubSwitched = window.electronAPI.onServiceSwitched((serviceId) => {
+      setActiveServiceId(serviceId);
+      setShowUpdatePage(false);
+    });
+
     // Listen for context menu actions that need renderer handling
     const unsubActions = window.electronAPI.onContextMenuAction(({ action, serviceId }) => {
       if (action === "edit-service") {
@@ -72,6 +79,7 @@ function App() {
     return () => {
       unsub();
       unsubServices();
+      unsubSwitched();
       unsubActions();
     };
   }, [updateNotificationCount, removeNotificationService]);

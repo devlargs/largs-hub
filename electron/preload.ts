@@ -49,6 +49,11 @@ const api = {
     ipcRenderer.on("context-menu-action", handler);
     return () => ipcRenderer.removeListener("context-menu-action", handler);
   },
+  onServiceSwitched: (callback: (serviceId: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, serviceId: string) => callback(serviceId);
+    ipcRenderer.on("service-switched", handler);
+    return () => ipcRenderer.removeListener("service-switched", handler);
+  },
   reloadService: (serviceId: string): void =>
     ipcRenderer.send("reload-service", serviceId),
   goBack: (serviceId: string): void =>
