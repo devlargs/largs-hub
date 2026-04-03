@@ -103,6 +103,11 @@ const api = {
     ipcRenderer.on("update-download-progress", handler);
     return () => ipcRenderer.removeListener("update-download-progress", handler);
   },
+  onDownloadComplete: (callback: (fileName: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, fileName: string) => callback(fileName);
+    ipcRenderer.on("download-complete", handler);
+    return () => ipcRenderer.removeListener("download-complete", handler);
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", api);

@@ -58,6 +58,7 @@ export interface ElectronAPI {
   getAppVersion: () => Promise<string>;
   downloadAndInstallUpdate: (downloadUrl: string) => Promise<void>;
   onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
+  onDownloadComplete: (callback: (fileName: string) => void) => () => void;
 }
 
 declare global {

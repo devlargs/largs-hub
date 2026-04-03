@@ -10,7 +10,6 @@ import {
   Menu,
   dialog,
   shell,
-  Notification,
 } from "electron";
 import path from "path";
 import fs from "fs";
@@ -57,6 +56,7 @@ const store = new Store<StoreSchema>({
 });
 
 app.setName("Largs Hub");
+app.setAppUserModelId("com.largs-hub.app");
 
 let mainWindow: BrowserWindow | null = null;
 let uiView: WebContentsView | null = null;
@@ -81,6 +81,40 @@ function applyBlurToView(view: WebContentsView) {
       document.documentElement.appendChild(el);
     })()
   `).catch(() => {});
+}
+
+function showDownloadToast(fileName: string) {
+  if (!mainWindow) return;
+  const bounds = mainWindow.getBounds();
+  const toastWidth = 340;
+  const toastHeight = 56;
+  const margin = 16;
+  const toast = new BrowserWindow({
+    width: toastWidth,
+    height: toastHeight,
+    x: bounds.x + bounds.width - toastWidth - margin,
+    y: bounds.y + bounds.height - toastHeight - margin,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    focusable: false,
+    show: false,
+  });
+  const escaped = fileName.replace(/'/g, "\\'").replace(/</g, "&lt;");
+  toast.loadURL(`data:text/html;charset=utf-8,
+    <html><body style="margin:0;font-family:Segoe UI,sans-serif;background:transparent;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(30,30,46,0.95);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#cdd6f4;font-size:13px;backdrop-filter:blur(12px);">
+        <span style="color:#89b4fa;font-weight:600;white-space:nowrap;">Download complete</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#a6adc8;">${escaped}</span>
+      </div>
+    </body></html>
+  `);
+  toast.once("ready-to-show", () => {
+    toast.showInactive();
+    setTimeout(() => { if (!toast.isDestroyed()) toast.close(); }, 4000);
+  });
 }
 
 function removeBlurFromView(view: WebContentsView) {
@@ -300,8 +334,8 @@ function createServiceView(service: Service): WebContentsView {
       const savePath = item.getSavePath();
       if (store.get("openFolderOnFinish")) shell.showItemInFolder(savePath);
       if (store.get("openFileOnFinish")) shell.openPath(savePath);
-      if (store.get("downloadAlertOnFinish")) {
-        new Notification({ title: "Download complete", body: item.getFilename() }).show();
+      if (store.get("downloadAlertOnFinish") && mainWindow) {
+        showDownloadToast(item.getFilename());
       }
     });
   });
