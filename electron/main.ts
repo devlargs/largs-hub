@@ -54,10 +54,34 @@ let uiLayerRefCount = 0;
 const serviceViews = new Map<string, WebContentsView>();
 const notificationCounts = new Map<string, number>();
 let activeServiceId: string | null = null;
+let windowFocused = true;
 const pendingDecrease = new Map<string, { count: number; streak: number }>();
 const DECREASE_THRESHOLD = 2; // require 2 consecutive lower readings before decreasing
 const SIDEBAR_WIDTH = 68;
 const TITLEBAR_HEIGHT = 46;
+
+function applyBlurToView(view: WebContentsView) {
+  if (view.webContents.isDestroyed()) return;
+  view.webContents.executeJavaScript(`
+    (function() {
+      if (document.getElementById('__largs_blur_overlay__')) return;
+      const el = document.createElement('div');
+      el.id = '__largs_blur_overlay__';
+      el.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);z-index:2147483647;pointer-events:none;transition:opacity 0.15s ease;';
+      document.documentElement.appendChild(el);
+    })()
+  `).catch(() => {});
+}
+
+function removeBlurFromView(view: WebContentsView) {
+  if (view.webContents.isDestroyed()) return;
+  view.webContents.executeJavaScript(`
+    (function() {
+      const el = document.getElementById('__largs_blur_overlay__');
+      if (el) el.remove();
+    })()
+  `).catch(() => {});
+}
 
 function createWindow() {
   const bounds = store.get("windowBounds");
@@ -123,11 +147,24 @@ function createWindow() {
   // When the window regains focus (e.g. Alt+Tab), focus the active service view
   // so keyboard input goes to it (e.g. typing in a Messenger chat)
   mainWindow.on("focus", () => {
+    windowFocused = true;
     mainWindow?.flashFrame(false); // Stop taskbar flashing
     if (activeServiceId) {
       const view = serviceViews.get(activeServiceId);
       if (view && !view.webContents.isDestroyed()) {
+        removeBlurFromView(view);
         view.webContents.focus();
+      }
+    }
+  });
+
+  // When the window loses focus, blur the active service view
+  mainWindow.on("blur", () => {
+    windowFocused = false;
+    if (activeServiceId) {
+      const view = serviceViews.get(activeServiceId);
+      if (view && !view.webContents.isDestroyed()) {
+        applyBlurToView(view);
       }
     }
   });
@@ -445,7 +482,11 @@ function showService(serviceId: string) {
 
   view.setVisible(true);
   view.setBounds(getViewBounds());
-  view.webContents.focus();
+  if (windowFocused) {
+    view.webContents.focus();
+  } else {
+    applyBlurToView(view);
+  }
   activeServiceId = serviceId;
 
 }
