@@ -341,18 +341,32 @@ function createServiceView(service: Service): WebContentsView {
     });
   });
 
-  // Context menu for service views — "Copy Image" when right-clicking images
+  // Context menu for service views
   view.webContents.on("context-menu", (_event, params) => {
+    const menuItems: Electron.MenuItemConstructorOptions[] = [];
+
     if (params.mediaType === "image") {
-      const menu = Menu.buildFromTemplate([
+      menuItems.push(
         {
           label: "Copy Image",
-          click: () => {
-            view.webContents.copyImageAt(params.x, params.y);
-          },
+          click: () => view.webContents.copyImageAt(params.x, params.y),
         },
-      ]);
-      menu.popup({ window: mainWindow! });
+        {
+          label: "Save Image",
+          click: () => view.webContents.downloadURL(params.srcURL),
+        },
+      );
+    }
+
+    if (params.linkURL) {
+      menuItems.push({
+        label: "Download File",
+        click: () => view.webContents.downloadURL(params.linkURL),
+      });
+    }
+
+    if (menuItems.length > 0) {
+      Menu.buildFromTemplate(menuItems).popup({ window: mainWindow! });
     }
   });
 
