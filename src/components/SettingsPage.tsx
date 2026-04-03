@@ -8,6 +8,10 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings>({
     downloadFolder: "",
     wakeServicesAutomatically: true,
+    launchAtStartup: false,
+    openFolderOnFinish: true,
+    openFileOnFinish: false,
+    downloadAlertOnFinish: true,
   });
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
   const [currentVersion, setCurrentVersion] = useState("");
@@ -69,6 +73,12 @@ export default function SettingsPage() {
     setSettings((s) => ({ ...s, wakeServicesAutomatically: next }));
   };
 
+  const handleToggleSetting = async (key: keyof AppSettings) => {
+    const next = !settings[key];
+    await window.electronAPI.updateSetting(key, next);
+    setSettings((s) => ({ ...s, [key]: next }));
+  };
+
   return (
     <div
       className="overflow-auto"
@@ -89,6 +99,16 @@ export default function SettingsPage() {
         {/* General */}
         <Section title="General">
           <SettingRow
+            label="Launch at startup"
+            description="Open the app automatically when Windows starts"
+          >
+            <Toggle
+              checked={settings.launchAtStartup}
+              onChange={() => handleToggleSetting("launchAtStartup")}
+            />
+          </SettingRow>
+
+          <SettingRow
             label="Wake services automatically"
             description="Load all enabled services when the app starts"
           >
@@ -97,7 +117,10 @@ export default function SettingsPage() {
               onChange={handleToggleWake}
             />
           </SettingRow>
+        </Section>
 
+        {/* Downloads */}
+        <Section title="Downloads">
           <SettingRow
             label="Download folder"
             description={settings.downloadFolder || "System default (save dialog)"}
@@ -126,6 +149,36 @@ export default function SettingsPage() {
                 Browse
               </button>
             </div>
+          </SettingRow>
+
+          <SettingRow
+            label="Open folder on finish"
+            description="Show the file in its folder when a download completes"
+          >
+            <Toggle
+              checked={settings.openFolderOnFinish}
+              onChange={() => handleToggleSetting("openFolderOnFinish")}
+            />
+          </SettingRow>
+
+          <SettingRow
+            label="Open file on finish"
+            description="Open the downloaded file automatically when complete"
+          >
+            <Toggle
+              checked={settings.openFileOnFinish}
+              onChange={() => handleToggleSetting("openFileOnFinish")}
+            />
+          </SettingRow>
+
+          <SettingRow
+            label="Download alert"
+            description="Show a notification when a download finishes"
+          >
+            <Toggle
+              checked={settings.downloadAlertOnFinish}
+              onChange={() => handleToggleSetting("downloadAlertOnFinish")}
+            />
           </SettingRow>
         </Section>
 

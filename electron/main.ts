@@ -9,6 +9,8 @@ import {
   net,
   Menu,
   dialog,
+  shell,
+  Notification,
 } from "electron";
 import path from "path";
 import fs from "fs";
@@ -33,6 +35,10 @@ interface StoreSchema {
   theme: "dark" | "light";
   downloadFolder: string;
   wakeServicesAutomatically: boolean;
+  launchAtStartup: boolean;
+  openFolderOnFinish: boolean;
+  openFileOnFinish: boolean;
+  downloadAlertOnFinish: boolean;
 }
 
 const store = new Store<StoreSchema>({
@@ -43,6 +49,10 @@ const store = new Store<StoreSchema>({
     theme: "dark",
     downloadFolder: "",
     wakeServicesAutomatically: true,
+    launchAtStartup: false,
+    openFolderOnFinish: true,
+    openFileOnFinish: false,
+    downloadAlertOnFinish: true,
   },
 });
 
@@ -285,6 +295,15 @@ function createServiceView(service: Service): WebContentsView {
     if (downloadFolder) {
       item.setSavePath(path.join(downloadFolder, item.getFilename()));
     }
+    item.on("done", (_e, state) => {
+      if (state !== "completed") return;
+      const savePath = item.getSavePath();
+      if (store.get("openFolderOnFinish")) shell.showItemInFolder(savePath);
+      if (store.get("openFileOnFinish")) shell.openPath(savePath);
+      if (store.get("downloadAlertOnFinish")) {
+        new Notification({ title: "Download complete", body: item.getFilename() }).show();
+      }
+    });
   });
 
   // Context menu for service views — "Copy Image" when right-clicking images
@@ -833,6 +852,10 @@ ipcMain.handle("get-settings", () => {
   return {
     downloadFolder: store.get("downloadFolder"),
     wakeServicesAutomatically: store.get("wakeServicesAutomatically"),
+    launchAtStartup: store.get("launchAtStartup"),
+    openFolderOnFinish: store.get("openFolderOnFinish"),
+    openFileOnFinish: store.get("openFileOnFinish"),
+    downloadAlertOnFinish: store.get("downloadAlertOnFinish"),
   };
 });
 
@@ -841,6 +864,15 @@ ipcMain.handle("update-setting", (_event, key: string, value: unknown) => {
     store.set("downloadFolder", value);
   } else if (key === "wakeServicesAutomatically" && typeof value === "boolean") {
     store.set("wakeServicesAutomatically", value);
+  } else if (key === "launchAtStartup" && typeof value === "boolean") {
+    store.set("launchAtStartup", value);
+    app.setLoginItemSettings({ openAtLogin: value });
+  } else if (key === "openFolderOnFinish" && typeof value === "boolean") {
+    store.set("openFolderOnFinish", value);
+  } else if (key === "openFileOnFinish" && typeof value === "boolean") {
+    store.set("openFileOnFinish", value);
+  } else if (key === "downloadAlertOnFinish" && typeof value === "boolean") {
+    store.set("downloadAlertOnFinish", value);
   }
 });
 

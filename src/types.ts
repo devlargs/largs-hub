@@ -1,6 +1,10 @@
 export interface AppSettings {
   downloadFolder: string;
   wakeServicesAutomatically: boolean;
+  launchAtStartup: boolean;
+  openFolderOnFinish: boolean;
+  openFileOnFinish: boolean;
+  downloadAlertOnFinish: boolean;
 }
 
 export interface Service {
