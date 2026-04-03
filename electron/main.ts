@@ -158,13 +158,16 @@ function createWindow() {
     }
   });
 
-  // When the window loses focus, blur the active service view
+  // When the window loses focus, blur the active service view (if enabled for that service)
   mainWindow.on("blur", () => {
     windowFocused = false;
     if (activeServiceId) {
-      const view = serviceViews.get(activeServiceId);
-      if (view && !view.webContents.isDestroyed()) {
-        applyBlurToView(view);
+      const service = store.get("services").find((s) => s.id === activeServiceId);
+      if (service?.blurWhenInactive) {
+        const view = serviceViews.get(activeServiceId);
+        if (view && !view.webContents.isDestroyed()) {
+          applyBlurToView(view);
+        }
       }
     }
   });
@@ -485,7 +488,9 @@ function showService(serviceId: string) {
   if (windowFocused) {
     view.webContents.focus();
   } else {
-    applyBlurToView(view);
+    const service = store.get("services").find((s) => s.id === serviceId);
+    if (service?.blurWhenInactive) applyBlurToView(view);
+    else removeBlurFromView(view);
   }
   activeServiceId = serviceId;
 
@@ -731,6 +736,29 @@ ipcMain.on("show-service-context-menu", (_event, serviceId: string) => {
         );
         store.set("services", updated);
         sendUpdated();
+      },
+    },
+    {
+      label: "Blur when inactive",
+      type: "checkbox",
+      checked: service.blurWhenInactive === true,
+      click: () => {
+        const svc = store.get("services").find((s) => s.id === serviceId);
+        if (!svc) return;
+        const blurWhenInactive = !svc.blurWhenInactive;
+        const updated = store.get("services").map((s) =>
+          s.id === serviceId ? { ...s, blurWhenInactive } : s,
+        );
+        store.set("services", updated);
+        sendUpdated();
+        // Apply/remove blur immediately if the window is already unfocused
+        if (!windowFocused) {
+          const view = serviceViews.get(serviceId);
+          if (view && !view.webContents.isDestroyed()) {
+            if (blurWhenInactive) applyBlurToView(view);
+            else removeBlurFromView(view);
+          }
+        }
       },
     },
     { type: "separator" },
