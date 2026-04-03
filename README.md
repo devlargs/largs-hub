@@ -2,7 +2,11 @@
 
 An open-source workspace browser — manage all your web apps in one place. A free alternative to [Rambox](https://rambox.app/).
 
-<img width="1912" height="1031" alt="image" src="https://github.com/user-attachments/assets/329e701e-6bce-47ed-82bf-8397a87fb0b5" />
+<img width="1919" height="1028" alt="image" src="https://github.com/user-attachments/assets/8d1ebad9-72c3-41ff-838a-b05d49f6fd82" />
+<img width="1874" height="1026" alt="image" src="https://github.com/user-attachments/assets/15848abc-a1db-4bbe-a63e-4aa60ae8f3ce" />
+<img width="1910" height="1030" alt="image" src="https://github.com/user-attachments/assets/57d944e6-a2d0-4c86-8458-e95f4d2f3d17" />
+<img width="767" height="603" alt="image" src="https://github.com/user-attachments/assets/6f1f53de-8fbe-45c7-a1f3-cf23ebebb38c" />
+
 
 ## Features
 
