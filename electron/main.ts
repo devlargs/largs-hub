@@ -846,8 +846,20 @@ ipcMain.on("show-service-context-menu", (_event, serviceId: string) => {
     { type: "separator" },
     {
       label: "Remove service",
-      click: () => {
-        uiView?.webContents.send("context-menu-action", { action: "remove-service", serviceId });
+      click: async () => {
+        if (!mainWindow) return;
+        const { response } = await dialog.showMessageBox(mainWindow, {
+          type: "warning",
+          buttons: ["Remove", "Cancel"],
+          defaultId: 1,
+          cancelId: 1,
+          title: "Remove service",
+          message: `Remove ${service.name}?`,
+          detail: "This will permanently remove the service from Largs Hub.",
+        });
+        if (response === 0) {
+          uiView?.webContents.send("context-menu-action", { action: "remove-service", serviceId });
+        }
       },
     },
   ]);
