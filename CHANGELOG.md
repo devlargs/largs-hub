@@ -1,0 +1,98 @@
+# Changelog
+
+## [Unreleased]
+- Add confirmation dialog for service removal
+- Added "View Link" to the service context menu — opens links in an in-app modal instead of navigating the service
+
+## [0.1.21] (2026-04-08)
+- Added minimum minimize width
+
+## [0.1.20] (2026-04-03)
+- Add "Save Image" to the context menu
+
+## [0.1.19] (2026-04-03)
+- Updated images in README
+
+## [0.1.18] (2026-04-03)
+- Added blur effect on services when the app is not in focus ("Blur when inactive")
+- Added startup and download settings options
+- Fixed download settings logic
+- Fixed build issue
+
+## [0.1.17] (2026-04-02)
+- Fixed Ctrl + number shortcut not working when focus is inside a service
+- Added initial settings page
+- Added "Copy Image" when viewing an image inside a service
+
+## [0.1.16] (2026-04-01)
+- Version bump only (no changes)
+
+## [0.1.15] (2026-04-02)
+- Use the default Electron icon in dev mode
+- Added UI for disabling/enabling a service
+- Fixed gear icon hiding services when clicked
+- Fixed Messenger focus on Alt + Tab
+- Notification enhancements
+
+## [0.1.14] (2026-04-01)
+- Added edit service functionality
+- Allow users to upload a custom icon for their services
+
+## [0.1.13] (2026-04-01)
+- Improved context menus
+- Update app manually once user clicks update
+- Removed stats data
+
+## [0.1.12] (2026-04-01)
+- Added Ctrl + number shortcut for switching services
+- Changed Add icon to Home icon
+- Added zustand to handle notifications
+- Services can be dragged to change their order
+- Changed "Add Your First Service" to "Add Service" when services exist
+- Added new context menu items (Disable Sound, Enable/Disable)
+
+## [0.1.11] (2026-03-31)
+- Open the app in full screen view by default
+
+## [0.1.10] (2026-03-31)
+- Automatically reopen the app after downloading the latest update
+
+## [0.1.9] (2026-03-31)
+- Load services automatically on startup
+- Fixed notification badges for several services
+
+## [0.1.8] (2026-03-31)
+- Updated task manager name
+
+## [0.1.7] (2026-03-31)
+- Silent download and install of updates
+
+## [0.1.6] (2026-03-31)
+- Navigate Gmail in the actual view instead of a popup window
+
+## [0.1.5] (2026-03-31)
+- Added manual update for the app
+
+## [0.1.4] (2026-03-31)
+- Prevent Windows from treating the app as unsecure
+
+## [0.1.3] (2026-03-31)
+- Added settings page
+- Centered content on the update page
+
+## [0.1.2] (2026-03-31)
+- Added light/dark mode toggle
+- Converted webp images to png files
+- Updated build meta descriptions, icons, and title
+- Changed screenshot in README
+
+## [0.1.1] (2026-03-31)
+- Initial release
+- Add and manage multiple web services in a single window
+- Spoof user agent so sites like WhatsApp Web don't reject Electron
+- Welcome screen UI and responsive layout
+- Improved add service modal layout with open animation
+- Context menu always available for services
+- Title bar and header layout improvements
+- OS stats display in the sidebar
+- GitHub release actions for automatic updates
