@@ -58,3 +58,22 @@ jobs:
             release/*.exe
             release/*.blockmap
             release/latest.yml
+
+      - name: Update CHANGELOG.md
+        shell: bash
+        run: |
+          if grep -q '^## \[Unreleased\]' CHANGELOG.md; then
+            DATE=$(date -u +%Y-%m-%d)
+            sed -i "s/^## \[Unreleased\]/## [${{ steps.version.outputs.version }}] ($DATE)/" CHANGELOG.md
+            awk 'NR==1{print; print ""; print "## [Unreleased]"; next}1' CHANGELOG.md > CHANGELOG.tmp
+            mv CHANGELOG.tmp CHANGELOG.md
+          fi
+
+      - name: Commit changelog
+        shell: bash
+        run: |
+          git add CHANGELOG.md
+          if ! git diff --cached --quiet; then
+            git commit -m "docs: update changelog for v${{ steps.version.outputs.version }}"
+            git push
+          fi
