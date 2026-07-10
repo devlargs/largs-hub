@@ -62,6 +62,7 @@ app.setAppUserModelId("com.largs-hub.app");
 let mainWindow: BrowserWindow | null = null;
 let uiView: WebContentsView | null = null;
 let uiLayerRefCount = 0;
+let linkPreviewView: WebContentsView | null = null;
 const serviceViews = new Map<string, WebContentsView>();
 const notificationCounts = new Map<string, number>();
 let activeServiceId: string | null = null;
@@ -186,6 +187,9 @@ function createWindow() {
       });
       resizeUiView();
       repositionActiveView();
+      if (linkPreviewView) {
+        linkPreviewView.setBounds(getLinkPreviewBounds());
+      }
     }
   });
 
@@ -227,6 +231,7 @@ function createWindow() {
   mainWindow.on("closed", () => {
     mainWindow = null;
     uiView = null;
+    linkPreviewView = null;
     serviceViews.clear();
   });
 
@@ -262,6 +267,80 @@ function repositionActiveView() {
   if (view) {
     view.setBounds(getViewBounds());
   }
+}
+
+// Link preview modal: the page renders in a WebContentsView layered on top,
+// while the React UI draws the modal chrome (backdrop, header, close button)
+// around it. Geometry must stay in sync with LinkPreviewModal.tsx.
+const LINK_PREVIEW_MARGIN = 40;
+const LINK_PREVIEW_HEADER = 52;
+
+function getLinkPreviewBounds() {
+  if (!mainWindow) return { x: 0, y: 0, width: 0, height: 0 };
+  const [width, height] = mainWindow.getContentSize();
+  const modalWidth = Math.min(1100, width - LINK_PREVIEW_MARGIN * 2);
+  return {
+    x: Math.round((width - modalWidth) / 2),
+    y: LINK_PREVIEW_MARGIN + LINK_PREVIEW_HEADER,
+    width: Math.max(0, modalWidth),
+    height: Math.max(0, height - LINK_PREVIEW_MARGIN * 2 - LINK_PREVIEW_HEADER),
+  };
+}
+
+function openLinkPreview(url: string, partition: string) {
+  if (!mainWindow || !uiView) return;
+  closeLinkPreview();
+
+  const view = new WebContentsView({
+    webPreferences: {
+      partition,
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+
+  view.setBackgroundColor("#1e1e2e");
+
+  const chromeVersion = process.versions.chrome;
+  view.webContents.setUserAgent(
+    `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`,
+  );
+
+  // Anything that tries to open a new window goes to the system browser
+  view.webContents.setWindowOpenHandler(({ url: popupUrl }) => {
+    shell.openExternal(popupUrl);
+    return { action: "deny" };
+  });
+
+  view.webContents.on("before-input-event", (event, input) => {
+    if (input.type === "keyDown" && input.key === "Escape") {
+      event.preventDefault();
+      closeLinkPreview();
+    }
+  });
+
+  // Keep the URL shown in the modal header up to date
+  view.webContents.on("did-navigate", (_event, navUrl) => {
+    uiView?.webContents.send("link-preview-navigated", navUrl);
+  });
+
+  view.webContents.loadURL(url);
+  mainWindow.contentView.addChildView(view);
+  view.setBounds(getLinkPreviewBounds());
+  linkPreviewView = view;
+
+  uiView.webContents.send("link-preview-open", url);
+}
+
+function closeLinkPreview() {
+  if (!linkPreviewView) return;
+  if (mainWindow) {
+    mainWindow.contentView.removeChildView(linkPreviewView);
+  }
+  linkPreviewView.webContents.close();
+  linkPreviewView = null;
+  uiView?.webContents.send("link-preview-closed");
 }
 
 function updateTaskbarBadge() {
