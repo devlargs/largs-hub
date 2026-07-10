@@ -74,6 +74,7 @@ jobs:
         run: |
           git add CHANGELOG.md
           if ! git diff --cached --quiet; then
-            git commit -m "docs: update changelog for v${{ steps.version.outputs.version }}"
+            git -c user.name="Ralph Largo (Automated)" -c user.email="devlargs@gmail.com" \
+              commit -m "docs: update changelog for v${{ steps.version.outputs.version }}"
             git push
           fi
