@@ -3,6 +3,7 @@ import { Service } from "./types";
 import Sidebar from "./components/Sidebar";
 import Titlebar from "./components/Titlebar";
 import AddServiceModal from "./components/AddServiceModal";
+import LinkPreviewModal from "./components/LinkPreviewModal";
 import WelcomeScreen from "./components/WelcomeScreen";
 import SettingsPage from "./components/SettingsPage";
 import DisabledServiceScreen from "./components/DisabledServiceScreen";
@@ -14,6 +15,7 @@ function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [showSettingsPage, setShowSettingsPage] = useState(false);
+  const [linkPreviewUrl, setLinkPreviewUrl] = useState<string | null>(null);
   const updateNotificationCount = useNotificationStore((s) => s.updateCount);
   const removeNotificationService = useNotificationStore((s) => s.removeService);
 
@@ -76,11 +78,21 @@ function App() {
       }
     });
 
+    // Link preview modal opened from a service view's context menu
+    const unsubLinkOpen = window.electronAPI.onLinkPreviewOpen((url) => {
+      setLinkPreviewUrl(url);
+    });
+    const unsubLinkClosed = window.electronAPI.onLinkPreviewClosed(() => {
+      setLinkPreviewUrl(null);
+    });
+
     return () => {
       unsub();
       unsubServices();
       unsubSwitched();
       unsubActions();
+      unsubLinkOpen();
+      unsubLinkClosed();
     };
   }, [updateNotificationCount, removeNotificationService]);
 
@@ -168,6 +180,15 @@ function App() {
     };
   }, [showAddModal]);
 
+  const linkPreviewOpen = linkPreviewUrl !== null;
+  useEffect(() => {
+    if (!linkPreviewOpen) return;
+    window.electronAPI?.bringUiToFront();
+    return () => {
+      window.electronAPI?.sendUiToBack();
+    };
+  }, [linkPreviewOpen]);
+
   return (
     <div className="flex flex-col h-screen w-screen">
       <Titlebar
@@ -215,6 +236,12 @@ function App() {
           })()}
         </div>
       </div>
+      {linkPreviewUrl && (
+        <LinkPreviewModal
+          url={linkPreviewUrl}
+          onClose={() => window.electronAPI.closeLinkPreview()}
+        />
+      )}
       {showAddModal && (
         <AddServiceModal
           editingService={editingService}
