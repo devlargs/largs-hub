@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.22] (2026-07-10)
 - Add confirmation dialog for service removal
 - Added "View Link" to the service context menu — opens links in an in-app modal instead of navigating the service
 
