@@ -438,6 +438,12 @@ function createServiceView(service: Service): WebContentsView {
     }
 
     if (params.linkURL) {
+      if (/^https?:/i.test(params.linkURL)) {
+        menuItems.push({
+          label: "View Link",
+          click: () => openLinkPreview(params.linkURL, partition),
+        });
+      }
       menuItems.push({
         label: "Download File",
         click: () => view.webContents.downloadURL(params.linkURL),
