@@ -41,6 +41,11 @@ export interface ElectronAPI {
   reloadService: (serviceId: string) => void;
   goBack: (serviceId: string) => void;
   goForward: (serviceId: string) => void;
+  closeLinkPreview: () => void;
+  openLinkExternal: (url: string) => void;
+  onLinkPreviewOpen: (callback: (url: string) => void) => () => void;
+  onLinkPreviewClosed: (callback: () => void) => () => void;
+  onLinkPreviewNavigated: (callback: (url: string) => void) => () => void;
   minimize: () => void;
   maximize: () => void;
   close: () => void;

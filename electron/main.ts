@@ -802,6 +802,16 @@ ipcMain.on("bring-ui-to-front", () => {
   }
 });
 
+ipcMain.on("close-link-preview", () => {
+  closeLinkPreview();
+});
+
+ipcMain.on("open-link-external", (_event, url: string) => {
+  if (typeof url === "string" && /^https?:/i.test(url)) {
+    shell.openExternal(url);
+  }
+});
+
 ipcMain.on("send-ui-to-back", () => {
   uiLayerRefCount = Math.max(0, uiLayerRefCount - 1);
   // Only show the service view when ALL overlays are closed

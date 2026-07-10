@@ -61,6 +61,26 @@ const api = {
   goForward: (serviceId: string): void =>
     ipcRenderer.send("go-forward", serviceId),
 
+  // Link preview
+  closeLinkPreview: (): void => ipcRenderer.send("close-link-preview"),
+  openLinkExternal: (url: string): void =>
+    ipcRenderer.send("open-link-external", url),
+  onLinkPreviewOpen: (callback: (url: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, url: string) => callback(url);
+    ipcRenderer.on("link-preview-open", handler);
+    return () => ipcRenderer.removeListener("link-preview-open", handler);
+  },
+  onLinkPreviewClosed: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on("link-preview-closed", handler);
+    return () => ipcRenderer.removeListener("link-preview-closed", handler);
+  },
+  onLinkPreviewNavigated: (callback: (url: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, url: string) => callback(url);
+    ipcRenderer.on("link-preview-navigated", handler);
+    return () => ipcRenderer.removeListener("link-preview-navigated", handler);
+  },
+
   // Window controls
   minimize: (): void => ipcRenderer.send("window-minimize"),
   maximize: (): void => ipcRenderer.send("window-maximize"),
