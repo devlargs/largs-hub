@@ -1,9 +1,25 @@
+import { useMemo } from "react";
+
 interface WelcomeScreenProps {
   onAddService: () => void;
   hasServices: boolean;
 }
 
 export default function WelcomeScreen({ onAddService, hasServices }: WelcomeScreenProps) {
+  // Generate the starfield once so positions don't jump on every re-render
+  const stars = useMemo(
+    () =>
+      Array.from({ length: 30 }, () => ({
+        size: 1 + Math.random() * 1.5,
+        top: Math.random() * 100,
+        left: Math.random() * 100,
+        opacity: 0.08 + Math.random() * 0.25,
+        duration: 3 + Math.random() * 4,
+        delay: Math.random() * 5,
+      })),
+    [],
+  );
+
   return (
     <div
       className="relative flex flex-col items-center justify-center min-h-full text-center overflow-y-auto max-sm:px-4 max-sm:py-6"
@@ -18,18 +34,18 @@ export default function WelcomeScreen({ onAddService, hasServices }: WelcomeScre
               "radial-gradient(ellipse at 50% 25%, rgba(137,180,250,0.07) 0%, transparent 60%)",
           }}
         />
-        {[...Array(30)].map((_, i) => (
+        {stars.map((star, i) => (
           <div
             key={i}
             className="absolute rounded-full bg-white"
             style={{
-              width: `${1 + Math.random() * 1.5}px`,
-              height: `${1 + Math.random() * 1.5}px`,
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              opacity: 0.08 + Math.random() * 0.25,
-              animation: `twinkle ${3 + Math.random() * 4}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`,
+              width: `${star.size}px`,
+              height: `${star.size}px`,
+              top: `${star.top}%`,
+              left: `${star.left}%`,
+              opacity: star.opacity,
+              animation: `twinkle ${star.duration}s ease-in-out infinite`,
+              animationDelay: `${star.delay}s`,
             }}
           />
         ))}
