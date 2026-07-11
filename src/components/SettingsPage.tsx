@@ -12,6 +12,7 @@ export default function SettingsPage() {
     openFolderOnFinish: true,
     openFileOnFinish: false,
     downloadAlertOnFinish: true,
+    hibernateInactiveMinutes: 0,
   });
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
   const [currentVersion, setCurrentVersion] = useState("");
@@ -79,6 +80,11 @@ export default function SettingsPage() {
     setSettings((s) => ({ ...s, [key]: next }));
   };
 
+  const handleHibernateChange = async (minutes: number) => {
+    await window.electronAPI.updateSetting("hibernateInactiveMinutes", minutes);
+    setSettings((s) => ({ ...s, hibernateInactiveMinutes: minutes }));
+  };
+
   return (
     <div
       className="overflow-auto"
@@ -116,6 +122,28 @@ export default function SettingsPage() {
               checked={settings.wakeServicesAutomatically}
               onChange={handleToggleWake}
             />
+          </SettingRow>
+
+          <SettingRow
+            label="Hibernate inactive services"
+            description="Unload services left idle to free memory; they reload on next click"
+          >
+            <select
+              value={settings.hibernateInactiveMinutes}
+              onChange={(e) => handleHibernateChange(Number(e.target.value))}
+              className="text-sm rounded-lg cursor-pointer outline-none"
+              style={{
+                padding: "6px 10px",
+                backgroundColor: "var(--sidebar-hover)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <option value={0}>Never</option>
+              <option value={15}>After 15 min</option>
+              <option value={30}>After 30 min</option>
+              <option value={60}>After 1 hour</option>
+            </select>
           </SettingRow>
         </Section>
 
