@@ -10,6 +10,35 @@ export interface Service {
   muted?: boolean;
   enabled?: boolean;
   notificationsEnabled?: boolean;
+  type?: "notion-notes";
+}
+
+export interface NotionNoteItem {
+  text: string;
+  checked: boolean;
+}
+
+export interface NotionNote {
+  id: string;
+  title: string;
+  kind: "text" | "list";
+  text: string;
+  items: NotionNoteItem[];
+  imageUrl?: string;
+  pinned: boolean;
+  editedAt: string;
+}
+
+export interface NotionNoteInput {
+  title: string;
+  kind: "text" | "list";
+  text: string;
+  items: NotionNoteItem[];
+  pinned: boolean;
+  image?:
+    | { action: "keep" }
+    | { action: "remove" }
+    | { action: "upload"; fileName: string; mimeType: string; base64: string };
 }
 
 export type TaskSpec =
@@ -151,6 +180,43 @@ const api = {
     const handler = (_event: Electron.IpcRendererEvent, fileName: string) => callback(fileName);
     ipcRenderer.on("download-complete", handler);
     return () => ipcRenderer.removeListener("download-complete", handler);
+  },
+
+  // Notion Note Taker (internal service)
+  notionNotes: {
+    getState: (serviceId: string): Promise<"none" | "pending" | "ready"> =>
+      ipcRenderer.invoke("notion-notes-get-state", serviceId),
+    connect: (
+      serviceId: string,
+      apiKey: string,
+      databaseId: string,
+    ): Promise<{ ok: boolean; error?: string; needsReset?: boolean }> =>
+      ipcRenderer.invoke("notion-notes-connect", serviceId, apiKey, databaseId),
+    resetDatabase: (serviceId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke("notion-notes-reset-database", serviceId),
+    disconnect: (serviceId: string): Promise<void> =>
+      ipcRenderer.invoke("notion-notes-disconnect", serviceId),
+    list: (serviceId: string): Promise<{ ok: boolean; error?: string; notes?: NotionNote[] }> =>
+      ipcRenderer.invoke("notion-notes-list", serviceId),
+    create: (
+      serviceId: string,
+      input: NotionNoteInput,
+    ): Promise<{ ok: boolean; error?: string; note?: NotionNote }> =>
+      ipcRenderer.invoke("notion-notes-create", serviceId, input),
+    update: (
+      serviceId: string,
+      noteId: string,
+      input: NotionNoteInput,
+    ): Promise<{ ok: boolean; error?: string; note?: NotionNote }> =>
+      ipcRenderer.invoke("notion-notes-update", serviceId, noteId, input),
+    setPinned: (
+      serviceId: string,
+      noteId: string,
+      pinned: boolean,
+    ): Promise<{ ok: boolean; error?: string; note?: NotionNote }> =>
+      ipcRenderer.invoke("notion-notes-set-pinned", serviceId, noteId, pinned),
+    remove: (serviceId: string, noteId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke("notion-notes-remove", serviceId, noteId),
   },
 
   // Messenger automation

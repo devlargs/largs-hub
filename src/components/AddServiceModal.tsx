@@ -4,13 +4,24 @@ import { v4 as uuidv4 } from "uuid";
 import serviceIcons, { resolveIcon } from "../assets/serviceIcons";
 import { IoCloudUploadOutline, IoTrashOutline } from "react-icons/io5";
 
-const POPULAR_SERVICES = [
+const POPULAR_SERVICES: {
+  name: string;
+  url: string;
+  icon: string;
+  type?: "notion-notes";
+}[] = [
   { name: "Gmail", url: "https://mail.google.com", icon: "gmail.png" },
   { name: "Slack", url: "https://app.slack.com", icon: "slack.png" },
   { name: "Discord", url: "https://discord.com/app", icon: "discord.png" },
   { name: "WhatsApp", url: "https://web.whatsapp.com", icon: "whatsapp.png" },
   { name: "Telegram", url: "https://web.telegram.org", icon: "telegram.png" },
   { name: "Notion", url: "https://www.notion.so", icon: "notion.png" },
+  {
+    name: "Notion Note Taker",
+    url: "notion-notes://internal",
+    icon: "notion.png",
+    type: "notion-notes",
+  },
   { name: "Twitter / X", url: "https://x.com", icon: "x.png" },
   { name: "Reddit", url: "https://reddit.com", icon: "reddit.png" },
   { name: "LinkedIn", url: "https://linkedin.com", icon: "linkedin.png" },
@@ -107,6 +118,7 @@ export default function AddServiceModal({
         icon: editIcon || preset.icon,
         color: "#06b6d4",
         notificationCount: 0,
+        ...(preset.type ? { type: preset.type } : {}),
       });
     }
   };

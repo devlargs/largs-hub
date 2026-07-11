@@ -8,6 +8,7 @@ import MessengerAutomationPanel from "./components/MessengerAutomationPanel";
 import WelcomeScreen from "./components/WelcomeScreen";
 import SettingsPage from "./components/SettingsPage";
 import DisabledServiceScreen from "./components/DisabledServiceScreen";
+import NotionNotesPage from "./components/notion-notes/NotionNotesPage";
 import { useNotificationStore } from "./store/notifications";
 
 // Mirrors the main process's hostname-based Messenger detection (main.ts)
@@ -120,10 +121,11 @@ function App() {
     setShowSettingsPage(false);
     setServices((current) => {
       const svc = current.find((s) => s.id === serviceId);
-      if (svc?.enabled !== false) {
-        window.electronAPI?.showService(serviceId);
-      } else {
+      if (svc?.type === "notion-notes" || svc?.enabled === false) {
+        // Internal services render as React pages — no web view to show
         window.electronAPI?.hideService();
+      } else {
+        window.electronAPI?.showService(serviceId);
       }
       return current;
     });
@@ -264,6 +266,9 @@ function App() {
             <WelcomeScreen onAddService={() => setShowAddModal(true)} hasServices={services.length > 0} />
           )}
           {showSettingsPage && !activeServiceId && <SettingsPage />}
+          {activeService?.type === "notion-notes" && activeService.enabled !== false && (
+            <NotionNotesPage key={activeService.id} service={activeService} />
+          )}
           {activeServiceId && (() => {
             const svc = services.find((s) => s.id === activeServiceId);
             return svc?.enabled === false ? (

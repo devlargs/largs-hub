@@ -18,6 +18,58 @@ export interface Service {
   enabled?: boolean;
   notificationsEnabled?: boolean;
   blurWhenInactive?: boolean;
+  // Internal services (e.g. "notion-notes") render as React pages instead of
+  // getting a WebContentsView in the main process
+  type?: "notion-notes";
+}
+
+export interface NotionNoteItem {
+  text: string;
+  checked: boolean;
+}
+
+export interface NotionNote {
+  id: string;
+  title: string;
+  kind: "text" | "list";
+  text: string;
+  items: NotionNoteItem[];
+  imageUrl?: string;
+  pinned: boolean;
+  editedAt: string;
+}
+
+export type NotionNoteImage =
+  | { action: "keep" }
+  | { action: "remove" }
+  | { action: "upload"; fileName: string; mimeType: string; base64: string };
+
+export interface NotionNoteInput {
+  title: string;
+  kind: "text" | "list";
+  text: string;
+  items: NotionNoteItem[];
+  pinned: boolean;
+  image?: NotionNoteImage;
+}
+
+export type NotionNotesState = "none" | "pending" | "ready";
+
+export interface NotionNotesResult {
+  ok: boolean;
+  error?: string;
+}
+
+export interface NotionNoteResult extends NotionNotesResult {
+  note?: NotionNote;
+}
+
+export interface NotionNotesListResult extends NotionNotesResult {
+  notes?: NotionNote[];
+}
+
+export interface NotionConnectResult extends NotionNotesResult {
+  needsReset?: boolean;
 }
 
 export type TaskSpec =
@@ -88,6 +140,17 @@ export interface ElectronAPI {
   downloadAndInstallUpdate: (downloadUrl: string) => Promise<void>;
   onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
   onDownloadComplete: (callback: (fileName: string) => void) => () => void;
+  notionNotes: {
+    getState: (serviceId: string) => Promise<NotionNotesState>;
+    connect: (serviceId: string, apiKey: string, databaseId: string) => Promise<NotionConnectResult>;
+    resetDatabase: (serviceId: string) => Promise<NotionNotesResult>;
+    disconnect: (serviceId: string) => Promise<void>;
+    list: (serviceId: string) => Promise<NotionNotesListResult>;
+    create: (serviceId: string, input: NotionNoteInput) => Promise<NotionNoteResult>;
+    update: (serviceId: string, noteId: string, input: NotionNoteInput) => Promise<NotionNoteResult>;
+    setPinned: (serviceId: string, noteId: string, pinned: boolean) => Promise<NotionNoteResult>;
+    remove: (serviceId: string, noteId: string) => Promise<NotionNotesResult>;
+  };
   messengerAutomation: {
     start: (serviceId: string, spec: TaskSpec) => Promise<StartResult>;
     stop: (taskId: string) => Promise<AutomationTask[]>;

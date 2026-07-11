@@ -30,30 +30,35 @@ export default function Titlebar({
       <div className="titlebar-no-drag flex items-center gap-1">
         {activeService ? (
           <>
-            <button
-              onClick={onGoBack}
-              className="w-7 h-6 flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors"
-              style={{ color: "var(--text-muted)" }}
-              title="Go back"
-            >
-              <IoArrowBack size={14} />
-            </button>
-            <button
-              onClick={onGoForward}
-              className="w-7 h-6 flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors"
-              style={{ color: "var(--text-muted)" }}
-              title="Go forward"
-            >
-              <IoArrowForward size={14} />
-            </button>
-            <button
-              onClick={onReload}
-              className="w-7 h-6 flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors"
-              style={{ color: "var(--text-muted)" }}
-              title="Reload"
-            >
-              <IoReload size={14} />
-            </button>
+            {/* Internal services (React pages) have no web view to navigate */}
+            {activeService.type !== "notion-notes" && (
+              <>
+                <button
+                  onClick={onGoBack}
+                  className="w-7 h-6 flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors"
+                  style={{ color: "var(--text-muted)" }}
+                  title="Go back"
+                >
+                  <IoArrowBack size={14} />
+                </button>
+                <button
+                  onClick={onGoForward}
+                  className="w-7 h-6 flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors"
+                  style={{ color: "var(--text-muted)" }}
+                  title="Go forward"
+                >
+                  <IoArrowForward size={14} />
+                </button>
+                <button
+                  onClick={onReload}
+                  className="w-7 h-6 flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors"
+                  style={{ color: "var(--text-muted)" }}
+                  title="Reload"
+                >
+                  <IoReload size={14} />
+                </button>
+              </>
+            )}
             <span className="text-xs ml-2 truncate max-w-[300px]" style={{ color: "var(--text-muted)" }}>
               {activeService.name}
             </span>

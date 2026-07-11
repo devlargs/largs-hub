@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added a Notion Note Taker service — a built-in Google Keep-style notes app backed by your own Notion database: connect with a Notion API key + database ID (with a guided setup and a safety prompt to empty non-fresh databases), write text or checklist notes with image uploads, pin notes, toggle checklist items from the board, and edit notes in a Keep-like masonry layout
+
 ## [0.1.24] (2026-07-11)
 
 - Added a Messenger automation panel — a titlebar button opens a right-hand side panel (70/30 split, keeping the conversation visible) to send or schedule messages, run interval message/emoji loops and voice-call cycles on the active Messenger service, with a live task list and stop controls

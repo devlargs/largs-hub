@@ -15,6 +15,7 @@ import path from "path";
 import fs from "fs";
 import Store from "electron-store";
 import { registerMessengerAutomation } from "./messengerAutomation";
+import { registerNotionNotes, NotionNotesConfig } from "./notionNotes";
 
 interface Service {
   id: string;
@@ -27,6 +28,9 @@ interface Service {
   enabled?: boolean;
   notificationsEnabled?: boolean;
   blurWhenInactive?: boolean;
+  // Internal services (e.g. "notion-notes") render as React pages in the UI
+  // view instead of getting a WebContentsView
+  type?: "notion-notes";
 }
 
 interface StoreSchema {
@@ -40,6 +44,7 @@ interface StoreSchema {
   openFolderOnFinish: boolean;
   openFileOnFinish: boolean;
   downloadAlertOnFinish: boolean;
+  notionNotes: Record<string, NotionNotesConfig>;
 }
 
 const store = new Store<StoreSchema>({
@@ -54,6 +59,7 @@ const store = new Store<StoreSchema>({
     openFolderOnFinish: true,
     openFileOnFinish: false,
     downloadAlertOnFinish: true,
+    notionNotes: {},
   },
 });
 
@@ -241,6 +247,7 @@ function createWindow() {
     if (!store.get("wakeServicesAutomatically")) return;
     const services = store.get("services");
     for (const service of services) {
+      if (service.type === "notion-notes") continue; // internal — no web view
       if (!serviceViews.has(service.id) && mainWindow && service.enabled !== false) {
         const view = createServiceView(service);
         serviceViews.set(service.id, view);
@@ -632,6 +639,14 @@ function createServiceView(service: Service): WebContentsView {
 function showService(serviceId: string) {
   if (!mainWindow) return;
 
+  // Internal services render as React pages in the UI view — just make sure
+  // no web view is covering them
+  const requested = store.get("services").find((s) => s.id === serviceId);
+  if (requested?.type === "notion-notes") {
+    hideActiveService();
+    return;
+  }
+
   // Hide current view
   if (activeServiceId) {
     const currentView = serviceViews.get(activeServiceId);
@@ -703,6 +718,13 @@ ipcMain.handle("remove-service", (_event, serviceId: string) => {
   }
   notificationCounts.delete(serviceId);
   updateTaskbarBadge();
+
+  // Drop any Notion Note Taker credentials tied to this service
+  const notionConfigs = store.get("notionNotes");
+  if (notionConfigs[serviceId]) {
+    delete notionConfigs[serviceId];
+    store.set("notionNotes", notionConfigs);
+  }
 
   return services;
 });
@@ -1169,6 +1191,9 @@ ipcMain.handle("download-and-install-update", async (_event, downloadUrl: string
     follow(downloadUrl);
   });
 });
+
+// Notion-backed note taker (internal "notion-notes" service)
+registerNotionNotes(store);
 
 // Messenger automation (scheduled/interval sends, call cycles)
 registerMessengerAutomation({
