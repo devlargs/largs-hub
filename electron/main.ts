@@ -582,6 +582,10 @@ function createServiceView(service: Service): WebContentsView {
       .catch(() => {});
   }, 3000);
 
+  // Clear the poll as soon as the view is torn down instead of waiting for the
+  // next tick to notice the destroyed webContents.
+  view.webContents.once("destroyed", () => clearInterval(pollInterval));
+
   // Intercept Ctrl+Number shortcuts so they work even when a service view has focus
   view.webContents.on("before-input-event", (event, input) => {
     if (
