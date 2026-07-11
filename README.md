@@ -16,6 +16,7 @@ An open-source workspace browser — manage all your web apps in one place. A fr
 - Custom titlebar with navigation controls (back, forward, reload)
 - Persistent window size and position
 - Drag-and-drop sidebar reordering
+- Optional service hibernation (Settings → General) that unloads idle services to reclaim memory — each runs as its own Chromium process, so on lower-RAM machines you can have them reload on next click instead of staying warm; logins are preserved by the isolated session
 
 ## Tech Stack
 
