@@ -20,6 +20,30 @@ export interface Service {
   blurWhenInactive?: boolean;
 }
 
+export type TaskSpec =
+  | { type: "sendChat"; message: string; time: string }
+  | { type: "sendChatInterval"; message: string; fromSec: number; toSec: number }
+  | { type: "sendChatMessage"; message: string }
+  | { type: "sendEmoji"; emoji: string; fromSec: number; toSec: number; maxLength: number }
+  | { type: "startCallCycle"; waitSeconds: number };
+
+export interface AutomationTask {
+  id: string;
+  serviceId: string;
+  spec: TaskSpec;
+  status: "scheduled" | "running";
+  nextFireAt: number | null;
+  fireCount: number;
+  lastResult?: string;
+  createdAt: number;
+}
+
+export interface StartResult {
+  ok: boolean;
+  error?: string;
+  tasks: AutomationTask[];
+}
+
 export interface ElectronAPI {
   getServices: () => Promise<Service[]>;
   addService: (service: Service) => Promise<Service[]>;
@@ -64,6 +88,14 @@ export interface ElectronAPI {
   downloadAndInstallUpdate: (downloadUrl: string) => Promise<void>;
   onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
   onDownloadComplete: (callback: (fileName: string) => void) => () => void;
+  messengerAutomation: {
+    start: (serviceId: string, spec: TaskSpec) => Promise<StartResult>;
+    stop: (taskId: string) => Promise<AutomationTask[]>;
+    stopAll: (serviceId: string) => Promise<AutomationTask[]>;
+    list: () => Promise<AutomationTask[]>;
+    setSplitOpen: (open: boolean) => void;
+    onUpdated: (callback: (tasks: AutomationTask[]) => void) => () => void;
+  };
 }
 
 declare global {

@@ -7,8 +7,13 @@
     "vite:dev": "vite",
     "build": "tsc && vite build && tsc -p tsconfig.electron.json",
     "preview": "vite preview",
-    "dev": "concurrently \"vite\" \"tsc -p tsconfig.electron.json --watch\" \"electron . --dev\"",
+    "dev": "concurrently \"vite\" \"tsc -p tsconfig.electron.json --watch\" \"electronmon . --dev\"",
     "electron:build": "npm run build && electron-builder"
+  },
+  "electronmon": {
+    "patterns": [
+      "dist-electron/**"
+    ]
   },
   "keywords": [
     "electron",
@@ -33,6 +38,7 @@
     "concurrently": "^9.1.0",
     "electron": "^35.0.0",
     "electron-builder": "^25.1.0",
+    "electronmon": "^2.0.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwindcss": "^4.1.0",

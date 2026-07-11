@@ -12,6 +12,30 @@ export interface Service {
   notificationsEnabled?: boolean;
 }
 
+export type TaskSpec =
+  | { type: "sendChat"; message: string; time: string }
+  | { type: "sendChatInterval"; message: string; fromSec: number; toSec: number }
+  | { type: "sendChatMessage"; message: string }
+  | { type: "sendEmoji"; emoji: string; fromSec: number; toSec: number; maxLength: number }
+  | { type: "startCallCycle"; waitSeconds: number };
+
+export interface AutomationTask {
+  id: string;
+  serviceId: string;
+  spec: TaskSpec;
+  status: "scheduled" | "running";
+  nextFireAt: number | null;
+  fireCount: number;
+  lastResult?: string;
+  createdAt: number;
+}
+
+export interface StartResult {
+  ok: boolean;
+  error?: string;
+  tasks: AutomationTask[];
+}
+
 const api = {
   // Service CRUD
   getServices: (): Promise<Service[]> => ipcRenderer.invoke("get-services"),
@@ -127,6 +151,26 @@ const api = {
     const handler = (_event: Electron.IpcRendererEvent, fileName: string) => callback(fileName);
     ipcRenderer.on("download-complete", handler);
     return () => ipcRenderer.removeListener("download-complete", handler);
+  },
+
+  // Messenger automation
+  messengerAutomation: {
+    start: (serviceId: string, spec: TaskSpec): Promise<StartResult> =>
+      ipcRenderer.invoke("messenger-automation-start", serviceId, spec),
+    stop: (taskId: string): Promise<AutomationTask[]> =>
+      ipcRenderer.invoke("messenger-automation-stop", taskId),
+    stopAll: (serviceId: string): Promise<AutomationTask[]> =>
+      ipcRenderer.invoke("messenger-automation-stop-all", serviceId),
+    list: (): Promise<AutomationTask[]> =>
+      ipcRenderer.invoke("messenger-automation-list"),
+    setSplitOpen: (open: boolean): void =>
+      ipcRenderer.send("set-automation-split", open),
+    onUpdated: (callback: (tasks: AutomationTask[]) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, tasks: AutomationTask[]) =>
+        callback(tasks);
+      ipcRenderer.on("messenger-automation-updated", handler);
+      return () => ipcRenderer.removeListener("messenger-automation-updated", handler);
+    },
   },
 };
 

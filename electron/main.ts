@@ -14,6 +14,7 @@ import {
 import path from "path";
 import fs from "fs";
 import Store from "electron-store";
+import { registerMessengerAutomation } from "./messengerAutomation";
 
 interface Service {
   id: string;
@@ -250,13 +251,27 @@ function createWindow() {
   });
 }
 
+// When the Messenger automation panel is open the layout splits into a
+// service pane (left) and the panel (right). The service view is resized to
+// the left share so it stays visible instead of being hidden. The renderer
+// computes the same ratio for the panel so the two panes always align.
+// Keep AUTOMATION_SPLIT_RATIO in sync with MessengerAutomationPanel.tsx.
+let automationSplitOpen = false;
+const AUTOMATION_SPLIT_RATIO = 0.3;
+
+function getAutomationInset() {
+  if (!automationSplitOpen || !mainWindow) return 0;
+  const [width] = mainWindow.getContentSize();
+  return Math.round((width - SIDEBAR_WIDTH) * AUTOMATION_SPLIT_RATIO);
+}
+
 function getViewBounds() {
   if (!mainWindow) return { x: SIDEBAR_WIDTH, y: TITLEBAR_HEIGHT, width: 800, height: 600 };
   const [width, height] = mainWindow.getContentSize();
   return {
     x: SIDEBAR_WIDTH,
     y: TITLEBAR_HEIGHT,
-    width: Math.max(0, width - SIDEBAR_WIDTH),
+    width: Math.max(0, width - SIDEBAR_WIDTH - getAutomationInset()),
     height: Math.max(0, height - TITLEBAR_HEIGHT),
   };
 }
@@ -1153,6 +1168,20 @@ ipcMain.handle("download-and-install-update", async (_event, downloadUrl: string
 
     follow(downloadUrl);
   });
+});
+
+// Messenger automation (scheduled/interval sends, call cycles)
+registerMessengerAutomation({
+  getServiceView: (serviceId) => serviceViews.get(serviceId),
+  getServices: () => store.get("services"),
+  getUiView: () => uiView,
+});
+
+// Split the layout into service (left) + automation panel (right) by resizing
+// the active service view, so the service stays visible beside the panel.
+ipcMain.on("set-automation-split", (_event, open: unknown) => {
+  automationSplitOpen = open === true;
+  repositionActiveView();
 });
 
 // Window controls

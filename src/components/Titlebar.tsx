@@ -1,7 +1,7 @@
 import { Service } from "../types";
 import appIcon from "../../assets/ico/icon.png";
 import { VscChromeMinimize, VscChromeMaximize, VscChromeClose } from "react-icons/vsc";
-import { IoArrowBack, IoArrowForward, IoReload, IoSettingsSharp } from "react-icons/io5";
+import { IoArrowBack, IoArrowForward, IoReload, IoSettingsSharp, IoFlashOutline } from "react-icons/io5";
 
 interface TitlebarProps {
   activeService: Service | null;
@@ -9,6 +9,9 @@ interface TitlebarProps {
   onGoBack: () => void;
   onGoForward: () => void;
   onOpenSettings: () => void;
+  showAutomation: boolean;
+  automationActive: boolean;
+  onOpenAutomation: () => void;
 }
 
 export default function Titlebar({
@@ -17,6 +20,9 @@ export default function Titlebar({
   onGoBack,
   onGoForward,
   onOpenSettings,
+  showAutomation,
+  automationActive,
+  onOpenAutomation,
 }: TitlebarProps) {
   return (
     <div className="titlebar-drag flex items-center bg-sidebar select-none shrink-0" style={{ height: 46, paddingLeft: 24, paddingRight: 8, borderBottom: "1px solid var(--border)" }}>
@@ -64,6 +70,22 @@ export default function Titlebar({
 
       {/* Settings gear + Window controls */}
       <div className="titlebar-no-drag flex items-center">
+        {showAutomation && (
+          <button
+            onClick={onOpenAutomation}
+            className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors relative"
+            style={{ height: 46, color: "var(--text-muted)" }}
+            title="Messenger automation"
+          >
+            <IoFlashOutline size={15} />
+            {automationActive && (
+              <span
+                className="absolute rounded-full"
+                style={{ top: 12, right: 14, width: 6, height: 6, background: "var(--accent)" }}
+              />
+            )}
+          </button>
+        )}
         <button
           onClick={onOpenSettings}
           className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors"

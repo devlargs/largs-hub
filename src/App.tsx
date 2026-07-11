@@ -1,13 +1,24 @@
 import { useEffect, useState, useCallback } from "react";
-import { Service } from "./types";
+import { AutomationTask, Service } from "./types";
 import Sidebar from "./components/Sidebar";
 import Titlebar from "./components/Titlebar";
 import AddServiceModal from "./components/AddServiceModal";
 import LinkPreviewModal from "./components/LinkPreviewModal";
+import MessengerAutomationPanel from "./components/MessengerAutomationPanel";
 import WelcomeScreen from "./components/WelcomeScreen";
 import SettingsPage from "./components/SettingsPage";
 import DisabledServiceScreen from "./components/DisabledServiceScreen";
 import { useNotificationStore } from "./store/notifications";
+
+// Mirrors the main process's hostname-based Messenger detection (main.ts)
+function isMessengerService(service: Service | null | undefined): boolean {
+  if (!service) return false;
+  try {
+    return new URL(service.url).hostname.includes("messenger");
+  } catch {
+    return false;
+  }
+}
 
 function App() {
   const [services, setServices] = useState<Service[]>([]);
@@ -16,6 +27,8 @@ function App() {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [showSettingsPage, setShowSettingsPage] = useState(false);
   const [linkPreviewUrl, setLinkPreviewUrl] = useState<string | null>(null);
+  const [showAutomationPanel, setShowAutomationPanel] = useState(false);
+  const [automationTasks, setAutomationTasks] = useState<AutomationTask[]>([]);
   const updateNotificationCount = useNotificationStore((s) => s.updateCount);
   const removeNotificationService = useNotificationStore((s) => s.removeService);
 
@@ -86,6 +99,11 @@ function App() {
       setLinkPreviewUrl(null);
     });
 
+    // Messenger automation task state pushed from the main process
+    window.electronAPI.messengerAutomation.list().then(setAutomationTasks);
+    const unsubAutomation =
+      window.electronAPI.messengerAutomation.onUpdated(setAutomationTasks);
+
     return () => {
       unsub();
       unsubServices();
@@ -93,6 +111,7 @@ function App() {
       unsubActions();
       unsubLinkOpen();
       unsubLinkClosed();
+      unsubAutomation();
     };
   }, [updateNotificationCount, removeNotificationService]);
 
@@ -189,10 +208,31 @@ function App() {
     };
   }, [linkPreviewOpen]);
 
+  const activeService = services.find((s) => s.id === activeServiceId) ?? null;
+
+  // Split the layout into a service pane (left) and the automation panel
+  // (right) by resizing the Messenger view instead of hiding it, so the
+  // conversation stays visible beside the panel.
+  useEffect(() => {
+    if (!showAutomationPanel) return;
+    window.electronAPI?.messengerAutomation.setSplitOpen(true);
+    return () => {
+      window.electronAPI?.messengerAutomation.setSplitOpen(false);
+    };
+  }, [showAutomationPanel]);
+
+  // Close the panel when navigating away from a Messenger service
+  const automationAvailable = isMessengerService(activeService);
+  useEffect(() => {
+    if (showAutomationPanel && !automationAvailable) {
+      setShowAutomationPanel(false);
+    }
+  }, [showAutomationPanel, automationAvailable]);
+
   return (
     <div className="flex flex-col h-screen w-screen">
       <Titlebar
-        activeService={services.find((s) => s.id === activeServiceId) ?? null}
+        activeService={activeService}
         onReload={handleReloadService}
         onGoBack={handleGoBack}
         onGoForward={handleGoForward}
@@ -201,6 +241,9 @@ function App() {
           setShowSettingsPage(true);
           await window.electronAPI?.hideService();
         }}
+        showAutomation={automationAvailable}
+        automationActive={automationTasks.some((t) => t.serviceId === activeServiceId)}
+        onOpenAutomation={() => setShowAutomationPanel((open) => !open)}
       />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
@@ -250,6 +293,13 @@ function App() {
             setShowAddModal(false);
             setEditingService(null);
           }}
+        />
+      )}
+      {showAutomationPanel && activeServiceId && (
+        <MessengerAutomationPanel
+          serviceId={activeServiceId}
+          tasks={automationTasks}
+          onClose={() => setShowAutomationPanel(false)}
         />
       )}
     </div>
