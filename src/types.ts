@@ -5,6 +5,8 @@ export interface AppSettings {
   openFolderOnFinish: boolean;
   openFileOnFinish: boolean;
   downloadAlertOnFinish: boolean;
+  // Minutes an inactive service may idle before its view is hibernated (0 = off)
+  hibernateInactiveMinutes: number;
 }
 
 export interface Service {
