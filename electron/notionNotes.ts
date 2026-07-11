@@ -421,7 +421,12 @@ const noteLocks = new Map<string, Promise<unknown>>();
 function withNoteLock<T>(noteId: string, fn: () => Promise<T>): Promise<T> {
   const prev = noteLocks.get(noteId) || Promise.resolve();
   const next = prev.then(fn, fn);
-  noteLocks.set(noteId, next.catch(() => undefined));
+  const tail = next.catch(() => undefined);
+  noteLocks.set(noteId, tail);
+  // Evict once settled so the map doesn't retain one entry per note ever edited
+  tail.then(() => {
+    if (noteLocks.get(noteId) === tail) noteLocks.delete(noteId);
+  });
   return next;
 }
 
