@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.24] (2026-07-11)
+
 - Added a Messenger automation panel — a titlebar button opens a right-hand side panel (70/30 split, keeping the conversation visible) to send or schedule messages, run interval message/emoji loops and voice-call cycles on the active Messenger service, with a live task list and stop controls
 
 ## [0.1.23] (2026-07-10)
