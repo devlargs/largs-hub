@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fixed duplicate download notifications (repeated "open folder"/toasts) that could occur after a service was edited, disabled and re-enabled
+
 ## [0.1.26] (2026-07-12)
 
 - Fixed a security issue where custom icon file names could be used to write or delete files outside the app's icon folder

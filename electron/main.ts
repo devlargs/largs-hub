@@ -72,6 +72,11 @@ let uiLayerRefCount = 0;
 let linkPreviewView: WebContentsView | null = null;
 const serviceViews = new Map<string, WebContentsView>();
 const notificationCounts = new Map<string, number>();
+// Partitions whose persistent session already has the shared download listener.
+// Sessions outlive individual views, so re-hooking when a view is recreated
+// (URL change, disable→enable) would stack duplicate listeners that each fire
+// the post-download side effects again.
+const hookedDownloadSessions = new Set<string>();
 let activeServiceId: string | null = null;
 let windowFocused = true;
 const pendingDecrease = new Map<string, { count: number; streak: number }>();
@@ -425,22 +430,26 @@ function createServiceView(service: Service): WebContentsView {
     view.webContents.setAudioMuted(true);
   }
 
-  // Apply download folder setting
-  view.webContents.session.on("will-download", (_event, item) => {
-    const downloadFolder = store.get("downloadFolder");
-    if (downloadFolder) {
-      item.setSavePath(path.join(downloadFolder, item.getFilename()));
-    }
-    item.on("done", (_e, state) => {
-      if (state !== "completed") return;
-      const savePath = item.getSavePath();
-      if (store.get("openFolderOnFinish")) shell.showItemInFolder(savePath);
-      if (store.get("openFileOnFinish")) shell.openPath(savePath);
-      if (store.get("downloadAlertOnFinish") && mainWindow) {
-        showDownloadToast(item.getFilename());
+  // Apply download folder setting — attach once per persistent session, since
+  // the session (and this listener) outlives any single view recreation.
+  if (!hookedDownloadSessions.has(partition)) {
+    hookedDownloadSessions.add(partition);
+    view.webContents.session.on("will-download", (_event, item) => {
+      const downloadFolder = store.get("downloadFolder");
+      if (downloadFolder) {
+        item.setSavePath(path.join(downloadFolder, item.getFilename()));
       }
+      item.on("done", (_e, state) => {
+        if (state !== "completed") return;
+        const savePath = item.getSavePath();
+        if (store.get("openFolderOnFinish")) shell.showItemInFolder(savePath);
+        if (store.get("openFileOnFinish")) shell.openPath(savePath);
+        if (store.get("downloadAlertOnFinish") && mainWindow) {
+          showDownloadToast(item.getFilename());
+        }
+      });
     });
-  });
+  }
 
   // Context menu for service views
   view.webContents.on("context-menu", (_event, params) => {
