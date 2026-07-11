@@ -44,6 +44,10 @@ interface StoreSchema {
   openFolderOnFinish: boolean;
   openFileOnFinish: boolean;
   downloadAlertOnFinish: boolean;
+  // Minutes an inactive service view may sit idle before it's torn down to
+  // reclaim its renderer process (0 = never hibernate). Session state survives
+  // in the persist: partition, so the view reloads on next click.
+  hibernateInactiveMinutes: number;
   notionNotes: Record<string, NotionNotesConfig>;
 }
 
@@ -59,6 +63,7 @@ const store = new Store<StoreSchema>({
     openFolderOnFinish: true,
     openFileOnFinish: false,
     downloadAlertOnFinish: true,
+    hibernateInactiveMinutes: 0,
     notionNotes: {},
   },
 });
@@ -72,6 +77,11 @@ let uiLayerRefCount = 0;
 let linkPreviewView: WebContentsView | null = null;
 const serviceViews = new Map<string, WebContentsView>();
 const notificationCounts = new Map<string, number>();
+// When each service view last stopped being the active one — drives hibernation
+// of idle views. The active view is exempt and carries no entry while active.
+const serviceLastActive = new Map<string, number>();
+const HIBERNATION_SWEEP_MS = 60_000;
+let hibernationSweepTimer: ReturnType<typeof setInterval> | null = null;
 // Partitions whose persistent session already has the shared download listener.
 // Sessions outlive individual views, so re-hooking when a view is recreated
 // (URL change, disable→enable) would stack duplicate listeners that each fire
@@ -280,6 +290,7 @@ function createWindow() {
       if (!serviceViews.has(service.id) && mainWindow && service.enabled !== false) {
         const view = createServiceView(service);
         serviceViews.set(service.id, view);
+        serviceLastActive.set(service.id, Date.now());
         mainWindow.contentView.addChildView(view);
         view.setVisible(false);
       }
@@ -673,6 +684,39 @@ function createServiceView(service: Service): WebContentsView {
   return view;
 }
 
+// Tear down an idle service view to reclaim its renderer process. The service
+// stays enabled and in the store; only the live view goes. notificationCounts
+// is kept so the sidebar badge survives until the view is reopened.
+function hibernateServiceView(serviceId: string) {
+  const view = serviceViews.get(serviceId);
+  if (!view) return;
+  if (mainWindow) {
+    mainWindow.contentView.removeChildView(view);
+  }
+  view.webContents.close();
+  serviceViews.delete(serviceId);
+  serviceLastActive.delete(serviceId);
+  pendingDecrease.delete(serviceId);
+}
+
+// Periodically hibernate views that have been inactive past the user's chosen
+// threshold. The active view is always exempt.
+function sweepHibernation() {
+  const minutes = store.get("hibernateInactiveMinutes");
+  if (!minutes || minutes <= 0) return;
+  const cutoff = Date.now() - minutes * 60_000;
+  for (const serviceId of [...serviceViews.keys()]) {
+    if (serviceId === activeServiceId) continue;
+    const last = serviceLastActive.get(serviceId);
+    // No timestamp yet (just created) — record now and give it a full interval
+    if (last === undefined) {
+      serviceLastActive.set(serviceId, Date.now());
+      continue;
+    }
+    if (last <= cutoff) hibernateServiceView(serviceId);
+  }
+}
+
 function showService(serviceId: string) {
   if (!mainWindow) return;
 
@@ -690,6 +734,8 @@ function showService(serviceId: string) {
     if (currentView) {
       currentView.setVisible(false);
     }
+    // Start the idle clock for the service we're switching away from
+    serviceLastActive.set(activeServiceId, Date.now());
   }
 
   // Show or create requested view
@@ -700,6 +746,7 @@ function showService(serviceId: string) {
     if (!service || service.enabled === false) return;
     view = createServiceView(service);
     serviceViews.set(serviceId, view);
+    serviceLastActive.set(serviceId, Date.now());
     mainWindow.contentView.addChildView(view);
   }
 
@@ -722,6 +769,8 @@ function hideActiveService() {
   if (currentView) {
     currentView.setVisible(false);
   }
+  // Start the idle clock for the service we're leaving
+  serviceLastActive.set(activeServiceId, Date.now());
   activeServiceId = null;
 }
 
@@ -752,6 +801,7 @@ ipcMain.handle("remove-service", (_event, serviceId: string) => {
     }
     view.webContents.close();
     serviceViews.delete(serviceId);
+    serviceLastActive.delete(serviceId);
   }
   notificationCounts.delete(serviceId);
   updateTaskbarBadge();
@@ -785,6 +835,7 @@ ipcMain.handle("update-service", (_event, updated: Service) => {
       }
       view.webContents.close();
       serviceViews.delete(updated.id);
+      serviceLastActive.delete(updated.id);
     }
   }
 
@@ -835,6 +886,7 @@ ipcMain.handle("toggle-service-enabled", (_event, serviceId: string) => {
           }
           view.webContents.close();
           serviceViews.delete(serviceId);
+          serviceLastActive.delete(serviceId);
         }
         notificationCounts.delete(serviceId);
         pendingDecrease.delete(serviceId);
@@ -930,6 +982,7 @@ ipcMain.on("show-service-context-menu", (_event, serviceId: string) => {
             mainWindow!.contentView.removeChildView(view);
             view.webContents.close();
             serviceViews.delete(serviceId);
+            serviceLastActive.delete(serviceId);
           }
           notificationCounts.delete(serviceId);
           pendingDecrease.delete(serviceId);
@@ -1086,6 +1139,7 @@ ipcMain.handle("get-settings", () => {
     openFolderOnFinish: store.get("openFolderOnFinish"),
     openFileOnFinish: store.get("openFileOnFinish"),
     downloadAlertOnFinish: store.get("downloadAlertOnFinish"),
+    hibernateInactiveMinutes: store.get("hibernateInactiveMinutes"),
   };
 });
 
@@ -1103,6 +1157,13 @@ ipcMain.handle("update-setting", (_event, key: string, value: unknown) => {
     store.set("openFileOnFinish", value);
   } else if (key === "downloadAlertOnFinish" && typeof value === "boolean") {
     store.set("downloadAlertOnFinish", value);
+  } else if (
+    key === "hibernateInactiveMinutes" &&
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= 0
+  ) {
+    store.set("hibernateInactiveMinutes", Math.floor(value));
   }
 });
 
