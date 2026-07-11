@@ -80,6 +80,26 @@ const hookedDownloadSessions = new Set<string>();
 let activeServiceId: string | null = null;
 let windowFocused = true;
 const pendingDecrease = new Map<string, { count: number; streak: number }>();
+// Window bounds change on every resize/move tick; electron-store writes the
+// whole config file synchronously, so coalesce those writes behind a debounce.
+let pendingBounds: StoreSchema["windowBounds"] | null = null;
+let boundsSaveTimer: ReturnType<typeof setTimeout> | null = null;
+function saveBoundsDebounced(partial: Partial<StoreSchema["windowBounds"]>) {
+  pendingBounds = { ...(pendingBounds ?? store.get("windowBounds")), ...partial };
+  if (!boundsSaveTimer) {
+    boundsSaveTimer = setTimeout(flushBounds, 500);
+  }
+}
+function flushBounds() {
+  if (boundsSaveTimer) {
+    clearTimeout(boundsSaveTimer);
+    boundsSaveTimer = null;
+  }
+  if (pendingBounds) {
+    store.set("windowBounds", pendingBounds);
+    pendingBounds = null;
+  }
+}
 const DECREASE_THRESHOLD = 2; // require 2 consecutive lower readings before decreasing
 const SIDEBAR_WIDTH = 68;
 const TITLEBAR_HEIGHT = 46;
@@ -192,11 +212,7 @@ function createWindow() {
   mainWindow.on("resize", () => {
     if (mainWindow) {
       const [width, height] = mainWindow.getSize();
-      store.set("windowBounds", {
-        ...store.get("windowBounds"),
-        width,
-        height,
-      });
+      saveBoundsDebounced({ width, height });
       resizeUiView();
       repositionActiveView();
       if (linkPreviewView) {
@@ -236,16 +252,24 @@ function createWindow() {
   mainWindow.on("move", () => {
     if (mainWindow) {
       const [x, y] = mainWindow.getPosition();
-      store.set("windowBounds", { ...store.get("windowBounds"), x, y });
+      saveBoundsDebounced({ x, y });
     }
   });
 
   mainWindow.on("closed", () => {
+    flushBounds(); // persist any bounds still buffered by the debounce
+    if (hibernationSweepTimer) {
+      clearInterval(hibernationSweepTimer);
+      hibernationSweepTimer = null;
+    }
     mainWindow = null;
     uiView = null;
     linkPreviewView = null;
     serviceViews.clear();
+    serviceLastActive.clear();
   });
+
+  hibernationSweepTimer = setInterval(sweepHibernation, HIBERNATION_SWEEP_MS);
 
   // Pre-load all saved services so they're warm on startup (if enabled)
   uiView.webContents.on("did-finish-load", () => {
