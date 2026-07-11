@@ -4,7 +4,7 @@ import { NotionNote, NotionNoteInput, NotionNoteItem } from "../../types";
 
 export type DraftImage =
   | { kind: "existing"; url: string }
-  | { kind: "new"; dataUrl: string; fileName: string; mimeType: string; base64: string }
+  | { kind: "new"; dataUrl: string; fileName: string; mimeType: string }
   | null;
 
 export interface NoteDraft {
@@ -56,11 +56,14 @@ export function draftIsEmpty(draft: NoteDraft): boolean {
 export function draftToInput(draft: NoteDraft): NotionNoteInput {
   let image: NotionNoteInput["image"];
   if (draft.image?.kind === "new") {
+    const { dataUrl } = draft.image;
     image = {
       action: "upload",
       fileName: draft.image.fileName,
       mimeType: draft.image.mimeType,
-      base64: draft.image.base64,
+      // Derive the base64 payload here rather than storing it alongside the
+      // data URL — the two together doubled the in-memory size of the image.
+      base64: dataUrl.slice(dataUrl.indexOf(",") + 1),
     };
   } else if (draft.image?.kind === "existing") {
     image = { action: "keep" };
@@ -90,7 +93,7 @@ export function noteToInput(note: NotionNote): NotionNoteInput {
 
 export function readImageFile(
   file: File,
-): Promise<{ kind: "new"; dataUrl: string; fileName: string; mimeType: string; base64: string }> {
+): Promise<{ kind: "new"; dataUrl: string; fileName: string; mimeType: string }> {
   return new Promise((resolve, reject) => {
     if (file.size > MAX_IMAGE_BYTES) {
       reject(new Error("Image is too large (max 15 MB)."));
@@ -104,7 +107,6 @@ export function readImageFile(
         dataUrl,
         fileName: file.name,
         mimeType: file.type || "image/png",
-        base64: dataUrl.slice(dataUrl.indexOf(",") + 1),
       });
     };
     reader.onerror = () => reject(new Error("Could not read the image file."));
