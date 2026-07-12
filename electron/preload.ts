@@ -170,7 +170,7 @@ const api = {
   // Updates
   checkForUpdates: (): Promise<{ updateAvailable: boolean; version?: string; downloadUrl?: string }> => ipcRenderer.invoke("check-for-updates"),
   getAppVersion: (): Promise<string> => ipcRenderer.invoke("get-app-version"),
-  downloadAndInstallUpdate: (downloadUrl: string): Promise<void> => ipcRenderer.invoke("download-and-install-update", downloadUrl),
+  downloadAndInstallUpdate: (): Promise<void> => ipcRenderer.invoke("download-and-install-update"),
   onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, info: { percent: number }) => callback(info);
     ipcRenderer.on("update-download-progress", handler);

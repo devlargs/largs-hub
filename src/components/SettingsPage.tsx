@@ -17,7 +17,6 @@ export default function SettingsPage() {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
   const [currentVersion, setCurrentVersion] = useState("");
   const [newVersion, setNewVersion] = useState("");
-  const [downloadUrl, setDownloadUrl] = useState("");
   const [percent, setPercent] = useState(0);
 
   useEffect(() => {
@@ -38,7 +37,6 @@ export default function SettingsPage() {
       .then((result) => {
         if (result.updateAvailable && result.version) {
           setNewVersion(result.version);
-          setDownloadUrl(result.downloadUrl || "");
           setUpdateStatus("available");
         } else {
           setUpdateStatus("latest");
@@ -48,10 +46,10 @@ export default function SettingsPage() {
   };
 
   const handleUpdate = () => {
-    if (!downloadUrl) return;
     setUpdateStatus("downloading");
     setPercent(0);
-    window.electronAPI.downloadAndInstallUpdate(downloadUrl).catch(() => {
+    // The download URL is resolved and verified in the main process
+    window.electronAPI.downloadAndInstallUpdate().catch(() => {
       setUpdateStatus("error");
     });
   };

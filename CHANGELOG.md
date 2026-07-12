@@ -9,6 +9,7 @@
 - Services can no longer silently access the camera, microphone, location, or clipboard — permission requests are now denied by default (Messenger/WhatsApp keep camera and mic access for calls)
 - Notion Note Taker API keys are now stored encrypted on disk instead of in plaintext (existing keys migrate automatically)
 - Service data is now validated before being saved, and service URLs must be http or https
+- App updates are now verified before installing: downloads are restricted to trusted GitHub hosts over https and checked against the release's official checksum
 
 ## [0.1.26] (2026-07-12)
 
