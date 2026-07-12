@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+- Added optional service hibernation (Settings → General) — services left idle past a chosen interval (15 min / 30 min / 1 hour) are unloaded to free memory and reload automatically on next click; logins are preserved
+- Fixed duplicate download notifications (repeated "open folder"/toasts) that could occur after a service was edited, disabled and re-enabled
+- Fixed duplicate download alerts (and download settings being applied multiple times) after editing a service's URL
+- Fixed the download-complete alert rendering incorrectly for file names containing characters like # or %
+- Services can no longer silently access the camera, microphone, location, or clipboard — permission requests are now denied by default (Messenger/WhatsApp keep camera and mic access for calls)
+- Notion Note Taker API keys are now stored encrypted on disk instead of in plaintext (existing keys migrate automatically)
+- Service data is now validated before being saved, and service URLs must be http or https
+- App updates are now verified before installing: downloads are restricted to trusted GitHub hosts over https and checked against the release's official checksum
+
 ## [0.1.26] (2026-07-12)
 
 - Fixed a security issue where custom icon file names could be used to write or delete files outside the app's icon folder

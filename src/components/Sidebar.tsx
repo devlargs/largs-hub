@@ -98,6 +98,9 @@ export default function Sidebar({
     setDragEnabled(false);
   }, []);
 
+  // Clear any pending long-press timer if the sidebar unmounts mid-press
+  useEffect(() => clearLongPress, [clearLongPress]);
+
   useEffect(() => {
     if (!window.electronAPI) return;
     window.electronAPI.getTheme().then((t) => {

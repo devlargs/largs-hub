@@ -1,4 +1,4 @@
-import { ipcMain } from "electron";
+import { ipcMain, safeStorage } from "electron";
 
 // Notion-backed note taker ("Notion Note Taker" internal service).
 // All Notion API traffic happens here in the main process — the Notion API
@@ -421,16 +421,55 @@ const noteLocks = new Map<string, Promise<unknown>>();
 function withNoteLock<T>(noteId: string, fn: () => Promise<T>): Promise<T> {
   const prev = noteLocks.get(noteId) || Promise.resolve();
   const next = prev.then(fn, fn);
-  noteLocks.set(noteId, next.catch(() => undefined));
+  const tail = next.catch(() => undefined);
+  noteLocks.set(noteId, tail);
+  // Evict once settled so the map doesn't retain one entry per note ever edited
+  tail.then(() => {
+    if (noteLocks.get(noteId) === tail) noteLocks.delete(noteId);
+  });
   return next;
 }
 
+// --- API key encryption at rest -------------------------------------------
+// The Notion integration token is a full-access credential; never persist it
+// in plaintext. Encrypted values are stored as "enc:<base64>"; plaintext
+// values (from versions before this change) are migrated on next save.
+const ENC_PREFIX = "enc:";
+
+function encryptApiKey(apiKey: string): string {
+  if (apiKey.startsWith(ENC_PREFIX)) return apiKey; // already encrypted
+  if (!safeStorage.isEncryptionAvailable()) return apiKey; // best effort fallback
+  return ENC_PREFIX + safeStorage.encryptString(apiKey).toString("base64");
+}
+
+function decryptApiKey(stored: string): string {
+  if (!stored.startsWith(ENC_PREFIX)) return stored; // legacy plaintext
+  try {
+    return safeStorage.decryptString(Buffer.from(stored.slice(ENC_PREFIX.length), "base64"));
+  } catch {
+    return ""; // decryption failed (e.g. OS keychain reset) — treat as disconnected
+  }
+}
+
 export function registerNotionNotes(store: NotionNotesStore) {
-  const getConfigs = () => store.get("notionNotes") || {};
+  const getConfigs = (): Record<string, NotionNotesConfig> => {
+    const configs = store.get("notionNotes") || {};
+    const out: Record<string, NotionNotesConfig> = {};
+    for (const [id, cfg] of Object.entries(configs)) {
+      out[id] = { ...cfg, apiKey: decryptApiKey(cfg.apiKey) };
+    }
+    return out;
+  };
   const saveConfig = (serviceId: string, config: NotionNotesConfig) => {
-    const configs = getConfigs();
+    // Re-read raw configs and encrypt every key on the way out, which also
+    // migrates any legacy plaintext entries.
+    const configs = store.get("notionNotes") || {};
     configs[serviceId] = config;
-    store.set("notionNotes", configs);
+    const encrypted: Record<string, NotionNotesConfig> = {};
+    for (const [id, cfg] of Object.entries(configs)) {
+      encrypted[id] = { ...cfg, apiKey: encryptApiKey(decryptApiKey(cfg.apiKey)) };
+    }
+    store.set("notionNotes", encrypted);
   };
   const requireConfig = (serviceId: unknown, mustBeReady = true): NotionNotesConfig => {
     if (typeof serviceId !== "string") throw new NotionError("Invalid service id.");
@@ -517,7 +556,8 @@ export function registerNotionNotes(store: NotionNotesStore) {
 
   ipcMain.handle("notion-notes-disconnect", (_event, serviceId: unknown) => {
     if (typeof serviceId !== "string") return;
-    const configs = getConfigs();
+    // Operate on the raw stored configs (keys stay encrypted at rest)
+    const configs = store.get("notionNotes") || {};
     if (configs[serviceId]) {
       delete configs[serviceId];
       store.set("notionNotes", configs);

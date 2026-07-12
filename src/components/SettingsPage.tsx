@@ -12,11 +12,11 @@ export default function SettingsPage() {
     openFolderOnFinish: true,
     openFileOnFinish: false,
     downloadAlertOnFinish: true,
+    hibernateInactiveMinutes: 0,
   });
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
   const [currentVersion, setCurrentVersion] = useState("");
   const [newVersion, setNewVersion] = useState("");
-  const [downloadUrl, setDownloadUrl] = useState("");
   const [percent, setPercent] = useState(0);
 
   useEffect(() => {
@@ -37,7 +37,6 @@ export default function SettingsPage() {
       .then((result) => {
         if (result.updateAvailable && result.version) {
           setNewVersion(result.version);
-          setDownloadUrl(result.downloadUrl || "");
           setUpdateStatus("available");
         } else {
           setUpdateStatus("latest");
@@ -47,10 +46,10 @@ export default function SettingsPage() {
   };
 
   const handleUpdate = () => {
-    if (!downloadUrl) return;
     setUpdateStatus("downloading");
     setPercent(0);
-    window.electronAPI.downloadAndInstallUpdate(downloadUrl).catch(() => {
+    // The download URL is resolved and verified in the main process
+    window.electronAPI.downloadAndInstallUpdate().catch(() => {
       setUpdateStatus("error");
     });
   };
@@ -77,6 +76,11 @@ export default function SettingsPage() {
     const next = !settings[key];
     await window.electronAPI.updateSetting(key, next);
     setSettings((s) => ({ ...s, [key]: next }));
+  };
+
+  const handleHibernateChange = async (minutes: number) => {
+    await window.electronAPI.updateSetting("hibernateInactiveMinutes", minutes);
+    setSettings((s) => ({ ...s, hibernateInactiveMinutes: minutes }));
   };
 
   return (
@@ -116,6 +120,28 @@ export default function SettingsPage() {
               checked={settings.wakeServicesAutomatically}
               onChange={handleToggleWake}
             />
+          </SettingRow>
+
+          <SettingRow
+            label="Hibernate inactive services"
+            description="Unload services left idle to free memory; they reload on next click"
+          >
+            <select
+              value={settings.hibernateInactiveMinutes}
+              onChange={(e) => handleHibernateChange(Number(e.target.value))}
+              className="text-sm rounded-lg cursor-pointer outline-none"
+              style={{
+                padding: "6px 10px",
+                backgroundColor: "var(--sidebar-hover)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <option value={0}>Never</option>
+              <option value={15}>After 15 min</option>
+              <option value={30}>After 30 min</option>
+              <option value={60}>After 1 hour</option>
+            </select>
           </SettingRow>
         </Section>
 

@@ -44,6 +44,10 @@ interface StoreSchema {
   openFolderOnFinish: boolean;
   openFileOnFinish: boolean;
   downloadAlertOnFinish: boolean;
+  // Minutes an inactive service view may sit idle before it's torn down to
+  // reclaim its renderer process (0 = never hibernate). Session state survives
+  // in the persist: partition, so the view reloads on next click.
+  hibernateInactiveMinutes: number;
   notionNotes: Record<string, NotionNotesConfig>;
 }
 
@@ -59,6 +63,7 @@ const store = new Store<StoreSchema>({
     openFolderOnFinish: true,
     openFileOnFinish: false,
     downloadAlertOnFinish: true,
+    hibernateInactiveMinutes: 0,
     notionNotes: {},
   },
 });
@@ -72,9 +77,39 @@ let uiLayerRefCount = 0;
 let linkPreviewView: WebContentsView | null = null;
 const serviceViews = new Map<string, WebContentsView>();
 const notificationCounts = new Map<string, number>();
+// When each service view last stopped being the active one — drives hibernation
+// of idle views. The active view is exempt and carries no entry while active.
+const serviceLastActive = new Map<string, number>();
+const HIBERNATION_SWEEP_MS = 60_000;
+let hibernationSweepTimer: ReturnType<typeof setInterval> | null = null;
+// Partitions whose persistent session already has the shared download listener.
+// Sessions outlive individual views, so re-hooking when a view is recreated
+// (URL change, disable→enable) would stack duplicate listeners that each fire
+// the post-download side effects again.
+const hookedDownloadSessions = new Set<string>();
 let activeServiceId: string | null = null;
 let windowFocused = true;
 const pendingDecrease = new Map<string, { count: number; streak: number }>();
+// Window bounds change on every resize/move tick; electron-store writes the
+// whole config file synchronously, so coalesce those writes behind a debounce.
+let pendingBounds: StoreSchema["windowBounds"] | null = null;
+let boundsSaveTimer: ReturnType<typeof setTimeout> | null = null;
+function saveBoundsDebounced(partial: Partial<StoreSchema["windowBounds"]>) {
+  pendingBounds = { ...(pendingBounds ?? store.get("windowBounds")), ...partial };
+  if (!boundsSaveTimer) {
+    boundsSaveTimer = setTimeout(flushBounds, 500);
+  }
+}
+function flushBounds() {
+  if (boundsSaveTimer) {
+    clearTimeout(boundsSaveTimer);
+    boundsSaveTimer = null;
+  }
+  if (pendingBounds) {
+    store.set("windowBounds", pendingBounds);
+    pendingBounds = null;
+  }
+}
 const DECREASE_THRESHOLD = 2; // require 2 consecutive lower readings before decreasing
 const SIDEBAR_WIDTH = 68;
 const TITLEBAR_HEIGHT = 46;
@@ -111,15 +146,19 @@ function showDownloadToast(fileName: string) {
     focusable: false,
     show: false,
   });
-  const escaped = fileName.replace(/'/g, "\\'").replace(/</g, "&lt;");
-  toast.loadURL(`data:text/html;charset=utf-8,
-    <html><body style="margin:0;font-family:Segoe UI,sans-serif;background:transparent;overflow:hidden;">
+  // Escape HTML metacharacters, then URL-encode the whole document: a raw
+  // "#" or "%" in a filename would otherwise truncate/corrupt the data: URL.
+  const escaped = fileName
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  const html = `<html><body style="margin:0;font-family:Segoe UI,sans-serif;background:transparent;overflow:hidden;">
       <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(30,30,46,0.95);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#cdd6f4;font-size:13px;backdrop-filter:blur(12px);">
         <span style="color:#89b4fa;font-weight:600;white-space:nowrap;">Download complete</span>
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#a6adc8;">${escaped}</span>
       </div>
-    </body></html>
-  `);
+    </body></html>`;
+  toast.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
   toast.once("ready-to-show", () => {
     toast.showInactive();
     setTimeout(() => { if (!toast.isDestroyed()) toast.close(); }, 4000);
@@ -187,11 +226,7 @@ function createWindow() {
   mainWindow.on("resize", () => {
     if (mainWindow) {
       const [width, height] = mainWindow.getSize();
-      store.set("windowBounds", {
-        ...store.get("windowBounds"),
-        width,
-        height,
-      });
+      saveBoundsDebounced({ width, height });
       resizeUiView();
       repositionActiveView();
       if (linkPreviewView) {
@@ -231,16 +266,24 @@ function createWindow() {
   mainWindow.on("move", () => {
     if (mainWindow) {
       const [x, y] = mainWindow.getPosition();
-      store.set("windowBounds", { ...store.get("windowBounds"), x, y });
+      saveBoundsDebounced({ x, y });
     }
   });
 
   mainWindow.on("closed", () => {
+    flushBounds(); // persist any bounds still buffered by the debounce
+    if (hibernationSweepTimer) {
+      clearInterval(hibernationSweepTimer);
+      hibernationSweepTimer = null;
+    }
     mainWindow = null;
     uiView = null;
     linkPreviewView = null;
     serviceViews.clear();
+    serviceLastActive.clear();
   });
+
+  hibernationSweepTimer = setInterval(sweepHibernation, HIBERNATION_SWEEP_MS);
 
   // Pre-load all saved services so they're warm on startup (if enabled)
   uiView.webContents.on("did-finish-load", () => {
@@ -251,6 +294,7 @@ function createWindow() {
       if (!serviceViews.has(service.id) && mainWindow && service.enabled !== false) {
         const view = createServiceView(service);
         serviceViews.set(service.id, view);
+        serviceLastActive.set(service.id, Date.now());
         mainWindow.contentView.addChildView(view);
         view.setVisible(false);
       }
@@ -396,6 +440,7 @@ function createBadgeIcon(count: number): Electron.NativeImage {
   return nativeImage.createFromDataURL(dataUrl);
 }
 
+// Session-level listeners must only be registered once per partition.
 function createServiceView(service: Service): WebContentsView {
   const partition = `persist:service-${service.id}`;
 
@@ -418,29 +463,56 @@ function createServiceView(service: Service): WebContentsView {
   // Also set at session level so OAuth popups inherit the spoofed UA
   view.webContents.session.setUserAgent(spoofedUA);
 
-  view.webContents.loadURL(service.url);
+  // Deny-by-default permission policy. Without a handler Electron grants
+  // whatever the page asks for (camera, mic, geolocation, clipboard, ...).
+  // Setting the handler is idempotent per session, so calling it again on
+  // view recreation is safe.
+  const allowedPermissions = new Set<string>(["notifications", "fullscreen", "clipboard-sanitized-write"]);
+  try {
+    const host = new URL(service.url).hostname;
+    // Messenger / WhatsApp need camera+mic for calls
+    if (/(^|\.)messenger\.com$|(^|\.)facebook\.com$|(^|\.)whatsapp\.com$/.test(host)) {
+      allowedPermissions.add("media");
+    }
+  } catch {
+    // invalid URL — keep the restrictive default
+  }
+  view.webContents.session.setPermissionRequestHandler((_wc, permission, callback) => {
+    callback(allowedPermissions.has(permission));
+  });
+  view.webContents.session.setPermissionCheckHandler((_wc, permission) =>
+    allowedPermissions.has(permission),
+  );
+
+  if (isSafeServiceUrl(service.url)) {
+    view.webContents.loadURL(service.url);
+  }
 
   // Apply mute state
   if (service.muted) {
     view.webContents.setAudioMuted(true);
   }
 
-  // Apply download folder setting
-  view.webContents.session.on("will-download", (_event, item) => {
-    const downloadFolder = store.get("downloadFolder");
-    if (downloadFolder) {
-      item.setSavePath(path.join(downloadFolder, item.getFilename()));
-    }
-    item.on("done", (_e, state) => {
-      if (state !== "completed") return;
-      const savePath = item.getSavePath();
-      if (store.get("openFolderOnFinish")) shell.showItemInFolder(savePath);
-      if (store.get("openFileOnFinish")) shell.openPath(savePath);
-      if (store.get("downloadAlertOnFinish") && mainWindow) {
-        showDownloadToast(item.getFilename());
+  // Apply download folder setting — attach once per persistent session, since
+  // the session (and this listener) outlives any single view recreation.
+  if (!hookedDownloadSessions.has(partition)) {
+    hookedDownloadSessions.add(partition);
+    view.webContents.session.on("will-download", (_event, item) => {
+      const downloadFolder = store.get("downloadFolder");
+      if (downloadFolder) {
+        item.setSavePath(path.join(downloadFolder, item.getFilename()));
       }
+      item.on("done", (_e, state) => {
+        if (state !== "completed") return;
+        const savePath = item.getSavePath();
+        if (store.get("openFolderOnFinish")) shell.showItemInFolder(savePath);
+        if (store.get("openFileOnFinish")) shell.openPath(savePath);
+        if (store.get("downloadAlertOnFinish") && mainWindow) {
+          showDownloadToast(item.getFilename());
+        }
+      });
     });
-  });
+  }
 
   // Context menu for service views
   view.webContents.on("context-menu", (_event, params) => {
@@ -573,6 +645,10 @@ function createServiceView(service: Service): WebContentsView {
       .catch(() => {});
   }, 3000);
 
+  // Clear the poll as soon as the view is torn down instead of waiting for the
+  // next tick to notice the destroyed webContents.
+  view.webContents.once("destroyed", () => clearInterval(pollInterval));
+
   // Intercept Ctrl+Number shortcuts so they work even when a service view has focus
   view.webContents.on("before-input-event", (event, input) => {
     if (
@@ -636,6 +712,39 @@ function createServiceView(service: Service): WebContentsView {
   return view;
 }
 
+// Tear down an idle service view to reclaim its renderer process. The service
+// stays enabled and in the store; only the live view goes. notificationCounts
+// is kept so the sidebar badge survives until the view is reopened.
+function hibernateServiceView(serviceId: string) {
+  const view = serviceViews.get(serviceId);
+  if (!view) return;
+  if (mainWindow) {
+    mainWindow.contentView.removeChildView(view);
+  }
+  view.webContents.close();
+  serviceViews.delete(serviceId);
+  serviceLastActive.delete(serviceId);
+  pendingDecrease.delete(serviceId);
+}
+
+// Periodically hibernate views that have been inactive past the user's chosen
+// threshold. The active view is always exempt.
+function sweepHibernation() {
+  const minutes = store.get("hibernateInactiveMinutes");
+  if (!minutes || minutes <= 0) return;
+  const cutoff = Date.now() - minutes * 60_000;
+  for (const serviceId of [...serviceViews.keys()]) {
+    if (serviceId === activeServiceId) continue;
+    const last = serviceLastActive.get(serviceId);
+    // No timestamp yet (just created) — record now and give it a full interval
+    if (last === undefined) {
+      serviceLastActive.set(serviceId, Date.now());
+      continue;
+    }
+    if (last <= cutoff) hibernateServiceView(serviceId);
+  }
+}
+
 function showService(serviceId: string) {
   if (!mainWindow) return;
 
@@ -653,6 +762,8 @@ function showService(serviceId: string) {
     if (currentView) {
       currentView.setVisible(false);
     }
+    // Start the idle clock for the service we're switching away from
+    serviceLastActive.set(activeServiceId, Date.now());
   }
 
   // Show or create requested view
@@ -663,6 +774,7 @@ function showService(serviceId: string) {
     if (!service || service.enabled === false) return;
     view = createServiceView(service);
     serviceViews.set(serviceId, view);
+    serviceLastActive.set(serviceId, Date.now());
     mainWindow.contentView.addChildView(view);
   }
 
@@ -685,7 +797,43 @@ function hideActiveService() {
   if (currentView) {
     currentView.setVisible(false);
   }
+  // Start the idle clock for the service we're leaving
+  serviceLastActive.set(activeServiceId, Date.now());
   activeServiceId = null;
+}
+
+// --- IPC input validation ---------------------------------------------------
+// IPC payload types are compile-time only; validate shapes at runtime before
+// touching the store or creating views.
+
+function isSafeServiceUrl(url: unknown): url is string {
+  if (typeof url !== "string") return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function sanitizeService(raw: unknown): Service | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const s = raw as Record<string, unknown>;
+  if (typeof s.id !== "string" || s.id.length === 0) return null;
+  if (typeof s.name !== "string" || s.name.length === 0) return null;
+  if (s.type !== "notion-notes" && !isSafeServiceUrl(s.url)) return null;
+  return {
+    id: s.id,
+    name: s.name,
+    url: typeof s.url === "string" ? s.url : "",
+    icon: typeof s.icon === "string" ? s.icon : "",
+    color: typeof s.color === "string" ? s.color : "#888888",
+    notificationCount: 0,
+    muted: s.muted === true,
+    enabled: s.enabled !== false,
+    notificationsEnabled: s.notificationsEnabled !== false,
+    ...(s.type === "notion-notes" ? { type: "notion-notes" as const } : {}),
+  };
 }
 
 // IPC Handlers
@@ -693,8 +841,11 @@ ipcMain.handle("get-services", () => {
   return store.get("services");
 });
 
-ipcMain.handle("add-service", (_event, service: Service) => {
+ipcMain.handle("add-service", (_event, rawService: unknown) => {
   const services = store.get("services");
+  const service = sanitizeService(rawService);
+  if (!service) return services;
+  if (services.some((s) => s.id === service.id)) return services;
   services.push(service);
   store.set("services", services);
   return services;
@@ -715,6 +866,7 @@ ipcMain.handle("remove-service", (_event, serviceId: string) => {
     }
     view.webContents.close();
     serviceViews.delete(serviceId);
+    serviceLastActive.delete(serviceId);
   }
   notificationCounts.delete(serviceId);
   updateTaskbarBadge();
@@ -729,7 +881,9 @@ ipcMain.handle("remove-service", (_event, serviceId: string) => {
   return services;
 });
 
-ipcMain.handle("update-service", (_event, updated: Service) => {
+ipcMain.handle("update-service", (_event, rawUpdated: unknown) => {
+  const updated = sanitizeService(rawUpdated);
+  if (!updated) return store.get("services");
   const old = store.get("services").find((s) => s.id === updated.id);
   const services = store
     .get("services")
@@ -748,13 +902,17 @@ ipcMain.handle("update-service", (_event, updated: Service) => {
       }
       view.webContents.close();
       serviceViews.delete(updated.id);
+      serviceLastActive.delete(updated.id);
     }
   }
 
   return services;
 });
 
-ipcMain.handle("reorder-services", (_event, serviceIds: string[]) => {
+ipcMain.handle("reorder-services", (_event, serviceIds: unknown) => {
+  if (!Array.isArray(serviceIds) || !serviceIds.every((id) => typeof id === "string")) {
+    return store.get("services");
+  }
   const services = store.get("services");
   const reordered = serviceIds
     .map((id) => services.find((s) => s.id === id))
@@ -798,6 +956,7 @@ ipcMain.handle("toggle-service-enabled", (_event, serviceId: string) => {
           }
           view.webContents.close();
           serviceViews.delete(serviceId);
+          serviceLastActive.delete(serviceId);
         }
         notificationCounts.delete(serviceId);
         pendingDecrease.delete(serviceId);
@@ -893,6 +1052,7 @@ ipcMain.on("show-service-context-menu", (_event, serviceId: string) => {
             mainWindow!.contentView.removeChildView(view);
             view.webContents.close();
             serviceViews.delete(serviceId);
+            serviceLastActive.delete(serviceId);
           }
           notificationCounts.delete(serviceId);
           pendingDecrease.delete(serviceId);
@@ -1049,6 +1209,7 @@ ipcMain.handle("get-settings", () => {
     openFolderOnFinish: store.get("openFolderOnFinish"),
     openFileOnFinish: store.get("openFileOnFinish"),
     downloadAlertOnFinish: store.get("downloadAlertOnFinish"),
+    hibernateInactiveMinutes: store.get("hibernateInactiveMinutes"),
   };
 });
 
@@ -1066,6 +1227,13 @@ ipcMain.handle("update-setting", (_event, key: string, value: unknown) => {
     store.set("openFileOnFinish", value);
   } else if (key === "downloadAlertOnFinish" && typeof value === "boolean") {
     store.set("downloadAlertOnFinish", value);
+  } else if (
+    key === "hibernateInactiveMinutes" &&
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= 0
+  ) {
+    store.set("hibernateInactiveMinutes", Math.floor(value));
   }
 });
 
@@ -1122,7 +1290,27 @@ ipcMain.handle("delete-custom-icon", async (_event, fileName: string) => {
 });
 
 // Update check via GitHub API
+// Pending update info is kept in the main process; the renderer only gets a
+// boolean + version string and can never influence what gets downloaded.
+let pendingUpdate: { url: string; sha256: string | null } | null = null;
+
+const UPDATE_HOST_ALLOWLIST = new Set([
+  "github.com",
+  "objects.githubusercontent.com",
+  "release-assets.githubusercontent.com",
+]);
+
+function isAllowedUpdateUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    return parsed.protocol === "https:" && UPDATE_HOST_ALLOWLIST.has(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
 ipcMain.handle("check-for-updates", async () => {
+  pendingUpdate = null;
   try {
     const response = await fetch(
       "https://api.github.com/repos/devlargs/largs-hub/releases/latest",
@@ -1132,9 +1320,19 @@ ipcMain.handle("check-for-updates", async () => {
     const latest = (data.tag_name || "").replace(/^v/, "");
     const current = app.getVersion();
     if (latest && latest !== current) {
-      const downloadUrl = data.assets?.find(
+      const asset = data.assets?.find(
         (a: { name: string }) => a.name.endsWith(".exe") && !a.name.endsWith(".blockmap"),
-      )?.browser_download_url;
+      );
+      const downloadUrl: string | undefined = asset?.browser_download_url;
+      if (!downloadUrl || !isAllowedUpdateUrl(downloadUrl)) {
+        return { updateAvailable: false };
+      }
+      // GitHub publishes a sha256 digest per release asset
+      const digest: string | undefined = asset?.digest;
+      pendingUpdate = {
+        url: downloadUrl,
+        sha256: digest?.startsWith("sha256:") ? digest.slice("sha256:".length) : null,
+      };
       return { updateAvailable: true, version: latest, downloadUrl };
     }
     return { updateAvailable: false };
@@ -1147,19 +1345,32 @@ ipcMain.handle("get-app-version", () => {
   return app.getVersion();
 });
 
-ipcMain.handle("download-and-install-update", async (_event, downloadUrl: string) => {
+ipcMain.handle("download-and-install-update", async () => {
+  // The URL comes from the main-process check-for-updates result, never from
+  // the renderer.
+  if (!pendingUpdate) throw new Error("No update available. Run a check first.");
+  const { url: updateUrl, sha256: expectedSha256 } = pendingUpdate;
+
   const fs = require("fs");
   const https = require("https");
-  const http = require("http");
+  const crypto = require("crypto");
   const tmpPath = path.join(app.getPath("temp"), "largs-hub-update.exe");
 
   return new Promise<void>((resolve, reject) => {
-    const follow = (url: string) => {
-      const mod = url.startsWith("https") ? https : http;
-      mod.get(url, { headers: { "User-Agent": "Largs-Hub-Updater" } }, (res: any) => {
+    const MAX_REDIRECTS = 5;
+    const follow = (url: string, redirectsLeft: number) => {
+      if (!isAllowedUpdateUrl(url)) {
+        reject(new Error("Update download blocked: untrusted or non-https URL"));
+        return;
+      }
+      https.get(url, { headers: { "User-Agent": "Largs-Hub-Updater" } }, (res: any) => {
         // Follow redirects (GitHub uses 302)
         if (res.statusCode === 301 || res.statusCode === 302) {
-          return follow(res.headers.location);
+          if (redirectsLeft <= 0) {
+            reject(new Error("Update download failed: too many redirects"));
+            return;
+          }
+          return follow(res.headers.location, redirectsLeft - 1);
         }
         if (res.statusCode !== 200) {
           reject(new Error(`Download failed: ${res.statusCode}`));
@@ -1168,10 +1379,12 @@ ipcMain.handle("download-and-install-update", async (_event, downloadUrl: string
 
         const totalBytes = parseInt(res.headers["content-length"] || "0", 10);
         let downloaded = 0;
+        const hash = crypto.createHash("sha256");
         const file = fs.createWriteStream(tmpPath);
 
         res.on("data", (chunk: Buffer) => {
           downloaded += chunk.length;
+          hash.update(chunk);
           if (totalBytes > 0 && mainWindow) {
             uiView?.webContents.send("update-download-progress", {
               percent: Math.round((downloaded / totalBytes) * 100),
@@ -1183,6 +1396,14 @@ ipcMain.handle("download-and-install-update", async (_event, downloadUrl: string
 
         file.on("finish", () => {
           file.close(() => {
+            // Verify the download against the sha256 digest GitHub publishes
+            // for the release asset before executing anything.
+            const actualSha256 = hash.digest("hex");
+            if (expectedSha256 && actualSha256 !== expectedSha256) {
+              fs.unlink(tmpPath, () => {});
+              reject(new Error("Update rejected: checksum mismatch"));
+              return;
+            }
             // Launch the NSIS installer silently in a fully detached process.
             // The installer will replace app files and auto-relaunch when done.
             const { spawn } = require("child_process");
@@ -1207,7 +1428,7 @@ ipcMain.handle("download-and-install-update", async (_event, downloadUrl: string
       }).on("error", reject);
     };
 
-    follow(downloadUrl);
+    follow(updateUrl, MAX_REDIRECTS);
   });
 });
 

@@ -1,9 +1,25 @@
+import { useMemo } from "react";
+
 interface DisabledServiceScreenProps {
   serviceName: string;
   onEnable: () => void;
 }
 
 export default function DisabledServiceScreen({ serviceName, onEnable }: DisabledServiceScreenProps) {
+  // Generate the decorative dots once so they don't reshuffle on re-render
+  const dots = useMemo(
+    () =>
+      Array.from({ length: 20 }, () => ({
+        size: 2 + Math.random() * 3,
+        top: Math.random() * 100,
+        left: Math.random() * 100,
+        opacity: 0.06 + Math.random() * 0.1,
+        duration: 4 + Math.random() * 4,
+        delay: Math.random() * 5,
+      })),
+    [],
+  );
+
   return (
     <div
       className="flex flex-col items-center justify-center"
@@ -11,19 +27,19 @@ export default function DisabledServiceScreen({ serviceName, onEnable }: Disable
     >
       {/* Decorative background dots */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {[...Array(20)].map((_, i) => (
+        {dots.map((dot, i) => (
           <div
             key={i}
             className="absolute rounded-full"
             style={{
-              width: `${2 + Math.random() * 3}px`,
-              height: `${2 + Math.random() * 3}px`,
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              opacity: 0.06 + Math.random() * 0.1,
+              width: `${dot.size}px`,
+              height: `${dot.size}px`,
+              top: `${dot.top}%`,
+              left: `${dot.left}%`,
+              opacity: dot.opacity,
               backgroundColor: "var(--text-muted)",
-              animation: `twinkle ${4 + Math.random() * 4}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`,
+              animation: `twinkle ${dot.duration}s ease-in-out infinite`,
+              animationDelay: `${dot.delay}s`,
             }}
           />
         ))}

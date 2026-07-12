@@ -26,13 +26,18 @@ export default function NoteModal({ note, onSave, onDelete, onClose }: NoteModal
     onClose();
   };
 
+  // Keep the latest close handler in a ref so the keydown listener registers
+  // once instead of re-subscribing on every render/keystroke.
+  const handleCloseRef = useRef(handleClose);
+  handleCloseRef.current = handleClose;
+
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") handleClose();
+      if (event.key === "Escape") handleCloseRef.current();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  });
+  }, []);
 
   return (
     <div
