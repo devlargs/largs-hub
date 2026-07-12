@@ -146,15 +146,19 @@ function showDownloadToast(fileName: string) {
     focusable: false,
     show: false,
   });
-  const escaped = fileName.replace(/'/g, "\\'").replace(/</g, "&lt;");
-  toast.loadURL(`data:text/html;charset=utf-8,
-    <html><body style="margin:0;font-family:Segoe UI,sans-serif;background:transparent;overflow:hidden;">
+  // Escape HTML metacharacters, then URL-encode the whole document: a raw
+  // "#" or "%" in a filename would otherwise truncate/corrupt the data: URL.
+  const escaped = fileName
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  const html = `<html><body style="margin:0;font-family:Segoe UI,sans-serif;background:transparent;overflow:hidden;">
       <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(30,30,46,0.95);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#cdd6f4;font-size:13px;backdrop-filter:blur(12px);">
         <span style="color:#89b4fa;font-weight:600;white-space:nowrap;">Download complete</span>
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#a6adc8;">${escaped}</span>
       </div>
-    </body></html>
-  `);
+    </body></html>`;
+  toast.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
   toast.once("ready-to-show", () => {
     toast.showInactive();
     setTimeout(() => { if (!toast.isDestroyed()) toast.close(); }, 4000);

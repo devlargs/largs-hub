@@ -5,6 +5,7 @@
 - Added optional service hibernation (Settings → General) — services left idle past a chosen interval (15 min / 30 min / 1 hour) are unloaded to free memory and reload automatically on next click; logins are preserved
 - Fixed duplicate download notifications (repeated "open folder"/toasts) that could occur after a service was edited, disabled and re-enabled
 - Fixed duplicate download alerts (and download settings being applied multiple times) after editing a service's URL
+- Fixed the download-complete alert rendering incorrectly for file names containing characters like # or %
 
 ## [0.1.26] (2026-07-12)
 
