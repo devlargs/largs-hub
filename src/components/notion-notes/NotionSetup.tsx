@@ -6,6 +6,9 @@ interface NotionSetupProps {
   // True when a previous connect found a non-empty database and we're still
   // waiting for the user to decide what to do with it
   initialNeedsReset: boolean;
+  // True when that non-empty database already follows this app's conventions —
+  // it holds notes from a previous connection that the user can keep
+  initialAdoptable: boolean;
   onReady: () => void;
 }
 
@@ -18,8 +21,14 @@ const inputStyle: React.CSSProperties = {
   fontSize: 14,
 };
 
-export default function NotionSetup({ serviceId, initialNeedsReset, onReady }: NotionSetupProps) {
+export default function NotionSetup({
+  serviceId,
+  initialNeedsReset,
+  initialAdoptable,
+  onReady,
+}: NotionSetupProps) {
   const [mode, setMode] = useState<"form" | "reset">(initialNeedsReset ? "reset" : "form");
+  const [adoptable, setAdoptable] = useState(initialAdoptable);
   const [apiKey, setApiKey] = useState("");
   const [databaseId, setDatabaseId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -42,6 +51,7 @@ export default function NotionSetup({ serviceId, initialNeedsReset, onReady }: N
       return;
     }
     if (res.needsReset) {
+      setAdoptable(res.adoptable === true);
       setMode("reset");
     } else {
       onReady();
@@ -57,6 +67,18 @@ export default function NotionSetup({ serviceId, initialNeedsReset, onReady }: N
       onReady();
     } else {
       setError(res.error || "Could not empty the database.");
+    }
+  };
+
+  const handleAdopt = async () => {
+    setBusy(true);
+    setError(null);
+    const res = await window.electronAPI.notionNotes.adoptDatabase(serviceId);
+    setBusy(false);
+    if (res.ok) {
+      onReady();
+    } else {
+      setError(res.error || "Could not reconnect to the existing notes.");
     }
   };
 
@@ -188,13 +210,23 @@ export default function NotionSetup({ serviceId, initialNeedsReset, onReady }: N
         ) : (
           <>
             <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>
-              This database isn't empty
+              {adoptable ? "This database already contains notes" : "This database isn't empty"}
             </h2>
             <p style={{ fontSize: 13, lineHeight: 1.7, color: "var(--text-secondary)", marginBottom: 20 }}>
-              The Note Taker needs full control of the database you connect. To keep using this
-              one, Largs Hub will <strong>move all of its existing pages to Notion's trash</strong>{" "}
-              and repurpose its fields for notes. If that data matters to you, connect a different,
-              freshly created database instead.
+              {adoptable ? (
+                <>
+                  This looks like a Largs Hub notes database — perhaps from a previous connection
+                  or install. You can <strong>keep the existing notes and pick up where you left
+                  off</strong>, or empty the database and start fresh.
+                </>
+              ) : (
+                <>
+                  The Note Taker needs full control of the database you connect. To keep using this
+                  one, Largs Hub will <strong>move all of its existing pages to Notion's trash</strong>{" "}
+                  and repurpose its fields for notes. If that data matters to you, connect a
+                  different, freshly created database instead.
+                </>
+              )}
             </p>
 
             {error && (
@@ -202,6 +234,23 @@ export default function NotionSetup({ serviceId, initialNeedsReset, onReady }: N
             )}
 
             <div className="flex flex-col" style={{ gap: 10 }}>
+              {adoptable && (
+                <button
+                  onClick={handleAdopt}
+                  disabled={busy}
+                  className="w-full text-sm font-semibold cursor-pointer transition-all"
+                  style={{
+                    padding: "12px 24px",
+                    borderRadius: 12,
+                    background: "var(--accent)",
+                    border: "none",
+                    color: "var(--surface)",
+                    opacity: busy ? 0.6 : 1,
+                  }}
+                >
+                  {busy ? "Reconnecting…" : "Keep the existing notes"}
+                </button>
+              )}
               <button
                 onClick={handleReset}
                 disabled={busy}
@@ -209,13 +258,17 @@ export default function NotionSetup({ serviceId, initialNeedsReset, onReady }: N
                 style={{
                   padding: "12px 24px",
                   borderRadius: 12,
-                  background: "#f38ba8",
-                  border: "none",
-                  color: "#11111b",
+                  background: adoptable ? "transparent" : "#f38ba8",
+                  border: adoptable ? "1px solid color-mix(in srgb, #f38ba8 50%, transparent)" : "none",
+                  color: adoptable ? "#f38ba8" : "#11111b",
                   opacity: busy ? 0.6 : 1,
                 }}
               >
-                {busy ? "Emptying database…" : "Empty the database and continue"}
+                {busy
+                  ? "Working…"
+                  : adoptable
+                    ? "Empty the database and start fresh"
+                    : "Empty the database and continue"}
               </button>
               <button
                 onClick={handleUseDifferent}

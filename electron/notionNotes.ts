@@ -17,6 +17,10 @@ export interface NotionNotesConfig {
   titleProp: string;
   // false while we wait for the user to confirm emptying a non-empty database
   ready: boolean;
+  // Set while pending: the non-empty database already follows this app's
+  // conventions (Pinned checkbox), i.e. it holds notes from a previous
+  // connection — offer to keep them instead of only wiping (issue #36)
+  adoptable?: boolean;
 }
 
 export interface NotionNotesStore {
@@ -484,7 +488,8 @@ export function registerNotionNotes(store: NotionNotesStore) {
     if (typeof serviceId !== "string") return "none";
     const config = getConfigs()[serviceId];
     if (!config) return "none";
-    return config.ready ? "ready" : "pending";
+    if (config.ready) return "ready";
+    return config.adoptable ? "pending-adoptable" : "pending";
   });
 
   ipcMain.handle(
@@ -519,9 +524,15 @@ export function registerNotionNotes(store: NotionNotesStore) {
           { page_size: 1 },
         );
         if (probe.results.length > 0) {
-          // Not empty — wait for the user to confirm before touching anything
-          saveConfig(serviceId, { apiKey, databaseId, titleProp, ready: false });
-          return { ok: true, needsReset: true };
+          // Not empty — wait for the user to confirm before touching anything.
+          // A Pinned checkbox means the database already follows this app's
+          // conventions (it's only ever added by our setup), so these are
+          // almost certainly notes from a previous connection — e.g. the
+          // service was deleted and re-added, or the app was reinstalled
+          // (issue #36). Offer to keep them instead of only wiping.
+          const adoptable = db.properties["Pinned"]?.type === "checkbox";
+          saveConfig(serviceId, { apiKey, databaseId, titleProp, ready: false, adoptable });
+          return { ok: true, needsReset: true, adoptable };
         }
 
         await ensurePinnedProperty(apiKey, databaseId, db);
@@ -548,6 +559,32 @@ export function registerNotionNotes(store: NotionNotesStore) {
       );
       await ensurePinnedProperty(config.apiKey, config.databaseId, db);
       saveConfig(serviceId as string, { ...config, ready: true });
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: errorMessage(err) };
+    }
+  });
+
+  // Keep the database's existing pages as notes instead of wiping them — the
+  // non-destructive counterpart to reset-database for reconnects (issue #36).
+  ipcMain.handle("notion-notes-adopt-database", async (_event, serviceId: unknown) => {
+    try {
+      const config = requireConfig(serviceId, false);
+      // Re-verify against the live schema rather than trusting the stored
+      // adoptable flag — the database may have changed since connect.
+      const db = await notionRequest<NotionDatabase>(
+        config.apiKey,
+        "GET",
+        `/databases/${config.databaseId}`,
+      );
+      if (db.properties["Pinned"]?.type !== "checkbox") {
+        return {
+          ok: false,
+          error:
+            "This database no longer looks like a Largs Hub notes database. Empty it or connect a different one.",
+        };
+      }
+      saveConfig(serviceId as string, { ...config, ready: true, adoptable: false });
       return { ok: true };
     } catch (err) {
       return { ok: false, error: errorMessage(err) };

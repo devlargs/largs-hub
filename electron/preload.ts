@@ -184,16 +184,18 @@ const api = {
 
   // Notion Note Taker (internal service)
   notionNotes: {
-    getState: (serviceId: string): Promise<"none" | "pending" | "ready"> =>
+    getState: (serviceId: string): Promise<"none" | "pending" | "pending-adoptable" | "ready"> =>
       ipcRenderer.invoke("notion-notes-get-state", serviceId),
     connect: (
       serviceId: string,
       apiKey: string,
       databaseId: string,
-    ): Promise<{ ok: boolean; error?: string; needsReset?: boolean }> =>
+    ): Promise<{ ok: boolean; error?: string; needsReset?: boolean; adoptable?: boolean }> =>
       ipcRenderer.invoke("notion-notes-connect", serviceId, apiKey, databaseId),
     resetDatabase: (serviceId: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke("notion-notes-reset-database", serviceId),
+    adoptDatabase: (serviceId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke("notion-notes-adopt-database", serviceId),
     disconnect: (serviceId: string): Promise<void> =>
       ipcRenderer.invoke("notion-notes-disconnect", serviceId),
     list: (serviceId: string): Promise<{ ok: boolean; error?: string; notes?: NotionNote[] }> =>

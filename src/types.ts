@@ -55,7 +55,9 @@ export interface NotionNoteInput {
   image?: NotionNoteImage;
 }
 
-export type NotionNotesState = "none" | "pending" | "ready";
+// "pending-adoptable" — connected to a non-empty database that already follows
+// this app's conventions (previous connection's notes); the user can keep them
+export type NotionNotesState = "none" | "pending" | "pending-adoptable" | "ready";
 
 export interface NotionNotesResult {
   ok: boolean;
@@ -72,6 +74,8 @@ export interface NotionNotesListResult extends NotionNotesResult {
 
 export interface NotionConnectResult extends NotionNotesResult {
   needsReset?: boolean;
+  // The non-empty database already holds notes from a previous connection
+  adoptable?: boolean;
 }
 
 export type TaskSpec =
@@ -146,6 +150,7 @@ export interface ElectronAPI {
     getState: (serviceId: string) => Promise<NotionNotesState>;
     connect: (serviceId: string, apiKey: string, databaseId: string) => Promise<NotionConnectResult>;
     resetDatabase: (serviceId: string) => Promise<NotionNotesResult>;
+    adoptDatabase: (serviceId: string) => Promise<NotionNotesResult>;
     disconnect: (serviceId: string) => Promise<void>;
     list: (serviceId: string) => Promise<NotionNotesListResult>;
     create: (serviceId: string, input: NotionNoteInput) => Promise<NotionNoteResult>;

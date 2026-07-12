@@ -213,7 +213,8 @@ export default function NotionNotesPage({ service }: NotionNotesPageProps) {
     return (
       <NotionSetup
         serviceId={serviceId}
-        initialNeedsReset={state === "pending"}
+        initialNeedsReset={state === "pending" || state === "pending-adoptable"}
+        initialAdoptable={state === "pending-adoptable"}
         onReady={() => setState("ready")}
       />
     );
