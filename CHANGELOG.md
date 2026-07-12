@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.30] (2026-07-12)
+
 - Fixed Messenger unread counts not showing: detection now reads Messenger's current UI (Chats badge and unread markers) instead of relying only on the old favicon-badge trick
 
 ## [0.1.29] (2026-07-12)
