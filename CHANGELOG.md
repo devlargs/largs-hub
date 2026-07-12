@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.29] (2026-07-12)
+
 - Gmail badges now count only the Primary inbox tab instead of the whole inbox, so unread Promotions/Social mail no longer inflates the count to 99+
 
 ## [0.1.28] (2026-07-12)
