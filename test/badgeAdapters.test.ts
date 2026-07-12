@@ -43,27 +43,53 @@ describe("buildPollScript", () => {
 });
 
 describe("gmailAdapter.fetchCount", () => {
-  const sessionWith = (response: Partial<{ ok: boolean; body: string }>) =>
+  const feed = (count: number) =>
+    `<?xml version="1.0"?><feed><fullcount>${count}</fullcount></feed>`;
+
+  // URL-aware fake session: responses keyed by URL substring, and every
+  // requested URL is recorded so tests can assert the query order.
+  const sessionWith = (
+    respond: (url: string) => Partial<{ ok: boolean; body: string }>,
+    requested: string[] = [],
+  ) =>
     ({
-      fetch: async () => ({
-        ok: response.ok ?? true,
-        text: async () => response.body ?? "",
-      }),
+      fetch: async (url: string) => {
+        requested.push(url);
+        const response = respond(url);
+        return {
+          ok: response.ok ?? true,
+          text: async () => response.body ?? "",
+        };
+      },
     }) as unknown as Session;
 
-  it("parses the fullcount from the Atom feed", async () => {
-    const session = sessionWith({
-      body: '<?xml version="1.0"?><feed><fullcount>7</fullcount></feed>',
-    });
+  it("uses the Primary-category feed, not the whole-inbox count", async () => {
+    const requested: string[] = [];
+    // Primary tab has 2 unread; the whole inbox (incl. Promotions) has 250
+    const session = sessionWith(
+      (url) => ({ body: url.includes("sq_ig_i_personal") ? feed(2) : feed(250) }),
+      requested,
+    );
+    expect(await gmailAdapter.fetchCount!(session)).toBe(2);
+    expect(requested).toHaveLength(1);
+    expect(requested[0]).toContain("%5Esq_ig_i_personal");
+  });
+
+  it("falls back to the whole-inbox feed when the category feed yields nothing", async () => {
+    const session = sessionWith((url) =>
+      url.includes("sq_ig_i_personal") ? { ok: false } : { body: feed(7) },
+    );
     expect(await gmailAdapter.fetchCount!(session)).toBe(7);
   });
 
-  it("returns null on non-OK responses (logged out)", async () => {
-    expect(await gmailAdapter.fetchCount!(sessionWith({ ok: false }))).toBeNull();
+  it("returns null when every feed responds non-OK (logged out)", async () => {
+    expect(await gmailAdapter.fetchCount!(sessionWith(() => ({ ok: false })))).toBeNull();
   });
 
   it("returns null when the response is not the feed (login page HTML)", async () => {
-    expect(await gmailAdapter.fetchCount!(sessionWith({ body: "<html>login</html>" }))).toBeNull();
+    expect(
+      await gmailAdapter.fetchCount!(sessionWith(() => ({ body: "<html>login</html>" }))),
+    ).toBeNull();
   });
 
   it("returns null when the fetch itself fails", async () => {

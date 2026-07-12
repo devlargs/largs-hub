@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Gmail badges now count only the Primary inbox tab instead of the whole inbox, so unread Promotions/Social mail no longer inflates the count to 99+
+
 ## [0.1.28] (2026-07-12)
 
 - Notion Note Taker no longer reloads the whole board every time you open it — notes now show instantly from the previous visit while refreshing in the background
