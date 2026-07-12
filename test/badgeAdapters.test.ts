@@ -42,6 +42,104 @@ describe("buildPollScript", () => {
   });
 });
 
+// Execute the generated poll scripts against a stubbed DOM — proves the
+// injected JS is syntactically valid and each fallback layer behaves.
+function runPollScript(script: string, doc: Record<string, unknown>): unknown {
+  return new Function("document", `return (${script})`)(doc);
+}
+
+interface FakeElement {
+  ariaLabel?: string;
+  spans?: { text: string; hasChildren?: boolean }[];
+  text?: string;
+  href?: string;
+}
+
+function fakeDocument(opts: {
+  title?: string;
+  navLinks?: FakeElement[];
+  unreadRows?: number;
+  faviconHref?: string;
+  whatsappBadges?: string[];
+}) {
+  const toNavLink = (el: FakeElement) => ({
+    getAttribute: () => el.ariaLabel ?? "",
+    querySelectorAll: () =>
+      (el.spans ?? []).map((s) => ({
+        textContent: s.text,
+        children: { length: s.hasChildren ? 1 : 0 },
+      })),
+  });
+  return {
+    title: opts.title ?? "Messenger",
+    querySelector: (selector: string) =>
+      selector.includes("icon") && opts.faviconHref ? { href: opts.faviconHref } : null,
+    querySelectorAll: (selector: string) => {
+      if (selector.includes("aria-label*=\"unread message\"")) {
+        return (opts.whatsappBadges ?? []).map((text) => ({ textContent: text }));
+      }
+      if (selector.includes("role=\"row\"")) {
+        return new Array(opts.unreadRows ?? 0).fill({});
+      }
+      if (selector.includes("aria-label")) {
+        return (opts.navLinks ?? []).map(toNavLink);
+      }
+      return [];
+    },
+  };
+}
+
+describe("messenger poll script (executed)", () => {
+  const script = buildPollScript(findBadgeAdapter("messenger.com"));
+
+  it("prefers the title count", () => {
+    expect(runPollScript(script, fakeDocument({ title: "(4) Messenger" }))).toBe(4);
+  });
+
+  it("reads the unread count from the Chats nav aria-label", () => {
+    const doc = fakeDocument({ navLinks: [{ ariaLabel: "Chats, 3 unread" }] });
+    expect(runPollScript(script, doc)).toBe(3);
+  });
+
+  it("reads a numeric leaf badge span on the Chats nav item", () => {
+    const doc = fakeDocument({
+      navLinks: [{ ariaLabel: "Chats", spans: [{ text: "Chats3", hasChildren: true }, { text: "5" }] }],
+    });
+    expect(runPollScript(script, doc)).toBe(5);
+  });
+
+  it("ignores nav items unrelated to chats", () => {
+    const doc = fakeDocument({ navLinks: [{ ariaLabel: "Marketplace", spans: [{ text: "8" }] }] });
+    expect(runPollScript(script, doc)).toBe(0);
+  });
+
+  it("counts unread thread-list markers", () => {
+    expect(runPollScript(script, fakeDocument({ unreadRows: 2 }))).toBe(2);
+  });
+
+  it("falls back to the legacy favicon badge as 1", () => {
+    const doc = fakeDocument({ faviconHref: "https://static.xx.fbcdn.net/badge.ico" });
+    expect(runPollScript(script, doc)).toBe(1);
+  });
+
+  it("reports 0 when nothing indicates unreads", () => {
+    expect(runPollScript(script, fakeDocument({}))).toBe(0);
+  });
+});
+
+describe("whatsapp poll script (executed)", () => {
+  const script = buildPollScript(findBadgeAdapter("web.whatsapp.com"));
+
+  it("sums numeric badges and counts blank badges as 1", () => {
+    const doc = fakeDocument({ whatsappBadges: ["3", "2", ""] });
+    expect(runPollScript(script, doc)).toBe(6);
+  });
+
+  it("prefers the title count", () => {
+    expect(runPollScript(script, fakeDocument({ title: "(9) WhatsApp" }))).toBe(9);
+  });
+});
+
 describe("gmailAdapter.fetchCount", () => {
   const feed = (count: number) =>
     `<?xml version="1.0"?><feed><fullcount>${count}</fullcount></feed>`;
