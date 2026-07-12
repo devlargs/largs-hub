@@ -418,6 +418,27 @@ function createServiceView(service: Service): WebContentsView {
   // Also set at session level so OAuth popups inherit the spoofed UA
   view.webContents.session.setUserAgent(spoofedUA);
 
+  // Deny-by-default permission policy. Without a handler Electron grants
+  // whatever the page asks for (camera, mic, geolocation, clipboard, ...).
+  // Setting the handler is idempotent per session, so calling it again on
+  // view recreation is safe.
+  const allowedPermissions = new Set<string>(["notifications", "fullscreen", "clipboard-sanitized-write"]);
+  try {
+    const host = new URL(service.url).hostname;
+    // Messenger / WhatsApp need camera+mic for calls
+    if (/(^|\.)messenger\.com$|(^|\.)facebook\.com$|(^|\.)whatsapp\.com$/.test(host)) {
+      allowedPermissions.add("media");
+    }
+  } catch {
+    // invalid URL — keep the restrictive default
+  }
+  view.webContents.session.setPermissionRequestHandler((_wc, permission, callback) => {
+    callback(allowedPermissions.has(permission));
+  });
+  view.webContents.session.setPermissionCheckHandler((_wc, permission) =>
+    allowedPermissions.has(permission),
+  );
+
   view.webContents.loadURL(service.url);
 
   // Apply mute state
