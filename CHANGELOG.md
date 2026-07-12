@@ -6,6 +6,7 @@
 - Gmail unread badges are now sourced from Gmail's own feed (using your existing login) instead of scraping the tab title, fixing incorrect Gmail notification counts; if the feed is unavailable it falls back to the old behavior
 - Notification counting was restructured into per-service badge adapters separated from badge rendering, so a service changing its UI can no longer break other services' badges
 - Reconnecting the Notion Note Taker to a database that already holds your notes (e.g. after deleting and re-adding the service, or reinstalling) now offers to keep the existing notes instead of only allowing the database to be emptied
+- Dev: added ESLint (typescript-eslint) + Prettier, a Vitest unit test suite covering the pure logic in the Notion notes, Messenger automation, and badge adapter modules, and a GitHub Actions CI workflow running typecheck, lint, and tests on every pull request
 
 ## [0.1.27] (2026-07-12)
 

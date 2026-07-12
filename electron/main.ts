@@ -3,7 +3,6 @@ import {
   BrowserWindow,
   WebContentsView,
   ipcMain,
-  session,
   protocol,
   net,
   Menu,
@@ -12,6 +11,9 @@ import {
 } from "electron";
 import path from "path";
 import fs from "fs";
+import https from "https";
+import crypto from "crypto";
+import { spawn } from "child_process";
 import Store from "electron-store";
 import { registerMessengerAutomation } from "./messengerAutomation";
 import { registerNotionNotes, NotionNotesConfig } from "./notionNotes";
@@ -660,7 +662,7 @@ function createServiceView(service: Service): WebContentsView {
       }
     } catch {}
 
-    require("electron").shell.openExternal(url);
+    shell.openExternal(url);
     return { action: "deny" };
   });
 
@@ -1301,9 +1303,6 @@ ipcMain.handle("download-and-install-update", async () => {
   if (!pendingUpdate) throw new Error("No update available. Run a check first.");
   const { url: updateUrl, sha256: expectedSha256 } = pendingUpdate;
 
-  const fs = require("fs");
-  const https = require("https");
-  const crypto = require("crypto");
   const tmpPath = path.join(app.getPath("temp"), "largs-hub-update.exe");
 
   return new Promise<void>((resolve, reject) => {
@@ -1313,10 +1312,10 @@ ipcMain.handle("download-and-install-update", async () => {
         reject(new Error("Update download blocked: untrusted or non-https URL"));
         return;
       }
-      https.get(url, { headers: { "User-Agent": "Largs-Hub-Updater" } }, (res: any) => {
+      https.get(url, { headers: { "User-Agent": "Largs-Hub-Updater" } }, (res) => {
         // Follow redirects (GitHub uses 302)
         if (res.statusCode === 301 || res.statusCode === 302) {
-          if (redirectsLeft <= 0) {
+          if (redirectsLeft <= 0 || !res.headers.location) {
             reject(new Error("Update download failed: too many redirects"));
             return;
           }
@@ -1356,7 +1355,6 @@ ipcMain.handle("download-and-install-update", async () => {
             }
             // Launch the NSIS installer silently in a fully detached process.
             // The installer will replace app files and auto-relaunch when done.
-            const { spawn } = require("child_process");
             const child = spawn(tmpPath, ["/S"], {
               detached: true,
               stdio: "ignore",

@@ -148,7 +148,8 @@ function plainText(rich: NotionRichText[] | undefined): string {
   return (rich || []).map((t) => t.plain_text).join("");
 }
 
-function richText(content: string): { type: "text"; text: { content: string } }[] {
+// Exported for unit tests
+export function richText(content: string): { type: "text"; text: { content: string } }[] {
   const chunks: { type: "text"; text: { content: string } }[] = [];
   for (let i = 0; i < content.length; i += RICH_TEXT_LIMIT) {
     chunks.push({ type: "text", text: { content: content.slice(i, i + RICH_TEXT_LIMIT) } });
@@ -156,8 +157,8 @@ function richText(content: string): { type: "text"; text: { content: string } }[
   return chunks;
 }
 
-// Accepts a raw ID (dashed or not) or a full Notion URL
-function normalizeDatabaseId(raw: string): string | null {
+// Accepts a raw ID (dashed or not) or a full Notion URL. Exported for unit tests.
+export function normalizeDatabaseId(raw: string): string | null {
   const input = raw.trim();
   const dashed = input.match(/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}/i);
   if (dashed) return dashed[0];
@@ -220,7 +221,8 @@ async function fetchAllBlocks(apiKey: string, blockId: string): Promise<NotionBl
   return blocks;
 }
 
-function blocksToContent(blocks: NotionBlock[]): {
+// Exported for unit tests
+export function blocksToContent(blocks: NotionBlock[]): {
   kind: "text" | "list";
   text: string;
   items: NoteItem[];
@@ -381,7 +383,8 @@ async function uploadImage(
   return created.id;
 }
 
-function sanitizeNoteInput(raw: unknown): NoteInput | null {
+// Exported for unit tests
+export function sanitizeNoteInput(raw: unknown): NoteInput | null {
   if (!raw || typeof raw !== "object") return null;
   const obj = raw as Record<string, unknown>;
   if (typeof obj.title !== "string" || typeof obj.text !== "string") return null;
@@ -709,7 +712,8 @@ export function registerNotionNotes(store: NotionNotesStore) {
   });
 }
 
-async function mapWithConcurrency<T, R>(
+// Exported for unit tests
+export async function mapWithConcurrency<T, R>(
   items: T[],
   limit: number,
   fn: (item: T) => Promise<R>,
