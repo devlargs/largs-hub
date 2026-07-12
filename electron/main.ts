@@ -436,6 +436,13 @@ function createBadgeIcon(count: number): Electron.NativeImage {
   return nativeImage.createFromDataURL(dataUrl);
 }
 
+// Session-level listeners must only be registered once per partition.
+// Persistent partitions outlive their WebContentsView: update-service destroys
+// and recreates the view when a URL changes, but session.fromPartition returns
+// the same session, so re-registering "will-download" on every view creation
+// stacks duplicate listeners (duplicate toasts, setSavePath called repeatedly).
+const initializedPartitions = new Set<string>();
+
 function createServiceView(service: Service): WebContentsView {
   const partition = `persist:service-${service.id}`;
 
@@ -465,10 +472,16 @@ function createServiceView(service: Service): WebContentsView {
     view.webContents.setAudioMuted(true);
   }
 
+<<<<<<< HEAD
   // Apply download folder setting — attach once per persistent session, since
   // the session (and this listener) outlives any single view recreation.
   if (!hookedDownloadSessions.has(partition)) {
     hookedDownloadSessions.add(partition);
+=======
+  // Apply download folder setting (once per partition — see initializedPartitions)
+  if (!initializedPartitions.has(partition)) {
+    initializedPartitions.add(partition);
+>>>>>>> origin/fix/will-download-listener-leak
     view.webContents.session.on("will-download", (_event, item) => {
       const downloadFolder = store.get("downloadFolder");
       if (downloadFolder) {
