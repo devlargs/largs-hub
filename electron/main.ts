@@ -396,6 +396,13 @@ function createBadgeIcon(count: number): Electron.NativeImage {
   return nativeImage.createFromDataURL(dataUrl);
 }
 
+// Session-level listeners must only be registered once per partition.
+// Persistent partitions outlive their WebContentsView: update-service destroys
+// and recreates the view when a URL changes, but session.fromPartition returns
+// the same session, so re-registering "will-download" on every view creation
+// stacks duplicate listeners (duplicate toasts, setSavePath called repeatedly).
+const initializedPartitions = new Set<string>();
+
 function createServiceView(service: Service): WebContentsView {
   const partition = `persist:service-${service.id}`;
 
@@ -425,22 +432,25 @@ function createServiceView(service: Service): WebContentsView {
     view.webContents.setAudioMuted(true);
   }
 
-  // Apply download folder setting
-  view.webContents.session.on("will-download", (_event, item) => {
-    const downloadFolder = store.get("downloadFolder");
-    if (downloadFolder) {
-      item.setSavePath(path.join(downloadFolder, item.getFilename()));
-    }
-    item.on("done", (_e, state) => {
-      if (state !== "completed") return;
-      const savePath = item.getSavePath();
-      if (store.get("openFolderOnFinish")) shell.showItemInFolder(savePath);
-      if (store.get("openFileOnFinish")) shell.openPath(savePath);
-      if (store.get("downloadAlertOnFinish") && mainWindow) {
-        showDownloadToast(item.getFilename());
+  // Apply download folder setting (once per partition — see initializedPartitions)
+  if (!initializedPartitions.has(partition)) {
+    initializedPartitions.add(partition);
+    view.webContents.session.on("will-download", (_event, item) => {
+      const downloadFolder = store.get("downloadFolder");
+      if (downloadFolder) {
+        item.setSavePath(path.join(downloadFolder, item.getFilename()));
       }
+      item.on("done", (_e, state) => {
+        if (state !== "completed") return;
+        const savePath = item.getSavePath();
+        if (store.get("openFolderOnFinish")) shell.showItemInFolder(savePath);
+        if (store.get("openFileOnFinish")) shell.openPath(savePath);
+        if (store.get("downloadAlertOnFinish") && mainWindow) {
+          showDownloadToast(item.getFilename());
+        }
+      });
     });
-  });
+  }
 
   // Context menu for service views
   view.webContents.on("context-menu", (_event, params) => {
