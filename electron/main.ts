@@ -4,7 +4,6 @@ import {
   WebContentsView,
   ipcMain,
   session,
-  nativeImage,
   protocol,
   net,
   Menu,
@@ -16,6 +15,13 @@ import fs from "fs";
 import Store from "electron-store";
 import { registerMessengerAutomation } from "./messengerAutomation";
 import { registerNotionNotes, NotionNotesConfig } from "./notionNotes";
+import { findBadgeAdapter, buildPollScript, parseTitleCount } from "./badge-adapters";
+import {
+  initNotificationCounts,
+  reportNotificationCount,
+  clearNotificationCount,
+  resetDecreaseDebounce,
+} from "./notificationCounts";
 
 interface Service {
   id: string;
@@ -76,7 +82,6 @@ let uiView: WebContentsView | null = null;
 let uiLayerRefCount = 0;
 let linkPreviewView: WebContentsView | null = null;
 const serviceViews = new Map<string, WebContentsView>();
-const notificationCounts = new Map<string, number>();
 // When each service view last stopped being the active one — drives hibernation
 // of idle views. The active view is exempt and carries no entry while active.
 const serviceLastActive = new Map<string, number>();
@@ -89,7 +94,16 @@ let hibernationSweepTimer: ReturnType<typeof setInterval> | null = null;
 const hookedDownloadSessions = new Set<string>();
 let activeServiceId: string | null = null;
 let windowFocused = true;
-const pendingDecrease = new Map<string, { count: number; streak: number }>();
+
+// Count state, debounce, and taskbar-badge rendering live in
+// electron/notificationCounts.ts; extraction sources in createServiceView and
+// electron/badge-adapters/ report into it.
+initNotificationCounts({
+  getMainWindow: () => mainWindow,
+  getUiView: () => uiView,
+  isServiceNotificationsEnabled: (serviceId) =>
+    store.get("services").find((s) => s.id === serviceId)?.notificationsEnabled !== false,
+});
 // Window bounds change on every resize/move tick; electron-store writes the
 // whole config file synchronously, so coalesce those writes behind a debounce.
 let pendingBounds: StoreSchema["windowBounds"] | null = null;
@@ -110,7 +124,6 @@ function flushBounds() {
     pendingBounds = null;
   }
 }
-const DECREASE_THRESHOLD = 2; // require 2 consecutive lower readings before decreasing
 const SIDEBAR_WIDTH = 68;
 const TITLEBAR_HEIGHT = 46;
 
@@ -409,37 +422,6 @@ function closeLinkPreview() {
   uiView?.webContents.send("link-preview-closed");
 }
 
-function updateTaskbarBadge() {
-  if (!mainWindow) return;
-  let total = 0;
-  for (const count of notificationCounts.values()) {
-    total += count;
-  }
-  if (total > 0) {
-    mainWindow.setOverlayIcon(
-      createBadgeIcon(total),
-      `${total} notifications`,
-    );
-  } else {
-    mainWindow.setOverlayIcon(null, "");
-  }
-}
-
-function createBadgeIcon(count: number): Electron.NativeImage {
-  const text = count > 99 ? "99+" : String(count);
-  // Use an offscreen BrowserWindow to render badge as PNG
-  // For simplicity, create a data URL PNG via SVG → img conversion isn't available,
-  // so we'll use Electron's built-in approach with a simple colored square
-  const size = 16;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-    <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#ef4444"/>
-    <text x="${size / 2}" y="${size / 2 + 1}" text-anchor="middle" dominant-baseline="central"
-      font-family="Arial" font-size="${text.length > 2 ? 7 : text.length > 1 ? 8 : 10}" font-weight="bold" fill="white">${text}</text>
-  </svg>`;
-  const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
-  return nativeImage.createFromDataURL(dataUrl);
-}
-
 // Session-level listeners must only be registered once per partition.
 function createServiceView(service: Service): WebContentsView {
   const partition = `persist:service-${service.id}`;
@@ -549,105 +531,78 @@ function createServiceView(service: Service): WebContentsView {
     }
   });
 
-  // Track page title changes for notification detection
-  // Debounce decreases to avoid blinking badges during page transitions
-  const updateNotificationCount = (count: number) => {
-    // Check if notifications are disabled for this service
-    const currentService = store.get("services").find((s) => s.id === service.id);
-    if (currentService?.notificationsEnabled === false) {
-      count = 0;
-    }
+  // --- Notification count extraction (electron/badge-adapters/) ------------
+  // Extraction is separated from badge state/rendering (notificationCounts.ts):
+  // the sources below only ever report a raw count. Three sources, in order of
+  // authority:
+  //   1. adapter.fetchCount — main-process source (e.g. Gmail's Atom feed);
+  //      while it's delivering, title/DOM readings are ignored so the two
+  //      can't fight over the badge (issue #26)
+  //   2. title "(N)" — instant via page-title-updated, works for most apps
+  //   3. adapter.pollScript — targeted DOM selectors for apps whose title
+  //      isn't reliable (WhatsApp, Messenger)
+  let serviceHost = "";
+  try {
+    serviceHost = new URL(service.url).hostname.replace(/^www\./, "");
+  } catch {
+    // invalid URL — no adapter, title extraction still applies
+  }
+  const adapter = findBadgeAdapter(serviceHost);
 
-    const prev = notificationCounts.get(service.id) || 0;
-    if (count === prev) {
-      pendingDecrease.delete(service.id);
-      return;
-    }
+  // Timestamp of the last successful fetchCount. Title/DOM readings are
+  // suppressed while this is fresh; if the fetcher starts failing (logged out,
+  // endpoint changed), it goes stale and scraping takes over automatically.
+  let lastDirectFetch = 0;
+  const DIRECT_FETCH_INTERVAL_MS = 20_000;
+  const DIRECT_FETCH_FRESH_MS = DIRECT_FETCH_INTERVAL_MS * 3;
+  const directFetchIsFresh = () => Date.now() - lastDirectFetch < DIRECT_FETCH_FRESH_MS;
 
-    if (count < prev) {
-      const pending = pendingDecrease.get(service.id);
-      if (pending && pending.count === count) {
-        pending.streak++;
-        if (pending.streak < DECREASE_THRESHOLD) return;
-      } else {
-        pendingDecrease.set(service.id, { count, streak: 1 });
-        return;
-      }
-      pendingDecrease.delete(service.id);
-    } else {
-      pendingDecrease.delete(service.id);
-    }
-
-    const wasIncrease = count > prev;
-    notificationCounts.set(service.id, count);
-    updateTaskbarBadge();
-    if (mainWindow) {
-      uiView?.webContents.send("notification-update", {
-        serviceId: service.id,
-        count,
-      });
-      // Flash taskbar when new notifications arrive and window isn't focused
-      if (wasIncrease && !mainWindow.isFocused()) {
-        mainWindow.flashFrame(true);
-      }
-    }
-  };
-
-  // Title-based notification detection — most reliable method
-  // Works for Gmail "(3)", Messenger "(1)", Slack "(2)", etc.
   view.webContents.on("page-title-updated", (_event, title) => {
-    const match = title.match(/\((\d+)\)/);
-    const count = match ? parseInt(match[1], 10) : 0;
-    updateNotificationCount(count);
+    if (directFetchIsFresh()) return;
+    reportNotificationCount(service.id, parseTitleCount(title));
   });
 
-  // Poll for apps that don't reliably put counts in the title (WhatsApp, etc.)
-  // Only uses targeted selectors per app — no broad heuristics that cause false positives
-  const serviceHost = new URL(service.url).hostname.replace(/^www\./, "");
+  // Poll for apps that don't reliably put counts in the title. The script is
+  // title check + the adapter's targeted selectors — no broad heuristics.
+  const pollScript = buildPollScript(adapter);
   const pollInterval = setInterval(() => {
     if (!view.webContents || view.webContents.isDestroyed()) {
       clearInterval(pollInterval);
       return;
     }
-
-    view.webContents.executeJavaScript(`
-      (() => {
-        // 1. Title-based: always check first — this is the most reliable
-        const titleMatch = document.title.match(/\\((\\d+)\\)/);
-        if (titleMatch) return parseInt(titleMatch[1], 10);
-
-        // 2. WhatsApp-specific: unread count in filter badge
-        ${serviceHost.includes("whatsapp") ? `
-        const unreadBadges = document.querySelectorAll('span[aria-label*="unread message"], span[aria-label*="unread messages"]');
-        if (unreadBadges.length > 0) {
-          let total = 0;
-          unreadBadges.forEach(el => {
-            const num = parseInt(el.textContent || "0", 10);
-            total += num > 0 ? num : 1;
-          });
-          if (total > 0) return total;
-        }
-        ` : ""}
-
-        // 3. Messenger-specific: favicon badge or unread dot indicators
-        ${serviceHost.includes("messenger") || serviceHost.includes("facebook") ? `
-        // Check the favicon link for a badge indicator
-        const favicon = document.querySelector('link[rel*="icon"]');
-        if (favicon && favicon.href && favicon.href.includes('badge')) return 1;
-        ` : ""}
-
-        return 0;
-      })()
-    `, true)
+    view.webContents.executeJavaScript(pollScript, true)
       .then((count: number) => {
-        updateNotificationCount(count);
+        if (directFetchIsFresh()) return;
+        reportNotificationCount(service.id, count);
       })
       .catch(() => {});
   }, 3000);
 
-  // Clear the poll as soon as the view is torn down instead of waiting for the
-  // next tick to notice the destroyed webContents.
-  view.webContents.once("destroyed", () => clearInterval(pollInterval));
+  // Main-process count source (no DOM involved), polled less aggressively
+  // since it hits the network rather than the local page.
+  let directFetchInterval: ReturnType<typeof setInterval> | null = null;
+  if (adapter?.fetchCount) {
+    const fetchCount = adapter.fetchCount.bind(adapter);
+    const fetchDirect = async () => {
+      if (view.webContents.isDestroyed()) return;
+      const count = await fetchCount(view.webContents.session);
+      if (count !== null && !view.webContents.isDestroyed()) {
+        lastDirectFetch = Date.now();
+        reportNotificationCount(service.id, count);
+      }
+    };
+    directFetchInterval = setInterval(() => void fetchDirect(), DIRECT_FETCH_INTERVAL_MS);
+    // Prime once the page loads (login cookies present) instead of waiting a
+    // full interval for the first accurate badge.
+    view.webContents.once("did-finish-load", () => void fetchDirect());
+  }
+
+  // Clear the polls as soon as the view is torn down instead of waiting for
+  // the next tick to notice the destroyed webContents.
+  view.webContents.once("destroyed", () => {
+    clearInterval(pollInterval);
+    if (directFetchInterval) clearInterval(directFetchInterval);
+  });
 
   // Intercept Ctrl+Number shortcuts so they work even when a service view has focus
   view.webContents.on("before-input-event", (event, input) => {
@@ -724,7 +679,7 @@ function hibernateServiceView(serviceId: string) {
   view.webContents.close();
   serviceViews.delete(serviceId);
   serviceLastActive.delete(serviceId);
-  pendingDecrease.delete(serviceId);
+  resetDecreaseDebounce(serviceId);
 }
 
 // Periodically hibernate views that have been inactive past the user's chosen
@@ -868,8 +823,7 @@ ipcMain.handle("remove-service", (_event, serviceId: string) => {
     serviceViews.delete(serviceId);
     serviceLastActive.delete(serviceId);
   }
-  notificationCounts.delete(serviceId);
-  updateTaskbarBadge();
+  clearNotificationCount(serviceId);
 
   // Drop any Notion Note Taker credentials tied to this service
   const notionConfigs = store.get("notionNotes");
@@ -958,9 +912,7 @@ ipcMain.handle("toggle-service-enabled", (_event, serviceId: string) => {
           serviceViews.delete(serviceId);
           serviceLastActive.delete(serviceId);
         }
-        notificationCounts.delete(serviceId);
-        pendingDecrease.delete(serviceId);
-        updateTaskbarBadge();
+        clearNotificationCount(serviceId);
       }
       return { ...s, enabled };
     }
@@ -1054,9 +1006,7 @@ ipcMain.on("show-service-context-menu", (_event, serviceId: string) => {
             serviceViews.delete(serviceId);
             serviceLastActive.delete(serviceId);
           }
-          notificationCounts.delete(serviceId);
-          pendingDecrease.delete(serviceId);
-          updateTaskbarBadge();
+          clearNotificationCount(serviceId);
         }
         const updated = store.get("services").map((s) =>
           s.id === serviceId ? { ...s, enabled } : s,
