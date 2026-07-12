@@ -137,7 +137,7 @@ export interface ElectronAPI {
   deleteCustomIcon: (fileName: string) => Promise<void>;
   checkForUpdates: () => Promise<{ updateAvailable: boolean; version?: string; downloadUrl?: string }>;
   getAppVersion: () => Promise<string>;
-  downloadAndInstallUpdate: (downloadUrl: string) => Promise<void>;
+  downloadAndInstallUpdate: () => Promise<void>;
   onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
   onDownloadComplete: (callback: (fileName: string) => void) => () => void;
   notionNotes: {

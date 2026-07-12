@@ -1103,7 +1103,27 @@ ipcMain.handle("delete-custom-icon", async (_event, fileName: string) => {
 });
 
 // Update check via GitHub API
+// Pending update info is kept in the main process; the renderer only gets a
+// boolean + version string and can never influence what gets downloaded.
+let pendingUpdate: { url: string; sha256: string | null } | null = null;
+
+const UPDATE_HOST_ALLOWLIST = new Set([
+  "github.com",
+  "objects.githubusercontent.com",
+  "release-assets.githubusercontent.com",
+]);
+
+function isAllowedUpdateUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    return parsed.protocol === "https:" && UPDATE_HOST_ALLOWLIST.has(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
 ipcMain.handle("check-for-updates", async () => {
+  pendingUpdate = null;
   try {
     const response = await fetch(
       "https://api.github.com/repos/devlargs/largs-hub/releases/latest",
@@ -1113,9 +1133,19 @@ ipcMain.handle("check-for-updates", async () => {
     const latest = (data.tag_name || "").replace(/^v/, "");
     const current = app.getVersion();
     if (latest && latest !== current) {
-      const downloadUrl = data.assets?.find(
+      const asset = data.assets?.find(
         (a: { name: string }) => a.name.endsWith(".exe") && !a.name.endsWith(".blockmap"),
-      )?.browser_download_url;
+      );
+      const downloadUrl: string | undefined = asset?.browser_download_url;
+      if (!downloadUrl || !isAllowedUpdateUrl(downloadUrl)) {
+        return { updateAvailable: false };
+      }
+      // GitHub publishes a sha256 digest per release asset
+      const digest: string | undefined = asset?.digest;
+      pendingUpdate = {
+        url: downloadUrl,
+        sha256: digest?.startsWith("sha256:") ? digest.slice("sha256:".length) : null,
+      };
       return { updateAvailable: true, version: latest, downloadUrl };
     }
     return { updateAvailable: false };
@@ -1128,19 +1158,32 @@ ipcMain.handle("get-app-version", () => {
   return app.getVersion();
 });
 
-ipcMain.handle("download-and-install-update", async (_event, downloadUrl: string) => {
+ipcMain.handle("download-and-install-update", async () => {
+  // The URL comes from the main-process check-for-updates result, never from
+  // the renderer.
+  if (!pendingUpdate) throw new Error("No update available. Run a check first.");
+  const { url: updateUrl, sha256: expectedSha256 } = pendingUpdate;
+
   const fs = require("fs");
   const https = require("https");
-  const http = require("http");
+  const crypto = require("crypto");
   const tmpPath = path.join(app.getPath("temp"), "largs-hub-update.exe");
 
   return new Promise<void>((resolve, reject) => {
-    const follow = (url: string) => {
-      const mod = url.startsWith("https") ? https : http;
-      mod.get(url, { headers: { "User-Agent": "Largs-Hub-Updater" } }, (res: any) => {
+    const MAX_REDIRECTS = 5;
+    const follow = (url: string, redirectsLeft: number) => {
+      if (!isAllowedUpdateUrl(url)) {
+        reject(new Error("Update download blocked: untrusted or non-https URL"));
+        return;
+      }
+      https.get(url, { headers: { "User-Agent": "Largs-Hub-Updater" } }, (res: any) => {
         // Follow redirects (GitHub uses 302)
         if (res.statusCode === 301 || res.statusCode === 302) {
-          return follow(res.headers.location);
+          if (redirectsLeft <= 0) {
+            reject(new Error("Update download failed: too many redirects"));
+            return;
+          }
+          return follow(res.headers.location, redirectsLeft - 1);
         }
         if (res.statusCode !== 200) {
           reject(new Error(`Download failed: ${res.statusCode}`));
@@ -1149,10 +1192,12 @@ ipcMain.handle("download-and-install-update", async (_event, downloadUrl: string
 
         const totalBytes = parseInt(res.headers["content-length"] || "0", 10);
         let downloaded = 0;
+        const hash = crypto.createHash("sha256");
         const file = fs.createWriteStream(tmpPath);
 
         res.on("data", (chunk: Buffer) => {
           downloaded += chunk.length;
+          hash.update(chunk);
           if (totalBytes > 0 && mainWindow) {
             uiView?.webContents.send("update-download-progress", {
               percent: Math.round((downloaded / totalBytes) * 100),
@@ -1164,6 +1209,14 @@ ipcMain.handle("download-and-install-update", async (_event, downloadUrl: string
 
         file.on("finish", () => {
           file.close(() => {
+            // Verify the download against the sha256 digest GitHub publishes
+            // for the release asset before executing anything.
+            const actualSha256 = hash.digest("hex");
+            if (expectedSha256 && actualSha256 !== expectedSha256) {
+              fs.unlink(tmpPath, () => {});
+              reject(new Error("Update rejected: checksum mismatch"));
+              return;
+            }
             // Launch the NSIS installer silently in a fully detached process.
             // The installer will replace app files and auto-relaunch when done.
             const { spawn } = require("child_process");
@@ -1188,7 +1241,7 @@ ipcMain.handle("download-and-install-update", async (_event, downloadUrl: string
       }).on("error", reject);
     };
 
-    follow(downloadUrl);
+    follow(updateUrl, MAX_REDIRECTS);
   });
 });
 
