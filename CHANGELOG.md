@@ -7,6 +7,7 @@
 - Notification counting was restructured into per-service badge adapters separated from badge rendering, so a service changing its UI can no longer break other services' badges
 - Reconnecting the Notion Note Taker to a database that already holds your notes (e.g. after deleting and re-adding the service, or reinstalling) now offers to keep the existing notes instead of only allowing the database to be emptied
 - Dev: added ESLint (typescript-eslint) + Prettier, a Vitest unit test suite covering the pure logic in the Notion notes, Messenger automation, and badge adapter modules, and a GitHub Actions CI workflow running typecheck, lint, and tests on every pull request
+- Dev: split the 1400-line electron/main.ts into focused modules (store, service views, downloads, updater, and IPC handlers for services/settings) with no behavior changes, making future changes easier to review
 
 ## [0.1.27] (2026-07-12)
 
