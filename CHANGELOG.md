@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Service data is now validated before being saved, and service URLs must be http or https
+
 ## [0.1.25] (2026-07-11)
 
 - Added a Notion Note Taker service — a built-in Google Keep-style notes app backed by your own Notion database: connect with a Notion API key + database ID (with a guided setup and a safety prompt to empty non-fresh databases), write text or checklist notes with image uploads, pin notes, toggle checklist items from the board, and edit notes in a Keep-like masonry layout
