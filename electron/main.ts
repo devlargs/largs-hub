@@ -441,12 +441,6 @@ function createBadgeIcon(count: number): Electron.NativeImage {
 }
 
 // Session-level listeners must only be registered once per partition.
-// Persistent partitions outlive their WebContentsView: update-service destroys
-// and recreates the view when a URL changes, but session.fromPartition returns
-// the same session, so re-registering "will-download" on every view creation
-// stacks duplicate listeners (duplicate toasts, setSavePath called repeatedly).
-const initializedPartitions = new Set<string>();
-
 function createServiceView(service: Service): WebContentsView {
   const partition = `persist:service-${service.id}`;
 
@@ -490,23 +484,19 @@ function createServiceView(service: Service): WebContentsView {
     allowedPermissions.has(permission),
   );
 
-  view.webContents.loadURL(service.url);
+  if (isSafeServiceUrl(service.url)) {
+    view.webContents.loadURL(service.url);
+  }
 
   // Apply mute state
   if (service.muted) {
     view.webContents.setAudioMuted(true);
   }
 
-<<<<<<< HEAD
   // Apply download folder setting — attach once per persistent session, since
   // the session (and this listener) outlives any single view recreation.
   if (!hookedDownloadSessions.has(partition)) {
     hookedDownloadSessions.add(partition);
-=======
-  // Apply download folder setting (once per partition — see initializedPartitions)
-  if (!initializedPartitions.has(partition)) {
-    initializedPartitions.add(partition);
->>>>>>> origin/fix/will-download-listener-leak
     view.webContents.session.on("will-download", (_event, item) => {
       const downloadFolder = store.get("downloadFolder");
       if (downloadFolder) {
@@ -812,13 +802,50 @@ function hideActiveService() {
   activeServiceId = null;
 }
 
+// --- IPC input validation ---------------------------------------------------
+// IPC payload types are compile-time only; validate shapes at runtime before
+// touching the store or creating views.
+
+function isSafeServiceUrl(url: unknown): url is string {
+  if (typeof url !== "string") return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function sanitizeService(raw: unknown): Service | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const s = raw as Record<string, unknown>;
+  if (typeof s.id !== "string" || s.id.length === 0) return null;
+  if (typeof s.name !== "string" || s.name.length === 0) return null;
+  if (s.type !== "notion-notes" && !isSafeServiceUrl(s.url)) return null;
+  return {
+    id: s.id,
+    name: s.name,
+    url: typeof s.url === "string" ? s.url : "",
+    icon: typeof s.icon === "string" ? s.icon : "",
+    color: typeof s.color === "string" ? s.color : "#888888",
+    notificationCount: 0,
+    muted: s.muted === true,
+    enabled: s.enabled !== false,
+    notificationsEnabled: s.notificationsEnabled !== false,
+    ...(s.type === "notion-notes" ? { type: "notion-notes" as const } : {}),
+  };
+}
+
 // IPC Handlers
 ipcMain.handle("get-services", () => {
   return store.get("services");
 });
 
-ipcMain.handle("add-service", (_event, service: Service) => {
+ipcMain.handle("add-service", (_event, rawService: unknown) => {
   const services = store.get("services");
+  const service = sanitizeService(rawService);
+  if (!service) return services;
+  if (services.some((s) => s.id === service.id)) return services;
   services.push(service);
   store.set("services", services);
   return services;
@@ -854,7 +881,9 @@ ipcMain.handle("remove-service", (_event, serviceId: string) => {
   return services;
 });
 
-ipcMain.handle("update-service", (_event, updated: Service) => {
+ipcMain.handle("update-service", (_event, rawUpdated: unknown) => {
+  const updated = sanitizeService(rawUpdated);
+  if (!updated) return store.get("services");
   const old = store.get("services").find((s) => s.id === updated.id);
   const services = store
     .get("services")
@@ -880,7 +909,10 @@ ipcMain.handle("update-service", (_event, updated: Service) => {
   return services;
 });
 
-ipcMain.handle("reorder-services", (_event, serviceIds: string[]) => {
+ipcMain.handle("reorder-services", (_event, serviceIds: unknown) => {
+  if (!Array.isArray(serviceIds) || !serviceIds.every((id) => typeof id === "string")) {
+    return store.get("services");
+  }
   const services = store.get("services");
   const reordered = serviceIds
     .map((id) => services.find((s) => s.id === id))
