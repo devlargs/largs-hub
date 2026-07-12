@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.28] (2026-07-12)
+
 - Notion Note Taker no longer reloads the whole board every time you open it — notes now show instantly from the previous visit while refreshing in the background
 - Gmail unread badges are now sourced from Gmail's own feed (using your existing login) instead of scraping the tab title, fixing incorrect Gmail notification counts; if the feed is unavailable it falls back to the old behavior
 - Notification counting was restructured into per-service badge adapters separated from badge rendering, so a service changing its UI can no longer break other services' badges
