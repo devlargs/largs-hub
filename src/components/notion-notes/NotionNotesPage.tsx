@@ -11,12 +11,26 @@ interface NotionNotesPageProps {
   service: Service;
 }
 
+// Notes already fetched this session, keyed by service id, with the time of the
+// last successful server fetch. The page unmounts whenever you switch to another
+// service, so without this the whole database (query every page + fetch every
+// block) would be re-fetched on every visit. Seeding from here shows the
+// last-known notes instantly; a background refresh then picks up remote changes,
+// but only if the cached copy is older than CACHE_TTL_MS so rapidly toggling
+// between services doesn't hammer the Notion API.
+const notesCache = new Map<string, { notes: NotionNote[]; fetchedAt: number }>();
+const CACHE_TTL_MS = 30_000;
+
 // Google Keep-style notes page backed by the user's own Notion database.
 // Rendered in the React UI view — internal services have no WebContentsView.
 export default function NotionNotesPage({ service }: NotionNotesPageProps) {
   const serviceId = service.id;
-  const [state, setState] = useState<"loading" | NotionNotesState>("loading");
-  const [notes, setNotes] = useState<NotionNote[]>([]);
+  // A cached set of notes means we were "ready" last visit — assume it still is
+  // so the notes render immediately; the getState check below corrects it if not.
+  const [state, setState] = useState<"loading" | NotionNotesState>(() =>
+    notesCache.has(serviceId) ? "ready" : "loading",
+  );
+  const [notes, setNotes] = useState<NotionNote[]>(() => notesCache.get(serviceId)?.notes ?? []);
   const [notesLoading, setNotesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(0);
@@ -27,7 +41,6 @@ export default function NotionNotesPage({ service }: NotionNotesPageProps) {
 
   useEffect(() => {
     let cancelled = false;
-    setState("loading");
     window.electronAPI.notionNotes.getState(serviceId).then((s) => {
       if (!cancelled) setState(s);
     });
@@ -36,21 +49,38 @@ export default function NotionNotesPage({ service }: NotionNotesPageProps) {
     };
   }, [serviceId]);
 
+  // Keep the session cache in sync with what's on screen so the next visit
+  // (and optimistic edits made here) survive unmount. fetchedAt is preserved —
+  // only a real server fetch (loadNotes) advances it, so local edits don't make
+  // stale data look fresh.
+  useEffect(() => {
+    if (state !== "ready") return;
+    const prev = notesCache.get(serviceId);
+    notesCache.set(serviceId, { notes, fetchedAt: prev?.fetchedAt ?? 0 });
+  }, [serviceId, state, notes]);
+
   const loadNotes = useCallback(async () => {
     setNotesLoading(true);
     setError(null);
     const res = await window.electronAPI.notionNotes.list(serviceId);
     if (res.ok && res.notes) {
       setNotes(res.notes);
+      notesCache.set(serviceId, { notes: res.notes, fetchedAt: Date.now() });
     } else {
       setError(res.error || "Failed to load notes.");
     }
     setNotesLoading(false);
   }, [serviceId]);
 
+  // On mount, refresh in the background — but skip it while the cached copy is
+  // still fresh, so toggling between services doesn't refetch every time. The
+  // manual Refresh button calls loadNotes directly and bypasses this guard.
   useEffect(() => {
-    if (state === "ready") void loadNotes();
-  }, [state, loadNotes]);
+    if (state !== "ready") return;
+    const cached = notesCache.get(serviceId);
+    if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) return;
+    void loadNotes();
+  }, [state, serviceId, loadNotes]);
 
   const applyServerNote = useCallback((noteId: string, note: NotionNote | undefined) => {
     const remaining = (pendingByNote.current.get(noteId) || 1) - 1;
@@ -162,6 +192,7 @@ export default function NotionNotesPage({ service }: NotionNotesPageProps) {
   const handleDisconnect = useCallback(async () => {
     setMenuOpen(false);
     await window.electronAPI.notionNotes.disconnect(serviceId);
+    notesCache.delete(serviceId);
     setNotes([]);
     setEditingId(null);
     setState("none");

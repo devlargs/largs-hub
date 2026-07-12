@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Notion Note Taker no longer reloads the whole board every time you open it — notes now show instantly from the previous visit while refreshing in the background
+
 ## [0.1.27] (2026-07-12)
 
 - Added optional service hibernation (Settings → General) — services left idle past a chosen interval (15 min / 30 min / 1 hour) are unloaded to free memory and reload automatically on next click; logins are preserved
