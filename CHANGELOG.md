@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.26] (2026-07-12)
+
 - Fixed a security issue where custom icon file names could be used to write or delete files outside the app's icon folder
 
 ## [0.1.25] (2026-07-11)
