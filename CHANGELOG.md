@@ -7,6 +7,7 @@
 - Fixed duplicate download alerts (and download settings being applied multiple times) after editing a service's URL
 - Fixed the download-complete alert rendering incorrectly for file names containing characters like # or %
 - Services can no longer silently access the camera, microphone, location, or clipboard — permission requests are now denied by default (Messenger/WhatsApp keep camera and mic access for calls)
+- Notion Note Taker API keys are now stored encrypted on disk instead of in plaintext (existing keys migrate automatically)
 
 ## [0.1.26] (2026-07-12)
 
