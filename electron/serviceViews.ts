@@ -240,6 +240,76 @@ function openCallWindow(callUrl: string, partition: string, spoofedUA: string) {
   callWindow.loadURL(callUrl);
 }
 
+// Close and forget the in-app call window for a service, if one is open. Used
+// to hang up an unanswered ring, and on cycle-stop / view teardown.
+export function closeCallWindow(serviceId: string) {
+  const partition = `persist:service-${serviceId}`;
+  const win = callWindows.get(partition);
+  if (win && !win.isDestroyed()) win.close();
+  callWindows.delete(partition);
+}
+
+// A connected Messenger call shows a duration timer counting up; the outgoing
+// "ringing" screen doesn't. Reading a leaf element whose entire text is a
+// timer (m:ss / h:mm:ss) and seeing it advance is what lets us tell "answered"
+// from "still ringing".
+const CALL_TIMER_SCRIPT = `
+  (() => {
+    for (const el of document.querySelectorAll('span, div')) {
+      if (el.children.length) continue;
+      const t = (el.textContent || '').trim();
+      if (/^\\d{1,2}:\\d{2}(:\\d{2})?$/.test(t)) return t;
+    }
+    return null;
+  })()
+`;
+
+// Watch a freshly-started call for an answer. Resolves true once the call
+// connects (a running duration timer is observed to advance), or false if
+// timeoutMs elapses first — in which case the popup is closed, hanging up the
+// unanswered outgoing call. Best-effort: detection keys on Messenger's call
+// timer, so a UI overhaul there could require updating CALL_TIMER_SCRIPT.
+export function monitorCallForAnswer(serviceId: string, timeoutMs: number): Promise<boolean> {
+  const partition = `persist:service-${serviceId}`;
+  const POLL_MS = 1000;
+  return new Promise((resolve) => {
+    const startedAt = Date.now();
+    let lastTimer: string | null = null;
+    const tick = async () => {
+      const elapsed = Date.now() - startedAt;
+      if (elapsed >= timeoutMs) {
+        closeCallWindow(serviceId); // no answer in the window — hang up
+        resolve(false);
+        return;
+      }
+      const win = callWindows.get(partition);
+      if (win && !win.isDestroyed()) {
+        try {
+          const timer: string | null = await win.webContents.executeJavaScript(
+            CALL_TIMER_SCRIPT,
+            true,
+          );
+          // Two different non-null reads = a timer that's counting = connected.
+          if (timer && lastTimer && timer !== lastTimer) {
+            resolve(true);
+            return;
+          }
+          lastTimer = timer;
+        } catch {
+          // window navigating/closing — ignore this tick
+        }
+      } else if (elapsed > 8_000) {
+        // Popup never opened (or was closed) well after the click — treat as
+        // no-answer so the cycle can try again.
+        resolve(false);
+        return;
+      }
+      setTimeout(tick, POLL_MS);
+    };
+    tick();
+  });
+}
+
 // Session-level listeners must only be registered once per partition.
 function createServiceView(service: Service): WebContentsView {
   const partition = `persist:service-${service.id}`;
