@@ -30,6 +30,7 @@ import {
   clearAllViewState,
   monitorCallForAnswer,
   closeCallWindow,
+  armMutedCall,
 } from "./serviceViews";
 
 // Entry point: owns the frameless window and the React UI layer (uiView), the
@@ -283,6 +284,7 @@ registerMessengerAutomation({
   getUiView: () => uiView,
   monitorCallForAnswer: (serviceId, timeoutMs) => monitorCallForAnswer(serviceId, timeoutMs),
   closeCallWindow: (serviceId) => closeCallWindow(serviceId),
+  armMutedCall: (serviceId) => armMutedCall(serviceId),
 });
 
 // --- UI-layer IPC (z-order, link preview, window controls) -------------------

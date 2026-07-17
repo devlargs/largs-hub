@@ -153,6 +153,20 @@ export function setActiveViewVisible(visible: boolean) {
 // re-clicks the call button focuses the open call instead of stacking windows.
 const callWindows = new Map<string, BrowserWindow>();
 
+// Partitions whose next call popup should open muted. The Call Cycle automation
+// arms this just before it clicks the call button; openCallWindow consumes it.
+// Manual calls (clicked in Messenger by the user) never arm it, so they stay
+// audible.
+const mutedCallArmed = new Set<string>();
+
+export function armMutedCall(serviceId: string) {
+  const partition = `persist:service-${serviceId}`;
+  mutedCallArmed.add(partition);
+  // Safety net: if the popup never opens, don't leave the flag to mute a later
+  // manual call.
+  setTimeout(() => mutedCallArmed.delete(partition), 10_000);
+}
+
 // Meta's /groupcall/ page opens on a "Ready to call?" screen with a "Start
 // call" button — the call isn't placed until it's clicked. To make the call
 // actually connect automatically (the whole point of the feature), poll for
@@ -187,8 +201,13 @@ const AUTO_START_CALL_SCRIPT = `
 // work because it's a real Chromium window and the partition's permission
 // handler already allows media for these hosts.
 function openCallWindow(callUrl: string, partition: string, spoofedUA: string) {
+  // Consume the Call Cycle mute flag (if armed). Manual calls never arm it, so
+  // muteCall is false and the popup stays audible.
+  const muteCall = mutedCallArmed.delete(partition);
+
   const existing = callWindows.get(partition);
   if (existing && !existing.isDestroyed()) {
+    if (muteCall) existing.webContents.setAudioMuted(true);
     existing.loadURL(callUrl);
     existing.show();
     existing.focus();
@@ -215,6 +234,7 @@ function openCallWindow(callUrl: string, partition: string, spoofedUA: string) {
 
   callWindow.setMenuBarVisibility(false);
   callWindow.webContents.setUserAgent(spoofedUA);
+  if (muteCall) callWindow.webContents.setAudioMuted(true); // silence cycle calls
   // Keep the call contained: nested popups go to the system browser rather than
   // spawning more app windows.
   callWindow.webContents.setWindowOpenHandler(({ url }) => {
