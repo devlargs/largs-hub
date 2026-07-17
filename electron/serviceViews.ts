@@ -543,54 +543,69 @@ function createServiceView(service: Service): WebContentsView {
     }
   });
 
-  // Handle popups: navigate in-app for known domains, open external for others
-  view.webContents.setWindowOpenHandler(({ url, disposition }) => {
+  // External-link policy shared by the popup handler and the will-navigate
+  // guard below. A URL "stays in view" only if it's the service's own domain or
+  // an allowlisted auth provider; everything else is treated as an external
+  // link and opened in the in-app preview popup.
+  const inViewAllowedDomains = [
+    "google.com", "googleapis.com", "gstatic.com",
+    "facebook.com", "fbcdn.net", "messenger.com",
+    "apple.com", "icloud.com",
+    "microsoft.com", "live.com", "microsoftonline.com",
+    "github.com",
+    "slack.com",
+    "discord.com", "discordapp.com",
+    "telegram.org",
+    "linkedin.com",
+    "twitter.com", "x.com",
+    "notion.so", "notion-static.com",
+    "reddit.com", "redditstatic.com",
+    "whatsapp.com", "whatsapp.net",
+  ];
+  const keepInView = (targetUrl: string): boolean => {
     try {
-      const parsed = new URL(url);
-      const serviceHost = new URL(service.url).hostname.replace(/^www\./, "");
-      const popupHost = parsed.hostname.replace(/^www\./, "");
+      const host = new URL(targetUrl).hostname.replace(/^www\./, "");
+      const isServiceDomain =
+        !!serviceHost && (host.endsWith(serviceHost) || serviceHost.endsWith(host));
+      const isAllowed = inViewAllowedDomains.some((d) => host === d || host.endsWith("." + d));
+      return isServiceDomain || isAllowed;
+    } catch {
+      return false;
+    }
+  };
 
-      const isServiceDomain = popupHost.endsWith(serviceHost) || serviceHost.endsWith(popupHost);
-
-      // Messenger/Facebook launch a call with window.open("about:blank", …) and
-      // then point the popup at their /groupcall/ page. We can't recognise it by
-      // the popup URL (it's about:blank), so we key on the new-window
-      // disposition plus a call-capable service. Allow the (hidden) popup so the
-      // did-create-window handler above can read the real call URL and hand it
-      // to the system browser (issue #59). The default same-domain branch below
-      // would instead navigate the MAIN view to about:blank and blank the whole
-      // service.
-      if (disposition === "new-window" && messengerAdapter.matches(serviceHost)) {
-        return { action: "allow", overrideBrowserWindowOptions: { show: false } };
-      }
-
-      const allowedDomains = [
-        "google.com", "googleapis.com", "gstatic.com",
-        "facebook.com", "fbcdn.net", "messenger.com",
-        "apple.com", "icloud.com",
-        "microsoft.com", "live.com", "microsoftonline.com",
-        "github.com",
-        "slack.com",
-        "discord.com", "discordapp.com",
-        "telegram.org",
-        "linkedin.com",
-        "twitter.com", "x.com",
-        "notion.so", "notion-static.com",
-        "reddit.com", "redditstatic.com",
-        "whatsapp.com", "whatsapp.net",
-      ];
-
-      const isAllowed = allowedDomains.some((d) => popupHost === d || popupHost.endsWith("." + d));
-
-      if (isServiceDomain || isAllowed) {
-        // Navigate the current view instead of opening a popup window
-        view.webContents.loadURL(url);
-        return { action: "deny" };
-      }
-    } catch {}
-
+  // Popups: keep same-domain/auth popups in the view. External http(s) links are
+  // ignored on click — they neither redirect the service nor open the system
+  // browser. To open one, users right-click it and choose "View Link" (which
+  // opens the preview popup directly).
+  view.webContents.setWindowOpenHandler(({ url, disposition }) => {
+    // Messenger/Facebook launch a call with window.open("about:blank", …) and
+    // then point the popup at their /groupcall/ page. We can't recognise it by
+    // the popup URL (it's about:blank), so we key on the new-window disposition
+    // plus a call-capable service, and allow the (hidden) popup so the
+    // did-create-window handler above can read the real call URL and reopen it
+    // in the in-app call window (issue #59).
+    if (disposition === "new-window" && messengerAdapter.matches(serviceHost)) {
+      return { action: "allow", overrideBrowserWindowOptions: { show: false } };
+    }
+    if (/^https?:/i.test(url)) {
+      // Same-domain / auth links navigate in place; external http(s) links are
+      // ignored so users open them via the "View Link" context menu instead.
+      if (keepInView(url)) view.webContents.loadURL(url);
+      return { action: "deny" };
+    }
+    // Non-http schemes (mailto:, tel:, …) still hand off to the OS.
     shell.openExternal(url);
     return { action: "deny" };
+  });
+
+  // A plain in-page link click to an external site would navigate the whole
+  // service view away and blank the service. Cancel it so the service stays put;
+  // the link can still be opened via the "View Link" context menu.
+  view.webContents.on("will-navigate", (event, url) => {
+    if (/^https?:/i.test(url) && !keepInView(url)) {
+      event.preventDefault();
+    }
   });
 
   return view;
