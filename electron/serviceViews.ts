@@ -247,35 +247,80 @@ function openCallWindow(callUrl: string, partition: string, spoofedUA: string) {
   callWindow.loadURL(callUrl);
 }
 
+// Click Messenger's red end-call button so the call ends cleanly on Messenger's
+// side (the callee stops ringing) before we tear the popup down.
+const HANGUP_SCRIPT = `
+  (() => {
+    const rx = /end call|leave call|hang ?up|end room/i;
+    for (const el of document.querySelectorAll('div[role="button"], button, [aria-label]')) {
+      const label = (el.getAttribute('aria-label') || '').trim();
+      if (label && rx.test(label)) { el.click(); return true; }
+    }
+    return false;
+  })()
+`;
+
 // Close and forget the in-app call window for a service, if one is open. Used
 // to hang up an unanswered ring, and on cycle-stop / view teardown.
 export function closeCallWindow(serviceId: string) {
   const partition = `persist:service-${serviceId}`;
   const win = callWindows.get(partition);
-  if (win && !win.isDestroyed()) win.close();
-  callWindows.delete(partition);
+  callWindows.delete(partition); // forget now so it can't be reused mid-close
+  if (!win || win.isDestroyed()) return;
+  // Hang up in-page first so the call ends cleanly (callee stops ringing), then
+  // force the window shut. destroy() bypasses the beforeunload guard that
+  // blocks window.close() while a call is live, so the popup always closes.
+  win.webContents
+    .executeJavaScript(HANGUP_SCRIPT, true)
+    .catch(() => {})
+    .finally(() => {
+      setTimeout(() => {
+        if (!win.isDestroyed()) win.destroy();
+      }, 400);
+    });
 }
 
-// A connected Messenger call shows a duration timer counting up; the outgoing
-// "ringing" screen doesn't. Reading a leaf element whose entire text is a
-// timer (m:ss / h:mm:ss) and seeing it advance is what lets us tell "answered"
-// from "still ringing".
-const CALL_TIMER_SCRIPT = `
+// One round-trip into the call popup per poll: (1) draw/update a countdown pill
+// showing how many seconds until an unanswered call is hung up and the cycle
+// restarts, and (2) return the call-duration timer if the page shows one. A
+// connected Messenger call shows a timer counting up; the outgoing "ringing"
+// screen doesn't — seeing that timer advance is what tells "answered" from
+// "still ringing". (The pill's own text isn't a m:ss timer, so it can't
+// false-positive the scan.)
+function buildCallOverlayScript(remainingSec: number): string {
+  return `
+    (() => {
+      let el = document.getElementById('__largs_ring_countdown__');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = '__largs_ring_countdown__';
+        el.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2147483647;background:rgba(24,24,37,0.92);color:#fff;font:600 13px system-ui,-apple-system,sans-serif;padding:6px 14px;border-radius:999px;pointer-events:none;box-shadow:0 2px 10px rgba(0,0,0,0.45);';
+        (document.body || document.documentElement).appendChild(el);
+      }
+      el.textContent = 'Ending call in ${remainingSec}s';
+      for (const node of document.querySelectorAll('span, div')) {
+        if (node.children.length) continue;
+        const t = (node.textContent || '').trim();
+        if (/^\\d{1,2}:\\d{2}(:\\d{2})?$/.test(t)) return t;
+      }
+      return null;
+    })()
+  `;
+}
+
+const REMOVE_CALL_OVERLAY_SCRIPT = `
   (() => {
-    for (const el of document.querySelectorAll('span, div')) {
-      if (el.children.length) continue;
-      const t = (el.textContent || '').trim();
-      if (/^\\d{1,2}:\\d{2}(:\\d{2})?$/.test(t)) return t;
-    }
-    return null;
+    const el = document.getElementById('__largs_ring_countdown__');
+    if (el) el.remove();
   })()
 `;
 
-// Watch a freshly-started call for an answer. Resolves true once the call
-// connects (a running duration timer is observed to advance), or false if
-// timeoutMs elapses first — in which case the popup is closed, hanging up the
-// unanswered outgoing call. Best-effort: detection keys on Messenger's call
-// timer, so a UI overhaul there could require updating CALL_TIMER_SCRIPT.
+// Watch a freshly-started call for an answer while showing a countdown to
+// hang-up on the popup. Resolves true once the call connects (a running
+// duration timer is observed to advance), or false if timeoutMs elapses first
+// — in which case the popup is closed, hanging up the unanswered outgoing call.
+// Best-effort: detection keys on Messenger's call timer, so a UI overhaul there
+// could require updating buildCallOverlayScript.
 export function monitorCallForAnswer(serviceId: string, timeoutMs: number): Promise<boolean> {
   const partition = `persist:service-${serviceId}`;
   const POLL_MS = 1000;
