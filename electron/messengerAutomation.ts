@@ -181,10 +181,13 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
     }
   }
 
-  function stopTask(taskId: string): boolean {
+  // hangUp defaults true so user-initiated stops also close a ringing call
+  // popup. The answered path passes false — the call connected and must stay.
+  function stopTask(taskId: string, hangUp = true): boolean {
     const task = tasks.get(taskId);
     if (!task) return false;
     if (task.timer) clearTimeout(task.timer);
+    if (hangUp && task.spec.type === "startCallCycle") deps.closeCallWindow(task.serviceId);
     tasks.delete(taskId);
     pushUpdate();
     return true;
@@ -195,6 +198,7 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
     for (const task of [...tasks.values()]) {
       if (task.serviceId === serviceId) {
         if (task.timer) clearTimeout(task.timer);
+        if (task.spec.type === "startCallCycle") deps.closeCallWindow(serviceId);
         tasks.delete(task.id);
         removed = true;
       }
@@ -284,6 +288,55 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
     return Math.floor(Math.random() * (toSec - fromSec + 1) + fromSec) * 1000;
   }
 
+  // The call cycle is its own loop (not startLoop) because each fire has an
+  // inner ring→answer phase: click "Start a voice call" (which opens the in-app
+  // call popup and auto-starts it), ring for ringSeconds, then either stop
+  // because she answered or hang up and wait for the next attempt.
+  function startCallCycle(
+    serviceId: string,
+    spec: Extract<TaskSpec, { type: "startCallCycle" }>,
+  ) {
+    const task = createTask(serviceId, spec);
+
+    const scheduleNext = () => {
+      const delayMs = spec.waitSeconds * 1000;
+      task.nextFireAt = Date.now() + delayMs;
+      pushUpdate();
+      task.timer = setTimeout(async () => {
+        if (!tasks.has(task.id)) return;
+        const result = await inject(serviceId, CLICK_CALL_SCRIPT);
+        if (result === null) {
+          stopTask(task.id);
+          return;
+        }
+        if (!tasks.has(task.id)) return;
+        task.fireCount++;
+        task.lastResult = result;
+        task.nextFireAt = null; // ringing now — no countdown until the retry
+        pushUpdate();
+
+        if (result !== "clicked") {
+          // No call button (e.g. no conversation open) — nothing rang; retry.
+          scheduleNext();
+          return;
+        }
+
+        const answered = await deps.monitorCallForAnswer(serviceId, spec.ringSeconds * 1000);
+        if (!tasks.has(task.id)) return; // stopped while ringing
+
+        if (answered) {
+          // She picked up — stop nagging and leave the connected call open.
+          stopTask(task.id, false);
+          return;
+        }
+        // No answer — the monitor already closed the popup; wait, then retry.
+        scheduleNext();
+      }, delayMs);
+    };
+
+    scheduleNext();
+  }
+
   ipcMain.handle(
     "messenger-automation-start",
     async (_event, serviceId: unknown, spec: unknown): Promise<StartResult> => {
@@ -350,12 +403,7 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
           );
           break;
         case "startCallCycle":
-          startLoop(
-            serviceId,
-            taskSpec,
-            () => taskSpec.waitSeconds * 1000,
-            () => CLICK_CALL_SCRIPT,
-          );
+          startCallCycle(serviceId, taskSpec);
           break;
       }
 
