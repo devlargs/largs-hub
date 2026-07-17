@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.31] (2026-07-17)
+
 - Call cycle: the "Ring seconds" field is now labelled "Wait to ring (s)" with clearer help text — it sets how long the app waits before closing the call popup and restarting the cycle
 - Call cycle: the call popup now shows a live "Ending call in Ns" countdown so you can see when the ring will stop and the cycle restarts (it disappears if the call is answered)
 - Call cycle: fixed the call popup not closing on its own — Messenger's "Leave site?" prompt no longer blocks it; the app now hangs up the call cleanly and force-closes the popup when the ring time is up (or when you stop the cycle)
