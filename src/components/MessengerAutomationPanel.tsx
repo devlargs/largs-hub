@@ -204,7 +204,7 @@ export default function MessengerAutomationPanel({
     sendChatInterval: "Repeats the message at a random delay between min and max seconds.",
     sendEmoji: "Sends 1 to max-repeat copies of the emoji at a random delay.",
     startCallCycle:
-      "Calls every N seconds in an in-app popup. If unanswered within the ring window it hangs up and retries; when she picks up it stops and keeps the call open.",
+      "Calls in an in-app popup. If it isn't answered within “Wait to ring” seconds, the popup is closed and the cycle restarts, calling again after “Wait seconds”. When the call is answered it stops and keeps the call open.",
   };
 
   return (
@@ -377,11 +377,12 @@ export default function MessengerAutomationPanel({
                     onChange={(e) => setWaitSeconds(e.target.value)}
                     className="text-sm outline-none rounded-lg"
                     style={inputStyle}
+                    title="Delay before the next call attempt"
                   />
                 </div>
                 <div className="flex flex-col flex-1" style={{ gap: 4 }}>
                   <label className="text-xs font-medium" style={labelStyle}>
-                    Ring seconds
+                    Wait to ring (s)
                   </label>
                   <input
                     type="number"
@@ -390,6 +391,7 @@ export default function MessengerAutomationPanel({
                     onChange={(e) => setRingSeconds(e.target.value)}
                     className="text-sm outline-none rounded-lg"
                     style={inputStyle}
+                    title="How long to wait before closing the call popup and restarting the cycle"
                   />
                 </div>
               </div>
