@@ -336,13 +336,16 @@ export function monitorCallForAnswer(serviceId: string, timeoutMs: number): Prom
       }
       const win = callWindows.get(partition);
       if (win && !win.isDestroyed()) {
+        const remainingSec = Math.max(0, Math.ceil((timeoutMs - elapsed) / 1000));
         try {
           const timer: string | null = await win.webContents.executeJavaScript(
-            CALL_TIMER_SCRIPT,
+            buildCallOverlayScript(remainingSec),
             true,
           );
           // Two different non-null reads = a timer that's counting = connected.
           if (timer && lastTimer && timer !== lastTimer) {
+            // Answered — drop the countdown pill and keep the call open.
+            await win.webContents.executeJavaScript(REMOVE_CALL_OVERLAY_SCRIPT, true).catch(() => {});
             resolve(true);
             return;
           }
