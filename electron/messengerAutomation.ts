@@ -40,6 +40,11 @@ interface AutomationDeps {
   getServiceView: (serviceId: string) => WebContentsView | undefined;
   getServices: () => Array<{ id: string; url: string }>;
   getUiView: () => WebContentsView | null;
+  // Ring an in-app call for up to timeoutMs; resolves true if answered, false
+  // on timeout (popup is closed by the callee). Owned by serviceViews.
+  monitorCallForAnswer: (serviceId: string, timeoutMs: number) => Promise<boolean>;
+  // Hang up / close the in-app call popup for a service, if one is open.
+  closeCallWindow: (serviceId: string) => void;
 }
 
 const tasks = new Map<string, InternalTask>();
@@ -143,6 +148,13 @@ export function validateSpec(spec: TaskSpec): string | null {
         spec.waitSeconds < 5
       ) {
         return "Wait seconds must be at least 5";
+      }
+      if (
+        typeof spec.ringSeconds !== "number" ||
+        !Number.isFinite(spec.ringSeconds) ||
+        spec.ringSeconds < 5
+      ) {
+        return "Ring seconds must be at least 5";
       }
       return null;
     default:

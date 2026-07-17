@@ -28,6 +28,8 @@ import {
   stopHibernationSweep,
   preloadServices,
   clearAllViewState,
+  monitorCallForAnswer,
+  closeCallWindow,
 } from "./serviceViews";
 
 // Entry point: owns the frameless window and the React UI layer (uiView), the
@@ -279,6 +281,8 @@ registerMessengerAutomation({
   getServiceView: (serviceId) => getServiceView(serviceId),
   getServices: () => store.get("services"),
   getUiView: () => uiView,
+  monitorCallForAnswer: (serviceId, timeoutMs) => monitorCallForAnswer(serviceId, timeoutMs),
+  closeCallWindow: (serviceId) => closeCallWindow(serviceId),
 });
 
 // --- UI-layer IPC (z-order, link preview, window controls) -------------------
