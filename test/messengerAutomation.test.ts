@@ -68,12 +68,21 @@ describe("validateSpec", () => {
 
   describe("startCallCycle", () => {
     it("requires at least 5 seconds of wait", () => {
-      expect(validateSpec({ type: "startCallCycle", waitSeconds: 5 })).toBeNull();
-      expect(validateSpec({ type: "startCallCycle", waitSeconds: 4 })).toBe(
+      expect(validateSpec({ type: "startCallCycle", waitSeconds: 5, ringSeconds: 30 })).toBeNull();
+      expect(validateSpec({ type: "startCallCycle", waitSeconds: 4, ringSeconds: 30 })).toBe(
         "Wait seconds must be at least 5",
       );
-      expect(validateSpec({ type: "startCallCycle", waitSeconds: NaN })).toBe(
+      expect(validateSpec({ type: "startCallCycle", waitSeconds: NaN, ringSeconds: 30 })).toBe(
         "Wait seconds must be at least 5",
+      );
+    });
+
+    it("requires at least 5 seconds of ring", () => {
+      expect(validateSpec({ type: "startCallCycle", waitSeconds: 120, ringSeconds: 4 })).toBe(
+        "Ring seconds must be at least 5",
+      );
+      expect(validateSpec({ type: "startCallCycle", waitSeconds: 120, ringSeconds: NaN })).toBe(
+        "Ring seconds must be at least 5",
       );
     });
   });
