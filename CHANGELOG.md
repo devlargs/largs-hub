@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- Call cycle: the "Ring seconds" field is now labelled "Wait to ring (s)" with clearer help text — it sets how long the app waits before closing the call popup and restarting the cycle
+- Call cycle: the call popup now shows a live "Ending call in Ns" countdown so you can see when the ring will stop and the cycle restarts (it disappears if the call is answered)
+- Call cycle: fixed the call popup not closing on its own — Messenger's "Leave site?" prompt no longer blocks it; the app now hangs up the call cleanly and force-closes the popup when the ring time is up (or when you stop the cycle)
+
+- Clicking an external link in a service no longer redirects the service away or opens your default browser — external links are ignored on click, so the service never gets blanked out. Open a link by right-clicking it and choosing "View Link" (in-app preview popup)
+
 - Messenger voice/video calls now open in an in-app popup window (still signed in, with working audio/video) instead of your default browser — fixes calls blanking the Messenger view and lets the automation "start call cycle" run inside the app. The popup also auto-clicks "Start call" so the call connects automatically instead of stopping on the "Ready to call?" screen
 - Messenger "Call cycle" automation now rings and hangs up on its own: it calls in the in-app popup, waits a configurable "ring seconds" for an answer, hangs up and retries after "wait seconds" if unanswered, and stops (keeping the call open) once the call is answered
 
