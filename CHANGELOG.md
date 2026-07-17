@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.32] (2026-07-17)
+
 ## [0.1.31] (2026-07-17)
 
 - Call cycle: the "Ring seconds" field is now labelled "Wait to ring (s)" with clearer help text — it sets how long the app waits before closing the call popup and restarting the cycle
