@@ -62,7 +62,7 @@ function taskPreview(spec: TaskSpec): string {
     case "sendEmoji":
       return `${spec.emoji} ×1-${spec.maxLength}`;
     case "startCallCycle":
-      return `every ${spec.waitSeconds}s`;
+      return `every ${spec.waitSeconds}s · ring ${spec.ringSeconds}s`;
   }
 }
 
@@ -91,6 +91,7 @@ export default function MessengerAutomationPanel({
   const [emoji, setEmoji] = useState("❤️");
   const [maxLength, setMaxLength] = useState("5");
   const [waitSeconds, setWaitSeconds] = useState("120");
+  const [ringSeconds, setRingSeconds] = useState("30");
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -153,7 +154,11 @@ export default function MessengerAutomationPanel({
           maxLength: num(maxLength),
         };
       case "startCallCycle":
-        return { type: "startCallCycle", waitSeconds: num(waitSeconds) };
+        return {
+          type: "startCallCycle",
+          waitSeconds: num(waitSeconds),
+          ringSeconds: num(ringSeconds),
+        };
     }
   };
 
@@ -198,7 +203,8 @@ export default function MessengerAutomationPanel({
     sendChat: "Fires at the chosen time — if it already passed today, it fires tomorrow.",
     sendChatInterval: "Repeats the message at a random delay between min and max seconds.",
     sendEmoji: "Sends 1 to max-repeat copies of the emoji at a random delay.",
-    startCallCycle: "Clicks “Start a voice call” every N seconds until stopped.",
+    startCallCycle:
+      "Calls every N seconds in an in-app popup. If unanswered within the ring window it hangs up and retries; when she picks up it stops and keeps the call open.",
   };
 
   return (
@@ -359,18 +365,33 @@ export default function MessengerAutomationPanel({
             )}
 
             {selectedType === "startCallCycle" && (
-              <div className="flex flex-col" style={{ gap: 4 }}>
-                <label className="text-xs font-medium" style={labelStyle}>
-                  Wait seconds
-                </label>
-                <input
-                  type="number"
-                  min={5}
-                  value={waitSeconds}
-                  onChange={(e) => setWaitSeconds(e.target.value)}
-                  className="text-sm outline-none rounded-lg"
-                  style={inputStyle}
-                />
+              <div className="flex" style={{ gap: 8 }}>
+                <div className="flex flex-col flex-1" style={{ gap: 4 }}>
+                  <label className="text-xs font-medium" style={labelStyle}>
+                    Wait seconds
+                  </label>
+                  <input
+                    type="number"
+                    min={5}
+                    value={waitSeconds}
+                    onChange={(e) => setWaitSeconds(e.target.value)}
+                    className="text-sm outline-none rounded-lg"
+                    style={inputStyle}
+                  />
+                </div>
+                <div className="flex flex-col flex-1" style={{ gap: 4 }}>
+                  <label className="text-xs font-medium" style={labelStyle}>
+                    Ring seconds
+                  </label>
+                  <input
+                    type="number"
+                    min={5}
+                    value={ringSeconds}
+                    onChange={(e) => setRingSeconds(e.target.value)}
+                    className="text-sm outline-none rounded-lg"
+                    style={inputStyle}
+                  />
+                </div>
               </div>
             )}
 
