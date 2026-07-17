@@ -3,6 +3,7 @@ import { shell } from "electron";
 import { store, Service, isSafeServiceUrl } from "./store";
 import { hookDownloadSession } from "./downloads";
 import { findBadgeAdapter, buildPollScript, parseTitleCount } from "./badge-adapters";
+import { messengerAdapter } from "./badge-adapters/messenger";
 import {
   reportNotificationCount,
   clearNotificationCount,
@@ -148,9 +149,108 @@ export function setActiveViewVisible(visible: boolean) {
   if (view) view.setVisible(visible);
 }
 
+// One in-app call window per service partition. Reused so a call cycle that
+// re-clicks the call button focuses the open call instead of stacking windows.
+const callWindows = new Map<string, BrowserWindow>();
+
+// Meta's /groupcall/ page opens on a "Ready to call?" screen with a "Start
+// call" button — the call isn't placed until it's clicked. To make the call
+// actually connect automatically (the whole point of the feature), poll for
+// that button once the page loads and click it. Resolves true once clicked so
+// the caller stops re-injecting; the button is gone once in-call, so a stray
+// extra run is a no-op.
+const AUTO_START_CALL_SCRIPT = `
+  (() => new Promise((resolve) => {
+    const deadline = Date.now() + 15000;
+    const scan = () => {
+      for (const el of document.querySelectorAll('div[role="button"], button')) {
+        const label = (el.getAttribute('aria-label') || '').trim();
+        const text = (el.textContent || '').trim();
+        if (/^start call$/i.test(label) || /^start call$/i.test(text)) {
+          el.click();
+          resolve(true);
+          return;
+        }
+      }
+      if (Date.now() < deadline) setTimeout(scan, 300);
+      else resolve(false);
+    };
+    scan();
+  }))()
+`;
+
+// Open a Messenger/Facebook call in a dedicated in-app BrowserWindow instead of
+// the system browser. A fresh window with no window.opener link to the service
+// page can't be reset back to about:blank by Meta's opener (the reason in-view
+// rendering fails — see the did-create-window handler), and it shares the
+// service's session partition so the user stays logged in. WebRTC + camera/mic
+// work because it's a real Chromium window and the partition's permission
+// handler already allows media for these hosts.
+function openCallWindow(callUrl: string, partition: string, spoofedUA: string) {
+  const existing = callWindows.get(partition);
+  if (existing && !existing.isDestroyed()) {
+    existing.loadURL(callUrl);
+    existing.show();
+    existing.focus();
+    return;
+  }
+
+  const mainWindow = deps?.getMainWindow();
+  const callWindow = new BrowserWindow({
+    width: 1000,
+    height: 720,
+    minWidth: 480,
+    minHeight: 400,
+    title: "Call",
+    backgroundColor: "#181825",
+    autoHideMenuBar: true,
+    ...(mainWindow ? { parent: mainWindow } : {}),
+    webPreferences: {
+      partition,
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+
+  callWindow.setMenuBarVisibility(false);
+  callWindow.webContents.setUserAgent(spoofedUA);
+  // Keep the call contained: nested popups go to the system browser rather than
+  // spawning more app windows.
+  callWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: "deny" };
+  });
+  callWindow.on("closed", () => {
+    if (callWindows.get(partition) === callWindow) {
+      callWindows.delete(partition);
+    }
+  });
+
+  // Auto-click "Start call" so the call actually connects instead of parking on
+  // the "Ready to call?" screen. Runs on each main-frame load; once in-call the
+  // button is gone, so it's a no-op — which also makes the reused-window path
+  // (loadURL below) auto-start correctly.
+  callWindow.webContents.on("did-finish-load", () => {
+    if (callWindow.isDestroyed()) return;
+    callWindow.webContents.executeJavaScript(AUTO_START_CALL_SCRIPT, true).catch(() => {});
+  });
+
+  callWindows.set(partition, callWindow);
+  callWindow.loadURL(callUrl);
+}
+
 // Session-level listeners must only be registered once per partition.
 function createServiceView(service: Service): WebContentsView {
   const partition = `persist:service-${service.id}`;
+
+  // Hostname (no "www.") used to detect call-capable services (Messenger etc.).
+  let callServiceHost = "";
+  try {
+    callServiceHost = new URL(service.url).hostname.replace(/^www\./, "");
+  } catch {
+    // invalid URL — leave empty so no adapter matches
+  }
 
   const view = new WebContentsView({
     webPreferences: {
@@ -191,6 +291,43 @@ function createServiceView(service: Service): WebContentsView {
   view.webContents.session.setPermissionCheckHandler((_wc, permission) =>
     allowedPermissions.has(permission),
   );
+
+  // Messenger/Facebook calls: Meta's web client opens an about:blank popup and
+  // then points it at its own /groupcall/ page — but its opener keeps resetting
+  // that popup back to about:blank, so the call never renders inside that popup.
+  // This is a well-known limitation of Electron web-app wrappers. Rather than
+  // leave a broken blank window, we grab the real call URL as soon as the popup
+  // navigates to it and reopen it in a fresh in-app call window (no opener link,
+  // so Meta can't reset it) where WebRTC works fully (issue #59).
+  // setWindowOpenHandler (below) allows the hidden popup so this navigation can
+  // be observed.
+  if (messengerAdapter.matches(callServiceHost)) {
+    view.webContents.on("did-create-window", (childWindow) => {
+      childWindow.hide(); // keep it hidden until we know what it is
+      let settled = false;
+      const onNavigate = (event: Electron.Event, navUrl: string) => {
+        if (settled || !/^https?:/i.test(navUrl)) return; // ignore the about:blank spin
+        settled = true;
+        if (/\/(group)?call/i.test(navUrl)) {
+          // A call: reopen it in a dedicated in-app window, where WebRTC works
+          // and Meta's opener can't blank it out.
+          event.preventDefault();
+          openCallWindow(navUrl, partition, spoofedUA);
+          if (!childWindow.isDestroyed()) childWindow.close();
+        } else {
+          // Some other genuine popup (e.g. an auth window) — let it show.
+          if (!childWindow.isDestroyed()) childWindow.show();
+        }
+      };
+      childWindow.webContents.on("will-navigate", onNavigate);
+      childWindow.webContents.on("will-redirect", onNavigate);
+      // If the popup only ever spins on about:blank, don't leak the hidden window.
+      const leakGuard = setTimeout(() => {
+        if (!settled && !childWindow.isDestroyed()) childWindow.close();
+      }, 15_000);
+      childWindow.on("closed", () => clearTimeout(leakGuard));
+    });
+  }
 
   if (isSafeServiceUrl(service.url)) {
     view.webContents.loadURL(service.url);
@@ -337,13 +474,25 @@ function createServiceView(service: Service): WebContentsView {
   });
 
   // Handle popups: navigate in-app for known domains, open external for others
-  view.webContents.setWindowOpenHandler(({ url }) => {
+  view.webContents.setWindowOpenHandler(({ url, disposition }) => {
     try {
       const parsed = new URL(url);
       const serviceHost = new URL(service.url).hostname.replace(/^www\./, "");
       const popupHost = parsed.hostname.replace(/^www\./, "");
 
       const isServiceDomain = popupHost.endsWith(serviceHost) || serviceHost.endsWith(popupHost);
+
+      // Messenger/Facebook launch a call with window.open("about:blank", …) and
+      // then point the popup at their /groupcall/ page. We can't recognise it by
+      // the popup URL (it's about:blank), so we key on the new-window
+      // disposition plus a call-capable service. Allow the (hidden) popup so the
+      // did-create-window handler above can read the real call URL and hand it
+      // to the system browser (issue #59). The default same-domain branch below
+      // would instead navigate the MAIN view to about:blank and blank the whole
+      // service.
+      if (disposition === "new-window" && messengerAdapter.matches(serviceHost)) {
+        return { action: "allow", overrideBrowserWindowOptions: { show: false } };
+      }
 
       const allowedDomains = [
         "google.com", "googleapis.com", "gstatic.com",
@@ -393,6 +542,9 @@ export function destroyServiceView(serviceId: string, options?: { clearCounts?: 
     serviceViews.delete(serviceId);
     serviceLastActive.delete(serviceId);
   }
+  // Close any in-app call window tied to this service's partition.
+  const callWindow = callWindows.get(`persist:service-${serviceId}`);
+  if (callWindow && !callWindow.isDestroyed()) callWindow.close();
   if (options?.clearCounts) {
     clearNotificationCount(serviceId);
   }

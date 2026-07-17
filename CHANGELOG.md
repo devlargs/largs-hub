@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Messenger voice/video calls now open in an in-app popup window (still signed in, with working audio/video) instead of your default browser — fixes calls blanking the Messenger view and lets the automation "start call cycle" run inside the app. The popup also auto-clicks "Start call" so the call connects automatically instead of stopping on the "Ready to call?" screen
+
 ## [0.1.30] (2026-07-12)
 
 - Fixed Messenger unread counts not showing: detection now reads Messenger's current UI (Chats badge and unread markers) instead of relying only on the old favicon-badge trick
