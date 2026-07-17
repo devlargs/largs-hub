@@ -221,6 +221,13 @@ function openCallWindow(callUrl: string, partition: string, spoofedUA: string) {
     shell.openExternal(url);
     return { action: "deny" };
   });
+  // Messenger's call page arms a beforeunload guard while a call is live, which
+  // would otherwise pop a "Leave site?" prompt and block the window from
+  // closing (both when the cycle hangs up and when the user clicks X). Ignore
+  // it so the window can always close.
+  callWindow.webContents.on("will-prevent-unload", (event) => {
+    event.preventDefault();
+  });
   callWindow.on("closed", () => {
     if (callWindows.get(partition) === callWindow) {
       callWindows.delete(partition);
