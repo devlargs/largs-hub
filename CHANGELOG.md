@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Messenger voice/video calls now open in an in-app popup window (still signed in, with working audio/video) instead of your default browser — fixes calls blanking the Messenger view and lets the automation "start call cycle" run inside the app. The popup also auto-clicks "Start call" so the call connects automatically instead of stopping on the "Ready to call?" screen
+- Messenger "Call cycle" automation now rings and hangs up on its own: it calls in the in-app popup, waits a configurable "ring seconds" for an answer, hangs up and retries after "wait seconds" if unanswered, and stops (keeping the call open) once the call is answered
 
 ## [0.1.30] (2026-07-12)
 
