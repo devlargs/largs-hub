@@ -4,13 +4,17 @@
 
 **An open-source workspace browser — all your web apps in one window.**
 
-A free, privacy-friendly alternative to [Rambox](https://rambox.app/) and [Station](https://en.wikipedia.org/wiki/Station_(software)). Run Gmail, Slack, Discord, WhatsApp, Messenger, and any other web app side by side, each in its own isolated session.
+A free, privacy-friendly alternative to [Rambox](https://rambox.app/). Keep Gmail, Slack, Discord, WhatsApp, Messenger, and any other web app together in one window — one click apart, each in its own isolated session.
 
 [![Latest release](https://img.shields.io/github/v/release/devlargs/largs-hub?label=download&logo=github)](https://github.com/devlargs/largs-hub/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/devlargs/largs-hub/total?logo=github)](https://github.com/devlargs/largs-hub/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/download-Windows-0078D6?logo=windows&logoColor=white)](#installation)
 [![Built with Electron](https://img.shields.io/badge/built%20with-Electron-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
+
+### 👉 [Download Largs Hub for Windows](https://github.com/devlargs/largs-hub/releases/latest/download/Largs%20Hub%20Setup.exe)
+
+*Click the link above to download the installer, run it, and you're done — no setup required.*
 
 </div>
 
@@ -53,9 +57,17 @@ Juggling a dozen browser tabs for the apps you use all day is noisy and easy to 
 
 ### Download (Windows)
 
-A prebuilt Windows installer is published on the [**Releases**](https://github.com/devlargs/largs-hub/releases/latest) page:
+**Easiest way — one click:**
 
-- **`Largs Hub Setup.exe`** — Windows installer (NSIS), with in-app auto-updates.
+### ⬇️ [Download the latest Largs Hub installer](https://github.com/devlargs/largs-hub/releases/latest/download/Largs%20Hub%20Setup.exe)
+
+That link always gives you the newest version. Once it downloads:
+
+1. Open the downloaded **`Largs Hub Setup.exe`**.
+2. If Windows shows a "Windows protected your PC" prompt, click **More info → Run anyway** (this appears because the app isn't code-signed yet).
+3. Follow the installer — that's it.
+
+Prefer to see all versions and release notes? Browse the [**Releases**](https://github.com/devlargs/largs-hub/releases/latest) page. The installer is `Largs Hub Setup.exe` (NSIS), and it keeps itself up to date in-app.
 
 > **macOS & Linux:** There are no prebuilt macOS or Linux downloads yet. The packaging config includes `.dmg` and `.AppImage` targets, so you can [build them from source](#development) on those platforms — but they're currently unofficial, untested, and don't receive auto-updates. Contributions to harden cross-platform support are very welcome.
 
