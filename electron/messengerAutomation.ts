@@ -11,7 +11,9 @@ export type TaskSpec =
   | { type: "sendChatInterval"; message: string; fromSec: number; toSec: number }
   | { type: "sendChatMessage"; message: string }
   | { type: "sendEmoji"; emoji: string; fromSec: number; toSec: number; maxLength: number }
-  | { type: "startCallCycle"; waitSeconds: number };
+  // waitSeconds = delay between call attempts; ringSeconds = how long to let it
+  // ring before hanging up an unanswered call and trying again.
+  | { type: "startCallCycle"; waitSeconds: number; ringSeconds: number };
 
 export interface AutomationTask {
   id: string;
