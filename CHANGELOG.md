@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- The app now closes itself automatically after 1 hour with no interaction (no clicks, typing, scrolling or window focus/move/resize anywhere in the app). Background activity like notification checks and Messenger automations does not count as interaction, so an unattended app will still close.
+
+- Call cycle: call popups opened by the cycle now start minimized and never steal focus, so ringing doesn't interrupt what you're doing; the popup pops back up automatically once the call is answered. Calls you place manually in Messenger still open normally.
+
 ## [0.1.32] (2026-07-17)
 
 ## [0.1.31] (2026-07-17)

@@ -45,9 +45,10 @@ interface AutomationDeps {
   monitorCallForAnswer: (serviceId: string, timeoutMs: number) => Promise<boolean>;
   // Hang up / close the in-app call popup for a service, if one is open.
   closeCallWindow: (serviceId: string) => void;
-  // Arm muting for the next call popup (cycle calls open muted; manual calls
-  // stay audible). Called just before the call button is clicked.
-  armMutedCall: (serviceId: string) => void;
+  // Mark the next call popup as automation-placed (cycle calls open muted and
+  // minimized; manual calls stay audible and visible). Called just before the
+  // call button is clicked.
+  armAutomationCall: (serviceId: string) => void;
 }
 
 const tasks = new Map<string, InternalTask>();
@@ -307,8 +308,9 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
       pushUpdate();
       task.timer = setTimeout(async () => {
         if (!tasks.has(task.id)) return;
-        // Mute the popup this click is about to open — cycle calls are silent.
-        deps.armMutedCall(serviceId);
+        // Mark the popup this click is about to open — cycle calls open silent
+        // and minimized.
+        deps.armAutomationCall(serviceId);
         const result = await inject(serviceId, CLICK_CALL_SCRIPT);
         if (result === null) {
           stopTask(task.id);

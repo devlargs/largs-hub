@@ -9,6 +9,7 @@ import {
   clearNotificationCount,
   resetDecreaseDebounce,
 } from "./notificationCounts";
+import { trackInputActivity } from "./idleShutdown";
 
 // Service-view lifecycle: creation (with UA spoofing, permission policy,
 // notification extraction, popup handling), show/hide switching, hibernation,
@@ -153,18 +154,19 @@ export function setActiveViewVisible(visible: boolean) {
 // re-clicks the call button focuses the open call instead of stacking windows.
 const callWindows = new Map<string, BrowserWindow>();
 
-// Partitions whose next call popup should open muted. The Call Cycle automation
-// arms this just before it clicks the call button; openCallWindow consumes it.
-// Manual calls (clicked in Messenger by the user) never arm it, so they stay
-// audible.
-const mutedCallArmed = new Set<string>();
+// Partitions whose next call popup is being opened by the Call Cycle
+// automation, which arms this just before it clicks the call button;
+// openCallWindow consumes it and opens the popup muted and minimized (you're
+// not actively on a cycle call until it's answered). Manual calls (clicked in
+// Messenger by the user) never arm it, so they stay audible and visible.
+const automationCallArmed = new Set<string>();
 
-export function armMutedCall(serviceId: string) {
+export function armAutomationCall(serviceId: string) {
   const partition = `persist:service-${serviceId}`;
-  mutedCallArmed.add(partition);
-  // Safety net: if the popup never opens, don't leave the flag to mute a later
-  // manual call.
-  setTimeout(() => mutedCallArmed.delete(partition), 10_000);
+  automationCallArmed.add(partition);
+  // Safety net: if the popup never opens, don't leave the flag to affect a
+  // later manual call.
+  setTimeout(() => automationCallArmed.delete(partition), 10_000);
 }
 
 // Meta's /groupcall/ page opens on a "Ready to call?" screen with a "Start
@@ -201,16 +203,21 @@ const AUTO_START_CALL_SCRIPT = `
 // work because it's a real Chromium window and the partition's permission
 // handler already allows media for these hosts.
 function openCallWindow(callUrl: string, partition: string, spoofedUA: string) {
-  // Consume the Call Cycle mute flag (if armed). Manual calls never arm it, so
-  // muteCall is false and the popup stays audible.
-  const muteCall = mutedCallArmed.delete(partition);
+  // Consume the Call Cycle flag (if armed). Manual calls never arm it, so
+  // isAutomationCall is false and the popup stays audible and visible.
+  const isAutomationCall = automationCallArmed.delete(partition);
 
   const existing = callWindows.get(partition);
   if (existing && !existing.isDestroyed()) {
-    if (muteCall) existing.webContents.setAudioMuted(true);
+    if (isAutomationCall) existing.webContents.setAudioMuted(true);
     existing.loadURL(callUrl);
-    existing.show();
-    existing.focus();
+    if (isAutomationCall) {
+      // Keep the cycle out of the way — never steal focus, stay minimized.
+      if (!existing.isMinimized()) existing.minimize();
+    } else {
+      existing.show();
+      existing.focus();
+    }
     return;
   }
 
@@ -223,6 +230,9 @@ function openCallWindow(callUrl: string, partition: string, spoofedUA: string) {
     title: "Call",
     backgroundColor: "#181825",
     autoHideMenuBar: true,
+    // Shown explicitly below so cycle calls can go straight to minimized
+    // without flashing on screen first.
+    show: false,
     ...(mainWindow ? { parent: mainWindow } : {}),
     webPreferences: {
       partition,
@@ -234,7 +244,21 @@ function openCallWindow(callUrl: string, partition: string, spoofedUA: string) {
 
   callWindow.setMenuBarVisibility(false);
   callWindow.webContents.setUserAgent(spoofedUA);
-  if (muteCall) callWindow.webContents.setAudioMuted(true); // silence cycle calls
+  trackInputActivity(callWindow.webContents);
+  if (isAutomationCall) callWindow.webContents.setAudioMuted(true); // silence cycle calls
+
+  // Cycle calls open minimized (and never take focus): the popup only matters
+  // once someone picks up, and monitorCallForAnswer restores it on answer.
+  // Manual calls open normally.
+  callWindow.once("ready-to-show", () => {
+    if (callWindow.isDestroyed()) return;
+    if (isAutomationCall) {
+      callWindow.showInactive();
+      callWindow.minimize();
+    } else {
+      callWindow.show();
+    }
+  });
   // Keep the call contained: nested popups go to the system browser rather than
   // spawning more app windows.
   callWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -364,8 +388,15 @@ export function monitorCallForAnswer(serviceId: string, timeoutMs: number): Prom
           );
           // Two different non-null reads = a timer that's counting = connected.
           if (timer && lastTimer && timer !== lastTimer) {
-            // Answered — drop the countdown pill and keep the call open.
+            // Answered — drop the countdown pill and keep the call open. The
+            // popup opened minimized for the cycle, so surface it now that
+            // there's someone on the other end.
             await win.webContents.executeJavaScript(REMOVE_CALL_OVERLAY_SCRIPT, true).catch(() => {});
+            if (!win.isDestroyed()) {
+              if (win.isMinimized()) win.restore();
+              win.show();
+              win.focus();
+            }
             resolve(true);
             return;
           }
@@ -407,6 +438,7 @@ function createServiceView(service: Service): WebContentsView {
   });
 
   view.setBackgroundColor("#00000000");
+  trackInputActivity(view.webContents);
 
   // Spoof user agent so sites like Google and WhatsApp don't reject Electron
   const chromeVersion = process.versions.chrome;

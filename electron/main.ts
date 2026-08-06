@@ -30,8 +30,9 @@ import {
   clearAllViewState,
   monitorCallForAnswer,
   closeCallWindow,
-  armMutedCall,
+  armAutomationCall,
 } from "./serviceViews";
+import { startIdleShutdown, stopIdleShutdown, trackInputActivity, noteActivity } from "./idleShutdown";
 
 // Entry point: owns the frameless window and the React UI layer (uiView), the
 // link-preview overlay, and z-order IPC. Everything else lives in modules:
@@ -43,6 +44,7 @@ import {
 //   updater.ts            GitHub release check + installer download
 //   ipc/services.ts       service CRUD/toggles/navigation/context menu
 //   ipc/settings.ts       theme, settings, custom icons, settings menu
+//   idleShutdown.ts       auto-quit after an hour with no user interaction
 
 app.setName("Largs Hub");
 app.setAppUserModelId("com.largs-hub.app");
@@ -104,6 +106,7 @@ function createWindow() {
 
   uiView.setBackgroundColor("#00000000");
   mainWindow.contentView.addChildView(uiView);
+  trackInputActivity(uiView.webContents);
 
   const resizeUiView = () => {
     if (!mainWindow || !uiView) return;
@@ -123,6 +126,7 @@ function createWindow() {
 
   mainWindow.on("resize", () => {
     if (mainWindow) {
+      noteActivity(); // the user is dragging the window edge
       const [width, height] = mainWindow.getSize();
       saveBoundsDebounced({ width, height });
       resizeUiView();
@@ -134,6 +138,7 @@ function createWindow() {
   });
 
   mainWindow.on("focus", () => {
+    noteActivity(); // the user just switched back to the app
     mainWindow?.flashFrame(false); // Stop taskbar flashing
     handleWindowFocus();
   });
@@ -144,6 +149,7 @@ function createWindow() {
 
   mainWindow.on("move", () => {
     if (mainWindow) {
+      noteActivity(); // the user is dragging the window
       const [x, y] = mainWindow.getPosition();
       saveBoundsDebounced({ x, y });
     }
@@ -152,6 +158,7 @@ function createWindow() {
   mainWindow.on("closed", () => {
     flushBounds(); // persist any bounds still buffered by the debounce
     stopHibernationSweep();
+    stopIdleShutdown();
     mainWindow = null;
     uiView = null;
     linkPreviewView = null;
@@ -159,6 +166,7 @@ function createWindow() {
   });
 
   startHibernationSweep();
+  startIdleShutdown();
 
   // Pre-load all saved services so they're warm on startup (if enabled)
   uiView.webContents.on("did-finish-load", () => {
@@ -198,6 +206,7 @@ function openLinkPreview(url: string, partition: string) {
   });
 
   view.setBackgroundColor("#1e1e2e");
+  trackInputActivity(view.webContents);
 
   const chromeVersion = process.versions.chrome;
   view.webContents.setUserAgent(
@@ -284,7 +293,7 @@ registerMessengerAutomation({
   getUiView: () => uiView,
   monitorCallForAnswer: (serviceId, timeoutMs) => monitorCallForAnswer(serviceId, timeoutMs),
   closeCallWindow: (serviceId) => closeCallWindow(serviceId),
-  armMutedCall: (serviceId) => armMutedCall(serviceId),
+  armAutomationCall: (serviceId) => armAutomationCall(serviceId),
 });
 
 // --- UI-layer IPC (z-order, link preview, window controls) -------------------
