@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fixed the in-app updater not reopening the app after installing an update — the silent installer now relaunches Largs Hub when it finishes.
+
 ## [0.1.33] (2026-08-06)
 
 - The app now closes itself automatically after 1 hour with no interaction (no clicks, typing, scrolling or window focus/move/resize anywhere in the app). Background activity like notification checks and Messenger automations does not count as interaction, so an unattended app will still close.

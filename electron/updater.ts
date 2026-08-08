@@ -126,18 +126,28 @@ export function registerUpdater(deps: UpdaterDeps) {
                 return;
               }
               // Launch the NSIS installer silently in a fully detached process.
-              // The installer will replace app files and auto-relaunch when done.
-              const child = spawn(tmpPath, ["/S"], {
+              // Args match what electron-updater uses: `--updated` marks this as
+              // an update rather than a fresh install, and `--force-run` is what
+              // makes a *silent* installer relaunch the app when it finishes —
+              // without it the installer exits quietly and the app never
+              // reopens.
+              const child = spawn(tmpPath, ["--updated", "/S", "--force-run"], {
                 detached: true,
                 stdio: "ignore",
                 windowsHide: true,
               });
+              child.on("error", (err) => {
+                reject(err);
+              });
               child.unref();
-              // Give the spawned process a moment to start before quitting
+              // Give the spawned process a moment to start before quitting.
+              // Force-exit so nothing (a stray window handler, a pending IPC)
+              // can keep the old instance alive and block the installer.
               setTimeout(() => {
-                app.quit();
                 resolve();
-              }, 500);
+                app.quit();
+                setTimeout(() => app.exit(0), 2000);
+              }, 1000);
             });
           });
 
