@@ -46,7 +46,7 @@ export type TaskSpec =
   | { type: "sendChatInterval"; message: string; fromSec: number; toSec: number }
   | { type: "sendChatMessage"; message: string }
   | { type: "sendEmoji"; emoji: string; fromSec: number; toSec: number; maxLength: number }
-  | { type: "startCallCycle"; waitSeconds: number; ringSeconds: number };
+  | { type: "startCallCycle"; fromSec: number; toSec: number; ringSeconds: number };
 
 export interface AutomationTask {
   id: string;
@@ -64,6 +64,9 @@ export interface StartResult {
   error?: string;
   tasks: AutomationTask[];
 }
+
+// Why a call cycle cancelled itself: the other person reacted in the thread.
+export type NoticeReason = "replied" | "seen" | "typing";
 
 const api = {
   // Service CRUD
@@ -238,6 +241,14 @@ const api = {
         callback(tasks);
       ipcRenderer.on("messenger-automation-updated", handler);
       return () => ipcRenderer.removeListener("messenger-automation-updated", handler);
+    },
+    onNotice: (callback: (data: { serviceId: string; reason: NoticeReason }) => void) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        data: { serviceId: string; reason: NoticeReason },
+      ) => callback(data);
+      ipcRenderer.on("messenger-automation-notice", handler);
+      return () => ipcRenderer.removeListener("messenger-automation-notice", handler);
     },
   },
 };

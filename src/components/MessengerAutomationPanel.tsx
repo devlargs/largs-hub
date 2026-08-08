@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AutomationTask, TaskSpec } from "../types";
+import { AutomationTask, NoticeReason, TaskSpec } from "../types";
 import { IoClose, IoStopCircleOutline } from "react-icons/io5";
 
 interface MessengerAutomationPanelProps {
@@ -44,6 +44,12 @@ const RESULT_LABELS: Record<string, string> = {
   error: "Could not run in the page",
 };
 
+const NOTICE_LABELS: Record<NoticeReason, string> = {
+  replied: "they replied",
+  seen: "your message was seen",
+  typing: "they started typing",
+};
+
 function formatCountdown(ms: number): string {
   const totalSec = Math.max(0, Math.ceil(ms / 1000));
   const h = Math.floor(totalSec / 3600);
@@ -62,7 +68,7 @@ function taskPreview(spec: TaskSpec): string {
     case "sendEmoji":
       return `${spec.emoji} ×1-${spec.maxLength}`;
     case "startCallCycle":
-      return `every ${spec.waitSeconds}s · ring ${spec.ringSeconds}s`;
+      return `every ${spec.fromSec}-${spec.toSec}s · ring ${spec.ringSeconds}s`;
   }
 }
 
@@ -90,7 +96,6 @@ export default function MessengerAutomationPanel({
   const [toSec, setToSec] = useState("120");
   const [emoji, setEmoji] = useState("❤️");
   const [maxLength, setMaxLength] = useState("5");
-  const [waitSeconds, setWaitSeconds] = useState("120");
   const [ringSeconds, setRingSeconds] = useState("30");
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -127,6 +132,19 @@ export default function MessengerAutomationPanel({
     return () => window.removeEventListener("keydown", handleKeydown);
   }, [handleClose]);
 
+  // The call cycle cancels itself once she reacts; the task is gone from the
+  // list by then, so surface the reason here.
+  useEffect(() => {
+    const unsubscribe = window.electronAPI?.messengerAutomation.onNotice(
+      ({ serviceId: id, reason }) => {
+        if (id !== serviceId) return;
+        setError(null);
+        setFeedback(`Call cycle stopped — ${NOTICE_LABELS[reason]}`);
+      },
+    );
+    return unsubscribe;
+  }, [serviceId]);
+
   // Tick countdowns locally; main only pushes on task-state changes
   const hasCountdown = serviceTasks.some((t) => t.nextFireAt !== null);
   useEffect(() => {
@@ -156,7 +174,8 @@ export default function MessengerAutomationPanel({
       case "startCallCycle":
         return {
           type: "startCallCycle",
-          waitSeconds: num(waitSeconds),
+          fromSec: num(fromSec),
+          toSec: num(toSec),
           ringSeconds: num(ringSeconds),
         };
     }
@@ -190,7 +209,13 @@ export default function MessengerAutomationPanel({
     selectedType === "sendChatMessage" ||
     selectedType === "sendChat" ||
     selectedType === "sendChatInterval";
-  const needsInterval = selectedType === "sendChatInterval" || selectedType === "sendEmoji";
+  // The call cycle uses the same random min/max delay as the other loops, but
+  // its attempts can't be closer together than the ring window allows.
+  const needsInterval =
+    selectedType === "sendChatInterval" ||
+    selectedType === "sendEmoji" ||
+    selectedType === "startCallCycle";
+  const intervalMin = selectedType === "startCallCycle" ? 5 : 1;
   const startLabel =
     selectedType === "sendChatMessage" ? "Send" : selectedType === "sendChat" ? "Schedule" : "Start";
   const canStart =
@@ -204,7 +229,7 @@ export default function MessengerAutomationPanel({
     sendChatInterval: "Repeats the message at a random delay between min and max seconds.",
     sendEmoji: "Sends 1 to max-repeat copies of the emoji at a random delay.",
     startCallCycle:
-      "Calls in an in-app popup. If it isn't answered within “Wait to ring” seconds, the popup is closed and the cycle restarts, calling again after “Wait seconds”. When the call is answered it stops and keeps the call open.",
+      "Calls in an in-app popup at a random delay between min and max seconds. If a call isn't answered within “Wait to ring” seconds, the popup is closed and the cycle restarts. When the call is answered it stops and keeps the call open. It also stops on its own as soon as the conversation shows a reply, a “Seen” receipt, or a typing indicator.",
   };
 
   return (
@@ -341,7 +366,7 @@ export default function MessengerAutomationPanel({
                   </label>
                   <input
                     type="number"
-                    min={1}
+                    min={intervalMin}
                     value={fromSec}
                     onChange={(e) => setFromSec(e.target.value)}
                     className="text-sm outline-none rounded-lg"
@@ -354,7 +379,7 @@ export default function MessengerAutomationPanel({
                   </label>
                   <input
                     type="number"
-                    min={1}
+                    min={intervalMin}
                     value={toSec}
                     onChange={(e) => setToSec(e.target.value)}
                     className="text-sm outline-none rounded-lg"
@@ -366,20 +391,6 @@ export default function MessengerAutomationPanel({
 
             {selectedType === "startCallCycle" && (
               <div className="flex" style={{ gap: 8 }}>
-                <div className="flex flex-col flex-1" style={{ gap: 4 }}>
-                  <label className="text-xs font-medium" style={labelStyle}>
-                    Wait seconds
-                  </label>
-                  <input
-                    type="number"
-                    min={5}
-                    value={waitSeconds}
-                    onChange={(e) => setWaitSeconds(e.target.value)}
-                    className="text-sm outline-none rounded-lg"
-                    style={inputStyle}
-                    title="Delay before the next call attempt"
-                  />
-                </div>
                 <div className="flex flex-col flex-1" style={{ gap: 4 }}>
                   <label className="text-xs font-medium" style={labelStyle}>
                     Wait to ring (s)

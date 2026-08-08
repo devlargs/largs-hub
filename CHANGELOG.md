@@ -4,6 +4,10 @@
 
 - Fixed the in-app updater not reopening the app after installing an update — the silent installer now relaunches Largs Hub when it finishes.
 
+- Call cycle: attempts now use a random min/max delay like the other automations ("call every 30-120s") instead of one fixed wait.
+
+- Call cycle: the cycle now cancels itself as soon as the conversation shows you were noticed — a new reply, a "Seen" receipt, or a typing indicator — hanging up the ringing call. The panel shows why it stopped. Answering the call still stops the cycle and keeps the call open.
+
 ## [0.1.33] (2026-08-06)
 
 - The app now closes itself automatically after 1 hour with no interaction (no clicks, typing, scrolling or window focus/move/resize anywhere in the app). Background activity like notification checks and Messenger automations does not count as interaction, so an unattended app will still close.

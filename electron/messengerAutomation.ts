@@ -11,9 +11,9 @@ export type TaskSpec =
   | { type: "sendChatInterval"; message: string; fromSec: number; toSec: number }
   | { type: "sendChatMessage"; message: string }
   | { type: "sendEmoji"; emoji: string; fromSec: number; toSec: number; maxLength: number }
-  // waitSeconds = delay between call attempts; ringSeconds = how long to let it
-  // ring before hanging up an unanswered call and trying again.
-  | { type: "startCallCycle"; waitSeconds: number; ringSeconds: number };
+  // fromSec/toSec = random delay range between call attempts; ringSeconds = how
+  // long to let it ring before hanging up an unanswered call and trying again.
+  | { type: "startCallCycle"; fromSec: number; toSec: number; ringSeconds: number };
 
 export interface AutomationTask {
   id: string;
@@ -34,6 +34,8 @@ export interface StartResult {
 
 interface InternalTask extends AutomationTask {
   timer: NodeJS.Timeout | null;
+  // Call cycle only: poll timer for the "she noticed you" watcher.
+  noticeTimer: NodeJS.Timeout | null;
 }
 
 interface AutomationDeps {
@@ -56,9 +58,11 @@ const tasks = new Map<string, InternalTask>();
 const hookedServices = new Set<string>();
 
 const MAX_MESSAGE_LENGTH = 5000;
+// How often the call cycle re-reads the conversation for a reaction.
+const NOTICE_POLL_MS = 2000;
 
 function toPublic(task: InternalTask): AutomationTask {
-  const { timer: _timer, ...publicTask } = task;
+  const { timer: _timer, noticeTimer: _noticeTimer, ...publicTask } = task;
   return publicTask;
 }
 
@@ -99,6 +103,73 @@ const CLICK_CALL_SCRIPT = `
     return "no-call-button";
   })()
 `;
+
+// --- "She noticed you" detection (call cycle) ---------------------------------
+// The cycle exists to get someone's attention, so any sign it worked should end
+// it — not just a picked-up call. These signals are read out of the open
+// Messenger conversation and compared against a baseline taken when the cycle
+// starts.
+
+export interface NoticeSignals {
+  // Message rows in the open thread, excluding call system rows ("You called…")
+  // which the cycle itself creates.
+  count: number;
+  // Text of the last such row — catches a reply that lands while the list is
+  // virtualized and the row count happens not to move.
+  last: string;
+  // A "Seen" read receipt is showing in the thread.
+  seen: boolean;
+  // The other person is typing.
+  typing: boolean;
+}
+
+// Best-effort DOM read: Messenger ships no stable hooks, so this keys on role
+// attributes and aria-labels and may need updating if their UI changes.
+const NOTICE_SCRIPT = `
+  (() => {
+    // Rows the call cycle itself produces — ignore them, they aren't a reply.
+    const CALL_ROW = /\\b(call|calling|called|ringing|missed|unanswered)\\b/i;
+    const rows = [];
+    for (const row of document.querySelectorAll('div[role="row"]')) {
+      const text = (row.innerText || "").trim();
+      if (!text || CALL_ROW.test(text)) continue;
+      rows.push(text);
+    }
+    let seen = false;
+    let typing = false;
+    for (const el of document.querySelectorAll('[aria-label]')) {
+      const label = el.getAttribute('aria-label') || '';
+      if (!seen && /\\bseen\\b/i.test(label)) seen = true;
+      if (!typing && /is typing|typing\\u2026|typing\\.\\.\\./i.test(label)) typing = true;
+      if (seen && typing) break;
+    }
+    return { count: rows.length, last: rows[rows.length - 1] || "", seen, typing };
+  })()
+`;
+
+export function isNoticeSignals(value: unknown): value is NoticeSignals {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Partial<NoticeSignals>;
+  return (
+    typeof v.count === "number" &&
+    typeof v.last === "string" &&
+    typeof v.seen === "boolean" &&
+    typeof v.typing === "boolean"
+  );
+}
+
+// Returns a short reason string when `now` shows a reaction that `base` didn't,
+// or null while nothing has changed. Only transitions count, so a thread that
+// was already "Seen" before the cycle started doesn't cancel it immediately.
+export type NoticeReason = "replied" | "seen" | "typing";
+
+export function detectNotice(base: NoticeSignals, now: NoticeSignals): NoticeReason | null {
+  if (now.typing && !base.typing) return "typing";
+  if (now.seen && !base.seen) return "seen";
+  if (now.count > base.count) return "replied";
+  if (now.last && base.last && now.last !== base.last) return "replied";
+  return null;
+}
 
 // Pure spec validation, hoisted to module scope so it's unit-testable.
 export function validateSpec(spec: TaskSpec): string | null {
@@ -147,12 +218,16 @@ export function validateSpec(spec: TaskSpec): string | null {
       return null;
     case "startCallCycle":
       if (
-        typeof spec.waitSeconds !== "number" ||
-        !Number.isFinite(spec.waitSeconds) ||
-        spec.waitSeconds < 5
+        typeof spec.fromSec !== "number" ||
+        !Number.isFinite(spec.fromSec) ||
+        spec.fromSec < 5 ||
+        typeof spec.toSec !== "number" ||
+        !Number.isFinite(spec.toSec) ||
+        spec.toSec < 5
       ) {
         return "Wait seconds must be at least 5";
       }
+      if (spec.fromSec > spec.toSec) return "Min seconds must not exceed max seconds";
       if (
         typeof spec.ringSeconds !== "number" ||
         !Number.isFinite(spec.ringSeconds) ||
@@ -174,12 +249,21 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
     }
   }
 
+  // Tell the UI why a call cycle cancelled itself — the task is already gone
+  // from the list by then, so the reason has nowhere else to surface.
+  function notifyNotice(serviceId: string, reason: NoticeReason) {
+    const ui = deps.getUiView();
+    if (ui && !ui.webContents.isDestroyed()) {
+      ui.webContents.send("messenger-automation-notice", { serviceId, reason });
+    }
+  }
+
   // Returns null when the view is gone — callers stop the task in that case.
-  async function inject(serviceId: string, code: string): Promise<string | null> {
+  async function inject<T = string>(serviceId: string, code: string): Promise<T | "error" | null> {
     const view = deps.getServiceView(serviceId);
     if (!view || view.webContents.isDestroyed()) return null;
     try {
-      return await view.webContents.executeJavaScript(code, true);
+      return (await view.webContents.executeJavaScript(code, true)) as T;
     } catch {
       return "error";
     }
@@ -191,6 +275,7 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
     const task = tasks.get(taskId);
     if (!task) return false;
     if (task.timer) clearTimeout(task.timer);
+    if (task.noticeTimer) clearTimeout(task.noticeTimer);
     if (hangUp && task.spec.type === "startCallCycle") deps.closeCallWindow(task.serviceId);
     tasks.delete(taskId);
     pushUpdate();
@@ -202,6 +287,7 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
     for (const task of [...tasks.values()]) {
       if (task.serviceId === serviceId) {
         if (task.timer) clearTimeout(task.timer);
+        if (task.noticeTimer) clearTimeout(task.noticeTimer);
         if (task.spec.type === "startCallCycle") deps.closeCallWindow(serviceId);
         tasks.delete(task.id);
         removed = true;
@@ -233,6 +319,7 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
       fireCount: 0,
       createdAt: Date.now(),
       timer: null,
+      noticeTimer: null,
     };
     tasks.set(task.id, task);
     return task;
@@ -302,8 +389,37 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
   ) {
     const task = createTask(serviceId, spec);
 
+    // Watch the conversation for any sign the cycle worked (a reply, a "Seen"
+    // receipt, a typing indicator) and stop nagging the moment one shows up.
+    // The answered-call case is handled separately, below.
+    let baseline: NoticeSignals | null = null;
+    const pollNotice = async () => {
+      if (!tasks.has(task.id)) return;
+      const signals = await inject<NoticeSignals>(serviceId, NOTICE_SCRIPT);
+      if (!tasks.has(task.id)) return;
+      if (signals === null) {
+        stopTask(task.id); // view gone
+        return;
+      }
+      if (isNoticeSignals(signals)) {
+        if (!baseline) {
+          baseline = signals;
+        } else {
+          const reason = detectNotice(baseline, signals);
+          if (reason) {
+            // Hang up the (still ringing) call and end the cycle — she noticed.
+            stopTask(task.id);
+            notifyNotice(serviceId, reason);
+            return;
+          }
+        }
+      }
+      task.noticeTimer = setTimeout(pollNotice, NOTICE_POLL_MS);
+    };
+    pollNotice();
+
     const scheduleNext = () => {
-      const delayMs = spec.waitSeconds * 1000;
+      const delayMs = randomDelayMs(spec.fromSec, spec.toSec);
       task.nextFireAt = Date.now() + delayMs;
       pushUpdate();
       task.timer = setTimeout(async () => {
