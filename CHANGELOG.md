@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.34] (2026-08-08)
+
 - Fixed the in-app updater not reopening the app after installing an update — the silent installer now relaunches Largs Hub when it finishes.
 
 - Call cycle: attempts now use a random min/max delay like the other automations ("call every 30-120s") instead of one fixed wait.
