@@ -39,6 +39,11 @@ export interface StoreSchema {
   // reclaim its renderer process (0 = never hibernate). Session state survives
   // in the persist: partition, so the view reloads on next click.
   hibernateInactiveMinutes: number;
+  // Privacy mode appearance (applies to every service with privacyMode on):
+  // how much of the page height the cover panel spans (1-100) and how opaque
+  // that panel is (1-100).
+  privacyCoverPercent: number;
+  privacyOpacity: number;
   notionNotes: Record<string, NotionNotesConfig>;
 }
 
@@ -55,6 +60,8 @@ export const store = new Store<StoreSchema>({
     openFileOnFinish: false,
     downloadAlertOnFinish: true,
     hibernateInactiveMinutes: 0,
+    privacyCoverPercent: 50,
+    privacyOpacity: 100,
     notionNotes: {},
   },
 });

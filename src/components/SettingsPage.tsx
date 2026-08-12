@@ -13,6 +13,8 @@ export default function SettingsPage() {
     openFileOnFinish: false,
     downloadAlertOnFinish: true,
     hibernateInactiveMinutes: 0,
+    privacyCoverPercent: 50,
+    privacyOpacity: 100,
   });
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
   const [currentVersion, setCurrentVersion] = useState("");
@@ -76,6 +78,22 @@ export default function SettingsPage() {
     const next = !settings[key];
     await window.electronAPI.updateSetting(key, next);
     setSettings((s) => ({ ...s, [key]: next }));
+  };
+
+  // Sliders update local state on every drag frame but only persist on release,
+  // so the main process isn't re-injecting the overlay on each pixel of travel.
+  const handlePrivacyChange = (
+    key: "privacyCoverPercent" | "privacyOpacity",
+    value: number,
+  ) => {
+    setSettings((s) => ({ ...s, [key]: value }));
+  };
+
+  const handlePrivacyCommit = async (
+    key: "privacyCoverPercent" | "privacyOpacity",
+    value: number,
+  ) => {
+    await window.electronAPI.updateSetting(key, value);
   };
 
   const handleHibernateChange = async (minutes: number) => {
@@ -142,6 +160,31 @@ export default function SettingsPage() {
               <option value={30}>After 30 min</option>
               <option value={60}>After 1 hour</option>
             </select>
+          </SettingRow>
+        </Section>
+
+        {/* Privacy */}
+        <Section title="Privacy">
+          <SettingRow
+            label="Privacy cover size"
+            description="How much of the page is hidden when privacy mode is on for a service"
+          >
+            <Slider
+              value={settings.privacyCoverPercent}
+              onChange={(v) => handlePrivacyChange("privacyCoverPercent", v)}
+              onCommit={(v) => handlePrivacyCommit("privacyCoverPercent", v)}
+            />
+          </SettingRow>
+
+          <SettingRow
+            label="Privacy cover opacity"
+            description="How solid the cover is — lower values let the page show through"
+          >
+            <Slider
+              value={settings.privacyOpacity}
+              onChange={(v) => handlePrivacyChange("privacyOpacity", v)}
+              onCommit={(v) => handlePrivacyCommit("privacyOpacity", v)}
+            />
           </SettingRow>
         </Section>
 
@@ -364,6 +407,39 @@ function SettingRow({
         </div>
       </div>
       <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+function Slider({
+  value,
+  onChange,
+  onCommit,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  onCommit: (value: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3" style={{ minWidth: 180 }}>
+      <input
+        type="range"
+        min={1}
+        max={100}
+        step={1}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        onPointerUp={(e) => onCommit(Number(e.currentTarget.value))}
+        onKeyUp={(e) => onCommit(Number(e.currentTarget.value))}
+        className="flex-1 cursor-pointer"
+        style={{ accentColor: "var(--accent)" }}
+      />
+      <span
+        className="text-xs tabular-nums text-right"
+        style={{ color: "var(--text-muted)", width: 34 }}
+      >
+        {value}%
+      </span>
     </div>
   );
 }

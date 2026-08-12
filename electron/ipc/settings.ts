@@ -2,6 +2,7 @@ import { app, ipcMain, dialog, Menu, BrowserWindow, WebContentsView } from "elec
 import path from "path";
 import fs from "fs";
 import { store } from "../store";
+import { refreshPrivacyOverlays } from "../serviceViews";
 
 // IPC: theme, app settings, download folder picker, custom icon storage, and
 // the native settings menu.
@@ -28,6 +29,8 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
       openFileOnFinish: store.get("openFileOnFinish"),
       downloadAlertOnFinish: store.get("downloadAlertOnFinish"),
       hibernateInactiveMinutes: store.get("hibernateInactiveMinutes"),
+      privacyCoverPercent: store.get("privacyCoverPercent"),
+      privacyOpacity: store.get("privacyOpacity"),
     };
   });
 
@@ -52,6 +55,10 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
       value >= 0
     ) {
       store.set("hibernateInactiveMinutes", Math.floor(value));
+    } else if (key === "privacyCoverPercent" || key === "privacyOpacity") {
+      if (typeof value !== "number" || !Number.isFinite(value)) return;
+      store.set(key, Math.min(100, Math.max(1, Math.round(value))));
+      refreshPrivacyOverlays();
     }
   });
 

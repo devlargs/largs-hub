@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- New "Privacy" section in Settings: sliders for how much of the page the privacy cover hides and how opaque it is. Changes apply immediately to every service with privacy mode on.
+
+- The "Download complete" alert no longer disappears on its own after a few seconds — it stays until you close it with its new ✕ button. Multiple alerts stack above one another, follow the window when you move it, and hide while the app is minimized.
+
 ## [0.1.35] (2026-08-12)
 
 - New "Privacy mode" option in a service's right-click menu: hides the top half of the service, leaving only the bottom 50% visible. The setting is remembered per service and stays applied across reloads and navigation.
@@ -19,8 +23,6 @@
 - The app now closes itself automatically after 1 hour with no interaction (no clicks, typing, scrolling or window focus/move/resize anywhere in the app). Background activity like notification checks and Messenger automations does not count as interaction, so an unattended app will still close.
 
 - Call cycle: call popups opened by the cycle now start minimized and never steal focus, so ringing doesn't interrupt what you're doing; the popup pops back up automatically once the call is answered. Calls you place manually in Messenger still open normally.
-
-## [0.1.32] (2026-07-17)
 
 ## [0.1.31] (2026-07-17)
 

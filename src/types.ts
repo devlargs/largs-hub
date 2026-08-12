@@ -7,6 +7,10 @@ export interface AppSettings {
   downloadAlertOnFinish: boolean;
   // Minutes an inactive service may idle before its view is hibernated (0 = off)
   hibernateInactiveMinutes: number;
+  // Privacy mode appearance: share of the page height the cover spans (1-100)
+  // and how opaque that cover is (1-100)
+  privacyCoverPercent: number;
+  privacyOpacity: number;
 }
 
 export interface Service {

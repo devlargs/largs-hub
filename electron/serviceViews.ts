@@ -115,21 +115,39 @@ export function removeBlurFromView(view: WebContentsView) {
   `).catch(() => {});
 }
 
-// Privacy mode: an opaque panel injected over the top half of the page, so a
-// glance at the screen only reveals the bottom 50%. Purely visual — the page
+// Privacy mode: a panel injected over the top of the page, so a glance at the
+// screen only reveals the uncovered remainder. How far down it reaches and how
+// opaque it is come from the global privacy settings. Purely visual — the page
 // underneath keeps working (the overlay never takes pointer events) — and it's
 // re-applied on every load since a navigation wipes the injected element.
 export function applyPrivacyToView(view: WebContentsView) {
   if (view.webContents.isDestroyed()) return;
+  const coverPercent = clampPercent(store.get("privacyCoverPercent"), 50);
+  const opacity = clampPercent(store.get("privacyOpacity"), 100) / 100;
   view.webContents.executeJavaScript(`
     (function() {
-      if (document.getElementById('__largs_privacy_overlay__')) return;
+      const css = 'position:fixed;top:0;left:0;width:100vw;height:${coverPercent}vh;background:#181825;opacity:${opacity};z-index:2147483647;pointer-events:none;';
+      const existing = document.getElementById('__largs_privacy_overlay__');
+      if (existing) { existing.style.cssText = css; return; }
       const el = document.createElement('div');
       el.id = '__largs_privacy_overlay__';
-      el.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:50vh;background:#181825;z-index:2147483647;pointer-events:none;';
+      el.style.cssText = css;
       document.documentElement.appendChild(el);
     })()
   `).catch(() => {});
+}
+
+function clampPercent(value: unknown, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.min(100, Math.max(1, Math.round(value)));
+}
+
+// Re-inject the overlay everywhere it's active, so a settings change takes
+// effect immediately instead of on the next navigation.
+export function refreshPrivacyOverlays() {
+  for (const [serviceId, view] of serviceViews) {
+    if (isPrivacyMode(serviceId)) applyPrivacyToView(view);
+  }
 }
 
 export function removePrivacyFromView(view: WebContentsView) {

@@ -14,7 +14,12 @@ import { registerNotionNotes } from "./notionNotes";
 import { registerUpdater } from "./updater";
 import { registerServicesIpc } from "./ipc/services";
 import { registerSettingsIpc } from "./ipc/settings";
-import { initDownloads } from "./downloads";
+import {
+  initDownloads,
+  repositionDownloadToasts,
+  closeAllDownloadToasts,
+  setDownloadToastsVisible,
+} from "./downloads";
 import { initNotificationCounts } from "./notificationCounts";
 import {
   initServiceViews,
@@ -134,6 +139,7 @@ function createWindow() {
       if (linkPreviewView) {
         linkPreviewView.setBounds(getLinkPreviewBounds());
       }
+      repositionDownloadToasts(); // toasts sit against the window's corner
     }
   });
 
@@ -147,16 +153,25 @@ function createWindow() {
     handleWindowBlur();
   });
 
+  mainWindow.on("minimize", () => setDownloadToastsVisible(false));
+  mainWindow.on("restore", () => {
+    repositionDownloadToasts();
+    setDownloadToastsVisible(true);
+  });
+
   mainWindow.on("move", () => {
     if (mainWindow) {
       noteActivity(); // the user is dragging the window
       const [x, y] = mainWindow.getPosition();
       saveBoundsDebounced({ x, y });
+      repositionDownloadToasts();
     }
   });
 
   mainWindow.on("closed", () => {
     flushBounds(); // persist any bounds still buffered by the debounce
+    // Toasts are top-level windows; leaving one open would block "window-all-closed"
+    closeAllDownloadToasts();
     stopHibernationSweep();
     stopIdleShutdown();
     mainWindow = null;
