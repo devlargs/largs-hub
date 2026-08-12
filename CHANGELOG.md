@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.36] (2026-08-12)
+
 - New "Privacy" section in Settings: sliders for how much of the page the privacy cover hides and how opaque it is. Changes apply immediately to every service with privacy mode on.
 
 - Privacy mode now has a second, horizontal cover that hides part of the page from the left edge, with its own size and opacity sliders alongside the existing (vertical) ones. Any cover size can be set to 0 to turn that cover off.
