@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.37] (2026-08-12)
+
 ## [0.1.36] (2026-08-12)
 
 - New "Privacy" section in Settings: sliders for how much of the page the privacy cover hides and how opaque it is. Changes apply immediately to every service with privacy mode on.
