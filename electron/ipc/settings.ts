@@ -31,6 +31,8 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
       hibernateInactiveMinutes: store.get("hibernateInactiveMinutes"),
       privacyCoverPercent: store.get("privacyCoverPercent"),
       privacyOpacity: store.get("privacyOpacity"),
+      privacyHorizontalPercent: store.get("privacyHorizontalPercent"),
+      privacyHorizontalOpacity: store.get("privacyHorizontalOpacity"),
     };
   });
 
@@ -55,9 +57,14 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
       value >= 0
     ) {
       store.set("hibernateInactiveMinutes", Math.floor(value));
-    } else if (key === "privacyCoverPercent" || key === "privacyOpacity") {
+    } else if (
+      key === "privacyCoverPercent" ||
+      key === "privacyOpacity" ||
+      key === "privacyHorizontalPercent" ||
+      key === "privacyHorizontalOpacity"
+    ) {
       if (typeof value !== "number" || !Number.isFinite(value)) return;
-      store.set(key, Math.min(100, Math.max(1, Math.round(value))));
+      store.set(key, Math.min(100, Math.max(0, Math.round(value))));
       refreshPrivacyOverlays();
     }
   });

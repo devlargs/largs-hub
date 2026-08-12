@@ -4,6 +4,8 @@
 
 - New "Privacy" section in Settings: sliders for how much of the page the privacy cover hides and how opaque it is. Changes apply immediately to every service with privacy mode on.
 
+- Privacy mode now has a second, horizontal cover that hides part of the page from the left edge, with its own size and opacity sliders alongside the existing (vertical) ones. Any cover size can be set to 0 to turn that cover off.
+
 - The "Download complete" alert no longer disappears on its own after a few seconds — it stays until you close it with its new ✕ button. Multiple alerts stack above one another, follow the window when you move it, and hide while the app is minimized.
 
 ## [0.1.35] (2026-08-12)

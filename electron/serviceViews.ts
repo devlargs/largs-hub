@@ -115,31 +115,53 @@ export function removeBlurFromView(view: WebContentsView) {
   `).catch(() => {});
 }
 
-// Privacy mode: a panel injected over the top of the page, so a glance at the
-// screen only reveals the uncovered remainder. How far down it reaches and how
-// opaque it is come from the global privacy settings. Purely visual — the page
-// underneath keeps working (the overlay never takes pointer events) — and it's
-// re-applied on every load since a navigation wipes the injected element.
+// Privacy mode: two panels injected over the page, so a glance at the screen
+// only reveals the uncovered remainder. The vertical cover comes down from the
+// top over a share of the page height; the horizontal one comes in from the
+// left over a share of the page width. Each has its own size and opacity in the
+// global privacy settings, and a size of 0 turns that cover off. Purely visual —
+// the page underneath keeps working (the overlays never take pointer events) —
+// and re-applied on every load since a navigation wipes the injected elements.
+const PRIVACY_VERTICAL_ID = "__largs_privacy_overlay__";
+const PRIVACY_HORIZONTAL_ID = "__largs_privacy_overlay_h__";
+
 export function applyPrivacyToView(view: WebContentsView) {
   if (view.webContents.isDestroyed()) return;
-  const coverPercent = clampPercent(store.get("privacyCoverPercent"), 50);
-  const opacity = clampPercent(store.get("privacyOpacity"), 100) / 100;
+  const verticalPercent = clampPercent(store.get("privacyCoverPercent"), 50);
+  const verticalOpacity = clampPercent(store.get("privacyOpacity"), 100) / 100;
+  const horizontalPercent = clampPercent(store.get("privacyHorizontalPercent"), 0);
+  const horizontalOpacity = clampPercent(store.get("privacyHorizontalOpacity"), 100) / 100;
+  const base = "position:fixed;top:0;left:0;background:#181825;z-index:2147483647;pointer-events:none;";
+  const verticalCss =
+    verticalPercent > 0
+      ? `${base}width:100vw;height:${verticalPercent}vh;opacity:${verticalOpacity};`
+      : "";
+  const horizontalCss =
+    horizontalPercent > 0
+      ? `${base}width:${horizontalPercent}vw;height:100vh;opacity:${horizontalOpacity};`
+      : "";
   view.webContents.executeJavaScript(`
     (function() {
-      const css = 'position:fixed;top:0;left:0;width:100vw;height:${coverPercent}vh;background:#181825;opacity:${opacity};z-index:2147483647;pointer-events:none;';
-      const existing = document.getElementById('__largs_privacy_overlay__');
-      if (existing) { existing.style.cssText = css; return; }
-      const el = document.createElement('div');
-      el.id = '__largs_privacy_overlay__';
-      el.style.cssText = css;
-      document.documentElement.appendChild(el);
+      const panels = [
+        ['${PRIVACY_VERTICAL_ID}', '${verticalCss}'],
+        ['${PRIVACY_HORIZONTAL_ID}', '${horizontalCss}'],
+      ];
+      for (const [id, css] of panels) {
+        const existing = document.getElementById(id);
+        if (!css) { if (existing) existing.remove(); continue; }
+        if (existing) { existing.style.cssText = css; continue; }
+        const el = document.createElement('div');
+        el.id = id;
+        el.style.cssText = css;
+        document.documentElement.appendChild(el);
+      }
     })()
   `).catch(() => {});
 }
 
 function clampPercent(value: unknown, fallback: number): number {
   if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
-  return Math.min(100, Math.max(1, Math.round(value)));
+  return Math.min(100, Math.max(0, Math.round(value)));
 }
 
 // Re-inject the overlay everywhere it's active, so a settings change takes
@@ -154,8 +176,10 @@ export function removePrivacyFromView(view: WebContentsView) {
   if (view.webContents.isDestroyed()) return;
   view.webContents.executeJavaScript(`
     (function() {
-      const el = document.getElementById('__largs_privacy_overlay__');
-      if (el) el.remove();
+      for (const id of ['${PRIVACY_VERTICAL_ID}', '${PRIVACY_HORIZONTAL_ID}']) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
+      }
     })()
   `).catch(() => {});
 }

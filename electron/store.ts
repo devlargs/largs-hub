@@ -40,10 +40,13 @@ export interface StoreSchema {
   // in the persist: partition, so the view reloads on next click.
   hibernateInactiveMinutes: number;
   // Privacy mode appearance (applies to every service with privacyMode on):
-  // how much of the page height the cover panel spans (1-100) and how opaque
-  // that panel is (1-100).
+  // the vertical cover spans a share of the page height from the top, the
+  // horizontal cover a share of the page width from the left. Sizes and
+  // opacities are 0-100; a size of 0 disables that cover.
   privacyCoverPercent: number;
   privacyOpacity: number;
+  privacyHorizontalPercent: number;
+  privacyHorizontalOpacity: number;
   notionNotes: Record<string, NotionNotesConfig>;
 }
 
@@ -62,6 +65,8 @@ export const store = new Store<StoreSchema>({
     hibernateInactiveMinutes: 0,
     privacyCoverPercent: 50,
     privacyOpacity: 100,
+    privacyHorizontalPercent: 0,
+    privacyHorizontalOpacity: 100,
     notionNotes: {},
   },
 });

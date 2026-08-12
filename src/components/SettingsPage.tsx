@@ -15,6 +15,8 @@ export default function SettingsPage() {
     hibernateInactiveMinutes: 0,
     privacyCoverPercent: 50,
     privacyOpacity: 100,
+    privacyHorizontalPercent: 0,
+    privacyHorizontalOpacity: 100,
   });
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
   const [currentVersion, setCurrentVersion] = useState("");
@@ -82,17 +84,17 @@ export default function SettingsPage() {
 
   // Sliders update local state on every drag frame but only persist on release,
   // so the main process isn't re-injecting the overlay on each pixel of travel.
-  const handlePrivacyChange = (
-    key: "privacyCoverPercent" | "privacyOpacity",
-    value: number,
-  ) => {
+  type PrivacyKey =
+    | "privacyCoverPercent"
+    | "privacyOpacity"
+    | "privacyHorizontalPercent"
+    | "privacyHorizontalOpacity";
+
+  const handlePrivacyChange = (key: PrivacyKey, value: number) => {
     setSettings((s) => ({ ...s, [key]: value }));
   };
 
-  const handlePrivacyCommit = async (
-    key: "privacyCoverPercent" | "privacyOpacity",
-    value: number,
-  ) => {
+  const handlePrivacyCommit = async (key: PrivacyKey, value: number) => {
     await window.electronAPI.updateSetting(key, value);
   };
 
@@ -166,8 +168,8 @@ export default function SettingsPage() {
         {/* Privacy */}
         <Section title="Privacy">
           <SettingRow
-            label="Privacy cover size"
-            description="How much of the page is hidden when privacy mode is on for a service"
+            label="Vertical cover size"
+            description="How much of the page height is hidden from the top (0 = off)"
           >
             <Slider
               value={settings.privacyCoverPercent}
@@ -177,13 +179,35 @@ export default function SettingsPage() {
           </SettingRow>
 
           <SettingRow
-            label="Privacy cover opacity"
-            description="How solid the cover is — lower values let the page show through"
+            label="Vertical cover opacity"
+            description="How solid the top cover is — lower values let the page show through"
           >
             <Slider
               value={settings.privacyOpacity}
               onChange={(v) => handlePrivacyChange("privacyOpacity", v)}
               onCommit={(v) => handlePrivacyCommit("privacyOpacity", v)}
+            />
+          </SettingRow>
+
+          <SettingRow
+            label="Horizontal cover size"
+            description="How much of the page width is hidden from the left (0 = off)"
+          >
+            <Slider
+              value={settings.privacyHorizontalPercent}
+              onChange={(v) => handlePrivacyChange("privacyHorizontalPercent", v)}
+              onCommit={(v) => handlePrivacyCommit("privacyHorizontalPercent", v)}
+            />
+          </SettingRow>
+
+          <SettingRow
+            label="Horizontal cover opacity"
+            description="How solid the left cover is — lower values let the page show through"
+          >
+            <Slider
+              value={settings.privacyHorizontalOpacity}
+              onChange={(v) => handlePrivacyChange("privacyHorizontalOpacity", v)}
+              onCommit={(v) => handlePrivacyCommit("privacyHorizontalOpacity", v)}
             />
           </SettingRow>
         </Section>
@@ -424,7 +448,7 @@ function Slider({
     <div className="flex items-center gap-3" style={{ minWidth: 180 }}>
       <input
         type="range"
-        min={1}
+        min={0}
         max={100}
         step={1}
         value={value}
