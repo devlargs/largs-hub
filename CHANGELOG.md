@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- The Settings page now adapts to narrow windows: each setting's control drops below its label instead of being squashed, sliders stretch to the available width, long paths wrap instead of being cut off, and the page padding tightens up.
+
 ## [0.1.37] (2026-08-12)
 
 ## [0.1.36] (2026-08-12)

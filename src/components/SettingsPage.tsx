@@ -104,15 +104,20 @@ export default function SettingsPage() {
   };
 
   return (
+    // @container so the layout below responds to the width of the settings pane
+    // itself (the window minus the sidebar), not the whole viewport.
     <div
-      className="overflow-auto"
+      className="@container overflow-auto"
       style={{
         backgroundColor: "var(--surface)",
         width: "100%",
         height: "100%",
       }}
     >
-      <div style={{ maxWidth: 640, margin: "0 auto", padding: "32px 24px" }}>
+      <div
+        className="px-4 py-6 @lg:px-6 @lg:py-8"
+        style={{ maxWidth: 640, margin: "0 auto" }}
+      >
         <h1
           className="text-xl font-semibold"
           style={{ color: "var(--text-primary)", marginBottom: 32 }}
@@ -303,7 +308,7 @@ export default function SettingsPage() {
             }
           >
             {updateStatus === "downloading" ? (
-              <div className="flex items-center gap-3" style={{ minWidth: 160 }}>
+              <div className="flex w-full items-center gap-3 @lg:w-auto @lg:min-w-[160px]">
                 <div
                   className="flex-1 rounded-full"
                   style={{ height: 6, backgroundColor: "var(--border)" }}
@@ -412,11 +417,13 @@ function SettingRow({
   children: React.ReactNode;
 }) {
   return (
+    // Narrow windows stack the control under its label; from `sm` up the row
+    // goes back to label-left / control-right.
     <div
-      className="flex items-center justify-between rounded-lg"
+      className="flex flex-col items-stretch gap-2 rounded-lg @lg:flex-row @lg:items-center @lg:justify-between @lg:gap-4"
       style={{ padding: "12px 14px" }}
     >
-      <div style={{ marginRight: 16, minWidth: 0, flex: 1 }}>
+      <div style={{ minWidth: 0, flex: 1 }}>
         <div
           className="text-sm font-medium"
           style={{ color: "var(--text-primary)" }}
@@ -424,13 +431,13 @@ function SettingRow({
           {label}
         </div>
         <div
-          className="text-xs truncate"
+          className="text-xs break-words @lg:truncate"
           style={{ color: statusColor || "var(--text-muted)", marginTop: 2 }}
         >
           {description}
         </div>
       </div>
-      <div className="shrink-0">{children}</div>
+      <div className="flex justify-end @lg:block @lg:shrink-0">{children}</div>
     </div>
   );
 }
@@ -445,7 +452,7 @@ function Slider({
   onCommit: (value: number) => void;
 }) {
   return (
-    <div className="flex items-center gap-3" style={{ minWidth: 180 }}>
+    <div className="flex w-full items-center gap-3 @lg:w-auto @lg:min-w-[180px]">
       <input
         type="range"
         min={0}
@@ -455,7 +462,7 @@ function Slider({
         onChange={(e) => onChange(Number(e.target.value))}
         onPointerUp={(e) => onCommit(Number(e.currentTarget.value))}
         onKeyUp={(e) => onCommit(Number(e.currentTarget.value))}
-        className="flex-1 cursor-pointer"
+        className="min-w-0 flex-1 cursor-pointer"
         style={{ accentColor: "var(--accent)" }}
       />
       <span
