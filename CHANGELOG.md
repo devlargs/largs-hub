@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- New "Privacy mode" option in a service's right-click menu: hides the top half of the service, leaving only the bottom 50% visible. The setting is remembered per service and stays applied across reloads and navigation.
+
 ## [0.1.34] (2026-08-08)
 
 - Fixed the in-app updater not reopening the app after installing an update — the silent installer now relaunches Largs Hub when it finishes.

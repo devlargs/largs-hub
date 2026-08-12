@@ -16,6 +16,9 @@ export interface Service {
   enabled?: boolean;
   notificationsEnabled?: boolean;
   blurWhenInactive?: boolean;
+  // Privacy mode: cover the top half of the service page so only the bottom
+  // 50% is readable to onlookers
+  privacyMode?: boolean;
   // Internal services (e.g. "notion-notes") render as React pages in the UI
   // view instead of getting a WebContentsView
   type?: "notion-notes";
@@ -86,6 +89,8 @@ export function sanitizeService(raw: unknown): Service | null {
     muted: s.muted === true,
     enabled: s.enabled !== false,
     notificationsEnabled: s.notificationsEnabled !== false,
+    blurWhenInactive: s.blurWhenInactive === true,
+    privacyMode: s.privacyMode === true,
     ...(s.type === "notion-notes" ? { type: "notion-notes" as const } : {}),
   };
 }

@@ -10,6 +10,8 @@ export interface Service {
   muted?: boolean;
   enabled?: boolean;
   notificationsEnabled?: boolean;
+  blurWhenInactive?: boolean;
+  privacyMode?: boolean;
   type?: "notion-notes";
 }
 

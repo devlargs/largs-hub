@@ -20,6 +20,8 @@ export interface Service {
   enabled?: boolean;
   notificationsEnabled?: boolean;
   blurWhenInactive?: boolean;
+  // Covers the top half of the service page so only the bottom 50% is visible
+  privacyMode?: boolean;
   // Internal services (e.g. "notion-notes") render as React pages instead of
   // getting a WebContentsView in the main process
   type?: "notion-notes";

@@ -8,6 +8,8 @@ import {
   isWindowFocused,
   applyBlurToView,
   removeBlurFromView,
+  applyPrivacyToView,
+  removePrivacyFromView,
 } from "../serviceViews";
 
 // IPC: service CRUD, per-service toggles, view navigation, and the native
@@ -242,6 +244,27 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
               if (blurWhenInactive) applyBlurToView(view);
               else removeBlurFromView(view);
             }
+          }
+        },
+      },
+      {
+        label: "Privacy mode",
+        type: "checkbox",
+        checked: service.privacyMode === true,
+        click: () => {
+          const svc = store.get("services").find((s) => s.id === serviceId);
+          if (!svc) return;
+          const privacyMode = !svc.privacyMode;
+          const updated = store.get("services").map((s) =>
+            s.id === serviceId ? { ...s, privacyMode } : s,
+          );
+          store.set("services", updated);
+          sendUpdated();
+          // Apply/remove the cover on the live view immediately
+          const view = getServiceView(serviceId);
+          if (view && !view.webContents.isDestroyed()) {
+            if (privacyMode) applyPrivacyToView(view);
+            else removePrivacyFromView(view);
           }
         },
       },

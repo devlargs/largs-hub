@@ -115,6 +115,37 @@ export function removeBlurFromView(view: WebContentsView) {
   `).catch(() => {});
 }
 
+// Privacy mode: an opaque panel injected over the top half of the page, so a
+// glance at the screen only reveals the bottom 50%. Purely visual — the page
+// underneath keeps working (the overlay never takes pointer events) — and it's
+// re-applied on every load since a navigation wipes the injected element.
+export function applyPrivacyToView(view: WebContentsView) {
+  if (view.webContents.isDestroyed()) return;
+  view.webContents.executeJavaScript(`
+    (function() {
+      if (document.getElementById('__largs_privacy_overlay__')) return;
+      const el = document.createElement('div');
+      el.id = '__largs_privacy_overlay__';
+      el.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:50vh;background:#181825;z-index:2147483647;pointer-events:none;';
+      document.documentElement.appendChild(el);
+    })()
+  `).catch(() => {});
+}
+
+export function removePrivacyFromView(view: WebContentsView) {
+  if (view.webContents.isDestroyed()) return;
+  view.webContents.executeJavaScript(`
+    (function() {
+      const el = document.getElementById('__largs_privacy_overlay__');
+      if (el) el.remove();
+    })()
+  `).catch(() => {});
+}
+
+function isPrivacyMode(serviceId: string): boolean {
+  return store.get("services").find((s) => s.id === serviceId)?.privacyMode === true;
+}
+
 // When the window regains focus (e.g. Alt+Tab), focus the active service view
 // so keyboard input goes to it (e.g. typing in a Messenger chat)
 export function handleWindowFocus() {
@@ -517,6 +548,12 @@ function createServiceView(service: Service): WebContentsView {
 
   hookDownloadSession(view, partition);
 
+  // A navigation/reload drops the injected overlay, so re-apply it per load
+  // (read from the store — the captured `service` goes stale after an edit).
+  view.webContents.on("dom-ready", () => {
+    if (isPrivacyMode(service.id)) applyPrivacyToView(view);
+  });
+
   // Context menu for service views
   view.webContents.on("context-menu", (_event, params) => {
     const menuItems: Electron.MenuItemConstructorOptions[] = [];
@@ -818,6 +855,8 @@ export function showService(serviceId: string) {
 
   view.setVisible(true);
   view.setBounds(getViewBounds());
+  if (isPrivacyMode(serviceId)) applyPrivacyToView(view);
+  else removePrivacyFromView(view);
   if (windowFocused) {
     view.webContents.focus();
   } else {
