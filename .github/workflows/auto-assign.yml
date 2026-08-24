@@ -1,0 +1,27 @@
+name: Auto-assign issues
+
+on:
+  issues:
+    types: [opened, reopened]
+
+permissions:
+  issues: write
+
+# Assignment is per issue, so runs for different issues must not cancel each
+# other — only a repeat run for the same issue is superseded.
+concurrency:
+  group: auto-assign-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  assign:
+    runs-on: ubuntu-latest
+    # An issue reopened after being handed to someone else keeps its assignee.
+    if: github.event.issue.assignees[0] == null
+    steps:
+      - name: Assign to devlargs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: gh issue edit "$ISSUE" --add-assignee devlargs
