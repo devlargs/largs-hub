@@ -1,7 +1,7 @@
 import Store from "electron-store";
 import { PomodoroData, PomodoroNotionConfig } from "./tasks";
 import { MessageListGroup } from "./messageLists";
-import type { InternalServiceType, Service } from "./shared/types";
+import type { Service } from "./shared/types";
 
 // Persistent app state (electron-store) and the shapes stored in it.
 // The Service interface is intentionally duplicated in preload.ts and
@@ -96,40 +96,6 @@ if (legacyStore.has("notionNotes")) {
   legacyStore.delete("notionNotes");
 }
 
-// --- Stored-shape validation -------------------------------------------------
-// IPC payload types are compile-time only; validate shapes at runtime before
-// touching the store or creating views.
-
-export function isSafeServiceUrl(url: unknown): url is string {
-  if (typeof url !== "string") return false;
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-export function sanitizeService(raw: unknown): Service | null {
-  if (typeof raw !== "object" || raw === null) return null;
-  const s = raw as Record<string, unknown>;
-  if (typeof s.id !== "string" || s.id.length === 0) return null;
-  if (typeof s.name !== "string" || s.name.length === 0) return null;
-  const type: InternalServiceType | undefined =
-    s.type === "pomodoro" || s.type === "notion-notes" ? s.type : undefined;
-  if (!type && !isSafeServiceUrl(s.url)) return null;
-  return {
-    id: s.id,
-    name: s.name,
-    url: typeof s.url === "string" ? s.url : "",
-    icon: typeof s.icon === "string" ? s.icon : "",
-    color: typeof s.color === "string" ? s.color : "#888888",
-    notificationCount: 0,
-    muted: s.muted === true,
-    enabled: s.enabled !== false,
-    notificationsEnabled: s.notificationsEnabled !== false,
-    blurWhenInactive: s.blurWhenInactive === true,
-    privacyMode: s.privacyMode === true,
-    ...(type ? { type } : {}),
-  };
-}
+// Shape validation lives in serviceSchema.ts (pure, unit-tested); re-exported
+// here so existing `from "./store"` imports keep working.
+export { isSafeServiceUrl, sanitizeService } from "./serviceSchema";

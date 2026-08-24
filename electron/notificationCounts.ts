@@ -1,5 +1,6 @@
 import { BrowserWindow, WebContentsView, nativeImage } from "electron";
 import { badgeLabel, renderBadgePng } from "./badgeImage";
+import { PendingDecrease, shouldAcceptCount } from "./badgeDebounce";
 
 // Notification-count state and badge rendering, separated from count
 // *extraction* (issue #46). Extraction sources — title parsing, DOM poll
@@ -16,10 +17,10 @@ interface NotificationCountDeps {
 }
 
 const counts = new Map<string, number>();
-// Require several consecutive lower readings before accepting a decrease, so
-// badges don't blink to 0 during page transitions mid-poll.
-const pendingDecrease = new Map<string, { count: number; streak: number }>();
-const DECREASE_THRESHOLD = 2;
+// Debounce state for decreases (badgeDebounce.ts): several consecutive lower
+// readings are needed before a badge drops, so it doesn't blink to 0 during
+// page transitions mid-poll.
+const pendingDecrease = new Map<string, PendingDecrease>();
 
 let deps: NotificationCountDeps | null = null;
 
@@ -37,24 +38,7 @@ export function reportNotificationCount(serviceId: string, count: number) {
   }
 
   const prev = counts.get(serviceId) || 0;
-  if (count === prev) {
-    pendingDecrease.delete(serviceId);
-    return;
-  }
-
-  if (count < prev) {
-    const pending = pendingDecrease.get(serviceId);
-    if (pending && pending.count === count) {
-      pending.streak++;
-      if (pending.streak < DECREASE_THRESHOLD) return;
-    } else {
-      pendingDecrease.set(serviceId, { count, streak: 1 });
-      return;
-    }
-    pendingDecrease.delete(serviceId);
-  } else {
-    pendingDecrease.delete(serviceId);
-  }
+  if (!shouldAcceptCount(pendingDecrease, serviceId, prev, count).accept) return;
 
   const wasIncrease = count > prev;
   counts.set(serviceId, count);
