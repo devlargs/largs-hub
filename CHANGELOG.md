@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Security: a link to a lookalike domain (`evilnotion.so` for a Notion service) could open inside the logged-in service tab, with that tab's cookies and permissions. Domain matching now requires a real boundary, so only the service's own domain and known sign-in providers load in place.
+
 - Removed an unused update screen, a duplicate copy of the service icons, and a stored setting nothing read. No visible change — the duplicates were dead weight that made edits look like they did nothing.
 
 - The app reopens on the service you were last using instead of always starting on the Welcome screen. If that service has since been removed or disabled, you get the Welcome screen as before.

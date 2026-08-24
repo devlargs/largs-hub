@@ -1,6 +1,7 @@
 import { BrowserWindow, WebContentsView, Menu } from "electron";
 import { shell } from "electron";
 import { store, Service, isSafeServiceUrl, isInternalService } from "./store";
+import { shouldKeepInView } from "./navigationPolicy";
 import { hookDownloadSession } from "./downloads";
 import { findBadgeAdapter, buildPollScript, parseTitleCount } from "./badge-adapters";
 import { messengerAdapter } from "./badge-adapters/messenger";
@@ -733,32 +734,8 @@ function createServiceView(service: Service): WebContentsView {
   // guard below. A URL "stays in view" only if it's the service's own domain or
   // an allowlisted auth provider; everything else is treated as an external
   // link and opened in the in-app preview popup.
-  const inViewAllowedDomains = [
-    "google.com", "googleapis.com", "gstatic.com",
-    "facebook.com", "fbcdn.net", "messenger.com",
-    "apple.com", "icloud.com",
-    "microsoft.com", "live.com", "microsoftonline.com",
-    "github.com",
-    "slack.com",
-    "discord.com", "discordapp.com",
-    "telegram.org",
-    "linkedin.com",
-    "twitter.com", "x.com",
-    "notion.so", "notion-static.com",
-    "reddit.com", "redditstatic.com",
-    "whatsapp.com", "whatsapp.net",
-  ];
-  const keepInView = (targetUrl: string): boolean => {
-    try {
-      const host = new URL(targetUrl).hostname.replace(/^www\./, "");
-      const isServiceDomain =
-        !!serviceHost && (host.endsWith(serviceHost) || serviceHost.endsWith(host));
-      const isAllowed = inViewAllowedDomains.some((d) => host === d || host.endsWith("." + d));
-      return isServiceDomain || isAllowed;
-    } catch {
-      return false;
-    }
-  };
+  const keepInView = (targetUrl: string): boolean =>
+    shouldKeepInView(targetUrl, serviceHost);
 
   // Popups: keep same-domain/auth popups in the view. External http(s) links are
   // ignored on click — they neither redirect the service nor open the system
