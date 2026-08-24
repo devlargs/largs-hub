@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fixed the **Sound** item in a service's right-click menu toggling from stale state: if the service was muted or unmuted elsewhere while the menu sat open, clicking Sound could set it back to what the menu showed instead of flipping the current value. All five per-service toggles now share one implementation, so the menu and the rest of the app can't disagree again.
+
 - Internal: the data types passed between the app's window and its background process are now declared once and shared, instead of being written out three times with nothing checking they matched. No visible change — a mismatch that used to surface as a runtime bug is now a compile error.
 
 - Internal: the layout numbers that keep native views lined up with the interface around them (sidebar width, titlebar height, link-preview geometry) now come from one shared module instead of being typed out separately in each layer. No visible change — it removes a class of misalignment bug.

@@ -23,6 +23,14 @@ import { getNotificationCounts } from "../notificationCounts";
 import { forgetPomodoroService } from "../tasks";
 import { stopTimerForService } from "../pomodoroTimer";
 import { clearServiceSessionData } from "../partitions";
+import {
+  applyServicePatch,
+  nextBlurWhenInactive,
+  nextEnabled,
+  nextMuted,
+  nextNotificationsEnabled,
+  nextPrivacyMode,
+} from "../serviceFlags";
 
 // IPC: service CRUD, per-service toggles, view navigation, and the native
 // service context menu.
@@ -30,6 +38,79 @@ import { clearServiceSessionData } from "../partitions";
 interface ServicesIpcDeps {
   getMainWindow(): BrowserWindow | null;
   getUiView(): WebContentsView | null;
+}
+
+// --- Per-service flag toggles ------------------------------------------------
+// Every per-service flag (enabled, muted, notifications, blur, privacy) used to
+// be written out twice — once as an IPC handler, once as a context-menu item —
+// with five near-identical copies of the same map/set/push, and the two copies
+// had already drifted (issue #83).
+//
+// The store is re-read inside the patch rather than closed over: a native menu
+// can sit open while the state underneath it changes, so a captured `service`
+// goes stale. Returns the updated list, or null if the service is gone.
+function patchService(
+  serviceId: string,
+  patch: (service: Service) => Partial<Service>,
+): Service[] | null {
+  const updated = applyServicePatch(store.get("services"), serviceId, patch);
+  if (!updated) return null;
+  store.set("services", updated);
+  return updated;
+}
+
+// The five per-service toggles, each pairing the store patch with its live-view
+// side effect. Both the IPC handlers and the native context menu call these, so
+// the two paths can't drift again.
+
+function toggleEnabled(serviceId: string): Service[] | null {
+  const updated = patchService(serviceId, nextEnabled);
+  if (!updated) return null;
+  // Disabling frees the view (and its badge); enabling just lets it be recreated.
+  if (updated.find((s) => s.id === serviceId)?.enabled === false) {
+    destroyServiceView(serviceId, { clearCounts: true });
+  }
+  return updated;
+}
+
+function toggleMute(serviceId: string): Service[] | null {
+  const updated = patchService(serviceId, nextMuted);
+  if (!updated) return null;
+  const view = getServiceView(serviceId);
+  if (view && !view.webContents.isDestroyed()) {
+    view.webContents.setAudioMuted(updated.find((s) => s.id === serviceId)?.muted === true);
+  }
+  return updated;
+}
+
+function toggleNotifications(serviceId: string): Service[] | null {
+  // No live-view side effect: the flag is read when a count is reported.
+  return patchService(serviceId, nextNotificationsEnabled);
+}
+
+function toggleBlurWhenInactive(serviceId: string): Service[] | null {
+  const updated = patchService(serviceId, nextBlurWhenInactive);
+  if (!updated) return null;
+  // Only visible right now if the window is already unfocused.
+  if (!isWindowFocused()) {
+    const view = getServiceView(serviceId);
+    if (view && !view.webContents.isDestroyed()) {
+      if (updated.find((s) => s.id === serviceId)?.blurWhenInactive) applyBlurToView(view);
+      else removeBlurFromView(view);
+    }
+  }
+  return updated;
+}
+
+function togglePrivacyMode(serviceId: string): Service[] | null {
+  const updated = patchService(serviceId, nextPrivacyMode);
+  if (!updated) return null;
+  const view = getServiceView(serviceId);
+  if (view && !view.webContents.isDestroyed()) {
+    if (updated.find((s) => s.id === serviceId)?.privacyMode) applyPrivacyToView(view);
+    else removePrivacyFromView(view);
+  }
+  return updated;
 }
 
 export function registerServicesIpc(deps: ServicesIpcDeps) {
@@ -95,50 +176,19 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
   });
 
   ipcMain.handle("toggle-mute-service", (_event, serviceId: string) => {
-    const services = store.get("services");
-    const updated = services.map((s) => {
-      if (s.id === serviceId) {
-        const muted = !s.muted;
-        // Apply mute to the live view
-        const view = getServiceView(serviceId);
-        if (view) {
-          view.webContents.setAudioMuted(muted);
-        }
-        return { ...s, muted };
-      }
-      return s;
-    });
-    store.set("services", updated);
-    return updated;
+    return toggleMute(serviceId) ?? store.get("services");
   });
 
   ipcMain.handle("toggle-service-enabled", (_event, serviceId: string) => {
-    const services = store.get("services");
-    const updated = services.map((s) => {
-      if (s.id === serviceId) {
-        const enabled = s.enabled === false; // toggle: undefined/true -> false, false -> true
-        if (!enabled) {
-          // Destroy the view when disabling
-          destroyServiceView(serviceId, { clearCounts: true });
-        }
-        return { ...s, enabled };
-      }
-      return s;
-    });
-    store.set("services", updated);
-    return updated;
+    return toggleEnabled(serviceId) ?? store.get("services");
   });
 
   ipcMain.handle("toggle-service-notifications", (_event, serviceId: string) => {
-    const services = store.get("services");
-    const updated = services.map((s) => {
-      if (s.id === serviceId) {
-        return { ...s, notificationsEnabled: s.notificationsEnabled === false };
-      }
-      return s;
-    });
-    store.set("services", updated);
-    return updated;
+    return (
+      patchService(serviceId, (s) => ({
+        notificationsEnabled: s.notificationsEnabled === false,
+      })) ?? store.get("services")
+    );
   });
 
   ipcMain.on("show-service", (_event, serviceId: string) => {
@@ -256,22 +306,15 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
         type: "checkbox",
         checked: service.enabled !== false,
         click: () => {
-          const svc = store.get("services").find((s) => s.id === serviceId);
-          if (!svc) return;
-          const enabled = svc.enabled === false;
-          if (!enabled) {
-            destroyServiceView(serviceId, { clearCounts: true });
-          }
-          const updated = store
-            .get("services")
-            .map((s) => (s.id === serviceId ? { ...s, enabled } : s));
-          store.set("services", updated);
-          deps.getUiView()?.webContents.send("services-updated", updated);
-          // If re-enabling the active service, show it
-          if (enabled) {
-            deps
-              .getUiView()
-              ?.webContents.send("context-menu-action", { action: "show-service", serviceId });
+          const updated = toggleEnabled(serviceId);
+          if (!updated) return;
+          sendUpdated();
+          // If re-enabling, bring the service back on screen.
+          if (updated.find((s) => s.id === serviceId)?.enabled !== false) {
+            deps.getUiView()?.webContents.send("context-menu-action", {
+              action: "show-service",
+              serviceId,
+            });
           }
         },
       },
@@ -280,14 +323,7 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
         type: "checkbox",
         checked: !service.muted,
         click: () => {
-          const muted = !service.muted;
-          const view = getServiceView(serviceId);
-          if (view) view.webContents.setAudioMuted(muted);
-          const updated = store
-            .get("services")
-            .map((s) => (s.id === serviceId ? { ...s, muted } : s));
-          store.set("services", updated);
-          sendUpdated();
+          if (toggleMute(serviceId)) sendUpdated();
         },
       },
       {
@@ -295,15 +331,7 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
         type: "checkbox",
         checked: service.notificationsEnabled !== false,
         click: () => {
-          const updated = store
-            .get("services")
-            .map((s) =>
-              s.id === serviceId
-                ? { ...s, notificationsEnabled: s.notificationsEnabled === false }
-                : s,
-            );
-          store.set("services", updated);
-          sendUpdated();
+          if (toggleNotifications(serviceId)) sendUpdated();
         },
       },
       {
@@ -311,22 +339,7 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
         type: "checkbox",
         checked: service.blurWhenInactive === true,
         click: () => {
-          const svc = store.get("services").find((s) => s.id === serviceId);
-          if (!svc) return;
-          const blurWhenInactive = !svc.blurWhenInactive;
-          const updated = store
-            .get("services")
-            .map((s) => (s.id === serviceId ? { ...s, blurWhenInactive } : s));
-          store.set("services", updated);
-          sendUpdated();
-          // Apply/remove blur immediately if the window is already unfocused
-          if (!isWindowFocused()) {
-            const view = getServiceView(serviceId);
-            if (view && !view.webContents.isDestroyed()) {
-              if (blurWhenInactive) applyBlurToView(view);
-              else removeBlurFromView(view);
-            }
-          }
+          if (toggleBlurWhenInactive(serviceId)) sendUpdated();
         },
       },
       {
@@ -334,20 +347,7 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
         type: "checkbox",
         checked: service.privacyMode === true,
         click: () => {
-          const svc = store.get("services").find((s) => s.id === serviceId);
-          if (!svc) return;
-          const privacyMode = !svc.privacyMode;
-          const updated = store
-            .get("services")
-            .map((s) => (s.id === serviceId ? { ...s, privacyMode } : s));
-          store.set("services", updated);
-          sendUpdated();
-          // Apply/remove the cover on the live view immediately
-          const view = getServiceView(serviceId);
-          if (view && !view.webContents.isDestroyed()) {
-            if (privacyMode) applyPrivacyToView(view);
-            else removePrivacyFromView(view);
-          }
+          if (togglePrivacyMode(serviceId)) sendUpdated();
         },
       },
       { type: "separator" },
