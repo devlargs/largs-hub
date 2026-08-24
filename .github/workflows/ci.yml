@@ -5,6 +5,12 @@ on:
   push:
     branches: [main]
 
+# Only the newest commit on a branch or PR is worth checking. A newer push
+# cancels the run still in flight and the checks start again on that commit.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   checks:
     runs-on: ubuntu-latest
