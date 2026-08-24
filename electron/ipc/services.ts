@@ -17,6 +17,7 @@ import {
   getServiceZoom,
   setServiceZoom,
   stepServiceZoom,
+  getAutomationPanelWidth,
 } from "../serviceViews";
 import { getNotificationCounts } from "../notificationCounts";
 import { forgetPomodoroService } from "../tasks";
@@ -194,6 +195,10 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
   ipcMain.on("stop-find-in-page", (_event, serviceId: string) => {
     if (typeof serviceId === "string") stopFindInService(serviceId);
   });
+
+  // The width main reserved for the Messenger automation panel, read once on
+  // mount; later changes arrive on the automation-split-width event.
+  ipcMain.handle("get-automation-split-width", (): number => getAutomationPanelWidth());
 
   // --- Zoom ------------------------------------------------------------------
 

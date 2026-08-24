@@ -9,16 +9,16 @@ interface MessengerAutomationPanelProps {
   onClose: () => void;
 }
 
-// The panel takes the right share of a 70/30 split. Both these constants must
-// match the main process (AUTOMATION_SPLIT_RATIO, SIDEBAR_WIDTH, TITLEBAR_HEIGHT
-// in main.ts) so the service pane and this panel align exactly.
-const AUTOMATION_SPLIT_RATIO = 0.3;
-const SIDEBAR_WIDTH = 68;
+// The panel takes the right share of a split with the service view. Main owns
+// that calculation (electron/automationLayout.ts) and pushes the width here, so
+// the panel always covers exactly the strip main reserved for it — no formula
+// duplicated across the two layers. TITLEBAR_HEIGHT still has to match
+// serviceViews.ts, since the panel starts below the titlebar.
 const TITLEBAR_HEIGHT = 46;
-
-function computePanelWidth(): number {
-  return Math.round((window.innerWidth - SIDEBAR_WIDTH) * AUTOMATION_SPLIT_RATIO);
-}
+// Used only for the first paint, before main's width arrives.
+const FALLBACK_PANEL_WIDTH = 340;
+// Below this the two-column rows are cramped, so they stack instead.
+const NARROW_PANEL_WIDTH = 340;
 
 type TaskType = TaskSpec["type"];
 
@@ -93,7 +93,7 @@ export default function MessengerAutomationPanel({
 }: MessengerAutomationPanelProps) {
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [panelWidth, setPanelWidth] = useState(computePanelWidth);
+  const [panelWidth, setPanelWidth] = useState(FALLBACK_PANEL_WIDTH);
   const [selectedType, setSelectedType] = useState<TaskType>("sendChatMessage");
   const [message, setMessage] = useState("");
   const [time, setTime] = useState("00:00");
@@ -124,12 +124,21 @@ export default function MessengerAutomationPanel({
     requestAnimationFrame(() => setVisible(true));
   }, []);
 
-  // Recompute our share of the split on window resize so we stay aligned with
-  // the service pane (the main process resizes it from the same ratio).
+  // Follow the width main reserved for us: read it on mount, then track the
+  // pushes it sends on every window resize. A width of 0 means the split isn't
+  // open yet, so keep the fallback rather than collapsing to nothing.
   useEffect(() => {
-    const onResize = () => setPanelWidth(computePanelWidth());
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    let cancelled = false;
+    window.electronAPI?.messengerAutomation.getSplitWidth().then((width) => {
+      if (!cancelled && width > 0) setPanelWidth(width);
+    });
+    const unsubscribe = window.electronAPI?.messengerAutomation.onSplitWidthChanged((width) => {
+      if (width > 0) setPanelWidth(width);
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, []);
 
   const handleClose = useCallback(() => {
@@ -306,6 +315,11 @@ export default function MessengerAutomationPanel({
     (selectedType !== "sendEmoji" || emoji.trim().length > 0) &&
     (selectedType !== "sendRandomFromList" || listGroup !== null);
 
+  // At the narrow end the side-by-side rows stop fitting; stack them instead of
+  // squeezing two number inputs into ~130px each.
+  const narrow = panelWidth < NARROW_PANEL_WIDTH;
+  const rowClass = narrow ? "flex flex-col" : "flex";
+
   const helperText: Partial<Record<TaskType, string>> = {
     sendChatMessage: "Sends into the conversation currently open in Messenger.",
     sendChat: "Fires at the chosen time — if it already passed today, it fires tomorrow.",
@@ -413,7 +427,7 @@ export default function MessengerAutomationPanel({
           )}
 
           {selectedType === "sendEmoji" && (
-            <div className="flex" style={{ gap: 8 }}>
+            <div className={rowClass} style={{ gap: 8 }}>
               <div className="flex flex-col flex-1" style={{ gap: 4 }}>
                 <label className="text-xs font-medium" style={labelStyle}>
                   Emoji
@@ -426,7 +440,7 @@ export default function MessengerAutomationPanel({
                   style={inputStyle}
                 />
               </div>
-              <div className="flex flex-col" style={{ gap: 4, width: 100 }}>
+              <div className="flex flex-col" style={{ gap: 4, width: narrow ? "100%" : 100 }}>
                 <label className="text-xs font-medium" style={labelStyle}>
                   Max repeat
                 </label>
@@ -479,7 +493,7 @@ export default function MessengerAutomationPanel({
           )}
 
           {needsInterval && (
-            <div className="flex" style={{ gap: 8 }}>
+            <div className={rowClass} style={{ gap: 8 }}>
               <div className="flex flex-col flex-1" style={{ gap: 4 }}>
                 <label className="text-xs font-medium" style={labelStyle}>
                   Min seconds

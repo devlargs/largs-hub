@@ -12,6 +12,7 @@ import {
 } from "./notificationCounts";
 import { trackInputActivity } from "./idleShutdown";
 import { DEFAULT_ZOOM, nextZoom, sanitizeZoom } from "./zoom";
+import { computeAutomationLayout } from "./automationLayout";
 
 // Service-view lifecycle: creation (with UA spoofing, permission policy,
 // notification extraction, popup handling), show/hide switching, hibernation,
@@ -62,11 +63,12 @@ const ZOOM_KEYS: Record<string, "in" | "out" | "reset"> = {
 
 // When the Messenger automation panel is open the layout splits into a
 // service pane (left) and the panel (right). The service view is resized to
-// the left share so it stays visible instead of being hidden. The renderer
-// computes the same ratio for the panel so the two panes always align.
-// Keep AUTOMATION_SPLIT_RATIO in sync with MessengerAutomationPanel.tsx.
+// the left share so it stays visible instead of being hidden.
+//
+// The split is computed here and pushed to the renderer (automationLayout.ts),
+// so the panel renders exactly the width main reserved for it instead of both
+// sides recomputing a formula that can drift.
 let automationSplitOpen = false;
-const AUTOMATION_SPLIT_RATIO = 0.3;
 
 export function getServiceView(serviceId: string): WebContentsView | undefined {
   return serviceViews.get(serviceId);
@@ -83,6 +85,21 @@ export function isWindowFocused(): boolean {
 export function setAutomationSplitOpen(open: boolean) {
   automationSplitOpen = open;
   repositionActiveView();
+  pushAutomationWidth();
+}
+
+// The panel's width, for the renderer. 0 when the split is closed.
+export function getAutomationPanelWidth(): number {
+  const mainWindow = deps?.getMainWindow();
+  if (!automationSplitOpen || !mainWindow) return 0;
+  const [width] = mainWindow.getContentSize();
+  return computeAutomationLayout(Math.max(0, width - SIDEBAR_WIDTH)).panelWidth;
+}
+
+// Tell the renderer how wide to draw itself. Sent on open/close and on every
+// window resize, so the panel and the service pane can never disagree.
+export function pushAutomationWidth() {
+  deps?.getUiView()?.webContents.send("automation-split-width", getAutomationPanelWidth());
 }
 
 // Reserve (or release) the find bar's strip at the top of the service pane.
@@ -169,7 +186,7 @@ function getAutomationInset() {
   const mainWindow = deps?.getMainWindow();
   if (!automationSplitOpen || !mainWindow) return 0;
   const [width] = mainWindow.getContentSize();
-  return Math.round((width - SIDEBAR_WIDTH) * AUTOMATION_SPLIT_RATIO);
+  return computeAutomationLayout(Math.max(0, width - SIDEBAR_WIDTH)).panelWidth;
 }
 
 function getViewBounds() {

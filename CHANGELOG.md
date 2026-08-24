@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- The Messenger automation panel now sizes itself to the window. It no longer shrinks to an unusable sliver on a small window or stretch into a half-empty wall of form on a large display, its side-by-side fields stack when space is tight, and on a very narrow window it takes the whole pane instead of leaving a useless strip of Messenger beside it.
+
 - New issues opened on GitHub are assigned to the maintainer automatically. Repository housekeeping only — no change to the app.
 
 ## [0.1.46] (2026-08-24)

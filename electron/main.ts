@@ -25,6 +25,7 @@ import {
   setActiveViewVisible,
   setAutomationSplitOpen,
   repositionActiveView,
+  pushAutomationWidth,
   handleWindowFocus,
   handleWindowBlur,
   startHibernationSweep,
@@ -152,6 +153,7 @@ function createWindow() {
       }
       resizeUiView();
       repositionActiveView();
+      pushAutomationWidth(); // the panel follows the window, not a fixed ratio
       if (linkPreviewView) {
         linkPreviewView.setBounds(getLinkPreviewBounds());
       }

@@ -393,6 +393,12 @@ const api = {
     getAutoStop: (serviceId: string): Promise<AutoStopState | null> =>
       ipcRenderer.invoke("messenger-automation-get-auto-stop", serviceId),
     setSplitOpen: (open: boolean): void => ipcRenderer.send("set-automation-split", open),
+    getSplitWidth: (): Promise<number> => ipcRenderer.invoke("get-automation-split-width"),
+    onSplitWidthChanged: (callback: (width: number) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, width: number) => callback(width);
+      ipcRenderer.on("automation-split-width", handler);
+      return () => ipcRenderer.removeListener("automation-split-width", handler);
+    },
     getRecentEmojis: (): Promise<string[]> =>
       ipcRenderer.invoke("messenger-automation-recent-emojis"),
     onRecentEmojisUpdated: (callback: (emojis: string[]) => void) => {
