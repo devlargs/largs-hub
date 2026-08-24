@@ -4,6 +4,8 @@
 
 - New issues opened on GitHub are assigned to the maintainer automatically. Repository housekeeping only — no change to the app.
 
+## [0.1.46] (2026-08-24)
+
 - The Emoji tab in the Messenger automation panel now has a **Recent** pane: every emoji you burst is remembered, newest first, so starting the same one again is a single click. The pane only ever shows emojis you have used yourself — nothing is pre-filled. The list is shared across services and survives a restart.
 
 - New **Random list** tab in the Messenger automation panel. Save named lists of messages once and reuse them: each time the automation fires it sends one entry picked at random, never the same one twice in a row, at a random delay between your min and max seconds. Lists are created, renamed, edited and deleted from the panel, survive a restart, and are shared across every Messenger service. The picker has a search box and pages once you have more than ten. Editing or deleting a list never disturbs a task already running from it.
