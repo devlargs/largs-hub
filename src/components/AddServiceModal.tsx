@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { InternalServiceType, Service } from "../types";
+import { normalizeServiceUrl } from "../lib/serviceUrl";
 import { v4 as uuidv4 } from "uuid";
 import serviceIcons, { resolveIcon } from "../assets/serviceIcons";
 import { IoCloudUploadOutline, IoTrashOutline } from "react-icons/io5";
@@ -55,6 +56,7 @@ export default function AddServiceModal({
     }
     return null;
   });
+  const [urlError, setUrlError] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -101,10 +103,21 @@ export default function AddServiceModal({
   const handleConfirm = () => {
     if (isEditing) {
       if (!editName.trim() || !editUrl.trim()) return;
+      // Internal services (Pomodoro) carry a non-http URL that is never edited
+      const url = editingService!.type
+        ? editingService!.url
+        : normalizeServiceUrl(editUrl);
+      if (!url) {
+        // The main process would reject this and hand back the unchanged list,
+        // which the renderer can't tell apart from a successful save (#78)
+        setUrlError("Enter a web address like https://example.com");
+        return;
+      }
+      setUrlError(null);
       onSubmit({
         ...editingService!,
         name: editName.trim(),
-        url: editUrl.trim(),
+        url,
         icon: editIcon || editingService!.icon,
       });
     } else {
@@ -235,15 +248,25 @@ export default function AddServiceModal({
               <input
                 type="text"
                 value={editUrl}
-                onChange={(e) => setEditUrl(e.target.value)}
+                onChange={(e) => {
+                  setEditUrl(e.target.value);
+                  if (urlError) setUrlError(null);
+                }}
+                placeholder="https://example.com"
+                aria-invalid={urlError !== null}
                 className="text-sm outline-none rounded-xl"
                 style={{
                   padding: "10px 16px",
                   backgroundColor: "var(--panel)",
                   color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
+                  border: `1px solid ${urlError ? "var(--danger)" : "var(--border)"}`,
                 }}
               />
+              {urlError && (
+                <span className="text-xs" style={{ color: "var(--danger)" }}>
+                  {urlError}
+                </span>
+              )}
             </div>
           </div>
         ) : (

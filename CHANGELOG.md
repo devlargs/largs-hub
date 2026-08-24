@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Editing a service's URL to something invalid no longer looks like it saved and then quietly keeps the old address. The form now shows an error, and a bare address like `mail.proton.me` is accepted and completed to `https://`.
+
 - Security: the internal `custom-icon://` address used to load uploaded service icons could be pointed at any file on your machine, and any page loaded in a service tab could ask for it. It now refuses anything outside the icon folder and is only available to the app's own interface.
 
 - Tasks containing a link render properly again. A long link used to break onto its own centred lines instead of flowing with the words around it, and the strikethrough on a completed task drew a single stripe across the middle of a multi-line task rather than through each line. The checkbox now lines up with the first line of a long task instead of floating in the middle.
