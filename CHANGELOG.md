@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.47] (2026-08-24)
+
 - New **tray icon**, so the app can keep running with the window out of the way instead of the choice being "window on screen" or "not running". Two settings (both off by default, so nothing changes unless you turn them on): **Close to tray** and **Minimize to tray**. The tray icon carries the unread total, left-clicking restores the window, and its menu jumps straight to any service — with its own unread count beside it — or quits properly.
 
 - Accessibility: every icon-only button now has a name a screen reader can read — window controls, the settings gear, back/forward/reload, the sidebar services (which also announce their unread count) and the settings switches, none of which announced anything before. **Escape** closes the add-service, link-preview and automation panels, Tab stays inside a dialog while it's open and returns to where it came from on close, keyboard focus is now visible everywhere, and services can be reordered from the keyboard with **Alt+Up/Down** instead of only by long-press-and-drag.
