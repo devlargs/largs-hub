@@ -3,11 +3,13 @@ import {
   BrowserWindow,
   WebContentsView,
   ipcMain,
-  protocol,
   net,
+  session,
   shell,
 } from "electron";
 import path from "path";
+import { pathToFileURL } from "url";
+import { customIconsDir, resolveCustomIconPath } from "./customIcons";
 import { store, StoreSchema } from "./store";
 import { registerMessengerAutomation } from "./messengerAutomation";
 import { registerPomodoro, recordFocusSession } from "./tasks";
@@ -380,11 +382,22 @@ ipcMain.on("window-close", () => mainWindow?.close());
 // --- App lifecycle -------------------------------------------------------------
 
 app.whenReady().then(() => {
-  // Register protocol to serve custom icon files
-  protocol.handle("custom-icon", (request) => {
-    const fileName = decodeURIComponent(request.url.replace("custom-icon://", ""));
-    const filePath = path.join(app.getPath("userData"), "custom-icons", fileName);
-    return net.fetch(`file://${filePath}`);
+  // Serves uploaded service icons to the UI view.
+  //
+  // Registered on the *default* session rather than app-wide (issue #67).
+  // Service views and the link preview each run in their own partition, so
+  // the scheme simply doesn't exist for them — a hostile page inside a
+  // service view can't reach this handler at all. The UI view is the only
+  // thing on the default session, and the only caller that needs it.
+  session.defaultSession.protocol.handle("custom-icon", (request) => {
+    const requested = decodeURIComponent(request.url.replace(/^custom-icon:\/\//, ""));
+    // Same containment check the IPC side uses — a name that resolves outside
+    // custom-icons/ is refused rather than read off disk.
+    const filePath = resolveCustomIconPath(requested, customIconsDir());
+    if (!filePath) return new Response(null, { status: 404 });
+    // pathToFileURL, not string concatenation: it escapes spaces, "#", and
+    // Windows separators that would otherwise corrupt the URL.
+    return net.fetch(pathToFileURL(filePath).toString());
   });
 
   createWindow();

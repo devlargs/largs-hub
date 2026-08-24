@@ -3,6 +3,7 @@ import path from "path";
 import fs from "fs";
 import { store } from "../store";
 import { refreshPrivacyOverlays } from "../serviceViews";
+import { customIconsDir as iconsDir, resolveCustomIconPath as resolveIconPath } from "../customIcons";
 
 // IPC: theme, app settings, download folder picker, custom icon storage, and
 // the native settings menu.
@@ -84,19 +85,11 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
   });
 
   // Custom icons
-  const customIconsDir = path.join(app.getPath("userData"), "custom-icons");
+  const customIconsDir = iconsDir();
 
   // Resolve a user-supplied icon file name to a path safely contained inside
   // customIconsDir. Returns null if the name would escape the directory.
-  function resolveCustomIconPath(fileName: unknown): string | null {
-    if (typeof fileName !== "string" || fileName.length === 0) return null;
-    // Strip any directory components (e.g. "../../evil") before joining
-    const safeName = path.basename(fileName);
-    if (safeName === "." || safeName === "..") return null;
-    const filePath = path.resolve(customIconsDir, safeName);
-    if (!filePath.startsWith(customIconsDir + path.sep)) return null;
-    return filePath;
-  }
+  const resolveCustomIconPath = (fileName: unknown) => resolveIconPath(fileName, customIconsDir);
 
   const ICON_DATA_URL_RE = /^data:image\/(png|jpeg|gif|webp|svg\+xml|x-icon|vnd\.microsoft\.icon);base64,/;
 
