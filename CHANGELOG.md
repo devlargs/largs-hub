@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- The window no longer maximizes every time the app starts. It reopens at the size and position you left it at, which matters most after an auto-update, since that closes and reopens the app for you. If you had it maximized, it still comes back maximized.
+
 - Editing a service's URL to something invalid no longer looks like it saved and then quietly keeps the old address. The form now shows an error, and a bare address like `mail.proton.me` is accepted and completed to `https://`.
 
 - Security: the internal `custom-icon://` address used to load uploaded service icons could be pointed at any file on your machine, and any page loaded in a service tab could ask for it. It now refuses anything outside the icon folder and is only available to the app's own interface.

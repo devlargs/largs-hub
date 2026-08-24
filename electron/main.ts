@@ -105,7 +105,15 @@ function createWindow() {
       : {}),
   });
 
-  mainWindow.maximize();
+  // Restore the last window state rather than always maximizing — an
+  // auto-update relaunches the app, and coming back maximized when you weren't
+  // is the visible symptom (issue #92).
+  if (store.get("windowMaximized")) {
+    mainWindow.maximize();
+  }
+
+  mainWindow.on("maximize", () => store.set("windowMaximized", true));
+  mainWindow.on("unmaximize", () => store.set("windowMaximized", false));
 
   // Create the UI view (React app) as a WebContentsView for z-order control
   uiView = new WebContentsView({
@@ -139,8 +147,12 @@ function createWindow() {
   mainWindow.on("resize", () => {
     if (mainWindow) {
       noteActivity(); // the user is dragging the window edge
-      const [width, height] = mainWindow.getSize();
-      saveBoundsDebounced({ width, height });
+      // While maximized the size is the screen's, not the user's — saving it
+      // would leave nothing to restore to on unmaximize.
+      if (!mainWindow.isMaximized()) {
+        const [width, height] = mainWindow.getSize();
+        saveBoundsDebounced({ width, height });
+      }
       resizeUiView();
       repositionActiveView();
       if (linkPreviewView) {
@@ -169,8 +181,10 @@ function createWindow() {
   mainWindow.on("move", () => {
     if (mainWindow) {
       noteActivity(); // the user is dragging the window
-      const [x, y] = mainWindow.getPosition();
-      saveBoundsDebounced({ x, y });
+      if (!mainWindow.isMaximized()) {
+        const [x, y] = mainWindow.getPosition();
+        saveBoundsDebounced({ x, y });
+      }
       repositionDownloadToasts();
     }
   });

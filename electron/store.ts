@@ -37,6 +37,10 @@ export interface StoreSchema {
   services: Service[];
   sidebarWidth: number;
   windowBounds: { width: number; height: number; x?: number; y?: number };
+  // Whether the window was maximized when it was last closed. Without this the
+  // window maximized on every launch, so an auto-update relaunch threw away
+  // whatever size the user had it at (issue #92).
+  windowMaximized: boolean;
   theme: "dark" | "light";
   downloadFolder: string;
   wakeServicesAutomatically: boolean;
@@ -67,6 +71,7 @@ export const store = new Store<StoreSchema>({
     services: [],
     sidebarWidth: 68,
     windowBounds: { width: 1200, height: 800 },
+    windowMaximized: true,
     theme: "dark",
     downloadFolder: "",
     wakeServicesAutomatically: true,
