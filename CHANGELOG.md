@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Removed an unused update screen, a duplicate copy of the service icons, and a stored setting nothing read. No visible change — the duplicates were dead weight that made edits look like they did nothing.
+
 - The app reopens on the service you were last using instead of always starting on the Welcome screen. If that service has since been removed or disabled, you get the Welcome screen as before.
 
 - The window no longer maximizes every time the app starts. It reopens at the size and position you left it at, which matters most after an auto-update, since that closes and reopens the app for you. If you had it maximized, it still comes back maximized.

@@ -35,7 +35,6 @@ export interface Service {
 
 export interface StoreSchema {
   services: Service[];
-  sidebarWidth: number;
   windowBounds: { width: number; height: number; x?: number; y?: number };
   // Whether the window was maximized when it was last closed. Without this the
   // window maximized on every launch, so an auto-update relaunch threw away
@@ -72,7 +71,6 @@ export interface StoreSchema {
 export const store = new Store<StoreSchema>({
   defaults: {
     services: [],
-    sidebarWidth: 68,
     windowBounds: { width: 1200, height: 800 },
     windowMaximized: true,
     lastActiveServiceId: null,
