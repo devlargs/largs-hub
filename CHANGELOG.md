@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Downloading a file whose name already exists in your download folder no longer overwrites the old one without asking. It saves alongside it as `report (1).pdf`, the way a browser does. This only affected people with a custom download folder set.
+
 - Internal: added tests for the checks that decide whether a service is valid enough to save and when an unread badge is allowed to drop. Both were untested and both are places where a regression shows up days later as odd behaviour — an edit that silently doesn't save, or a badge that blinks.
 
 - Fixed the **Sound** item in a service's right-click menu toggling from stale state: if the service was muted or unmuted elsewhere while the menu sat open, clicking Sound could set it back to what the menu showed instead of flipping the current value. All five per-service toggles now share one implementation, so the menu and the rest of the app can't disagree again.

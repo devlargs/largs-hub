@@ -1,6 +1,6 @@
 import { BrowserWindow, WebContentsView, shell } from "electron";
-import path from "path";
 import { store } from "./store";
+import { uniqueSavePath } from "./uniqueFilename";
 
 // Download handling for service views: per-session "will-download" hook that
 // applies the user's download settings, plus the toast shown on completion.
@@ -29,7 +29,10 @@ export function hookDownloadSession(view: WebContentsView, partition: string) {
   view.webContents.session.on("will-download", (_event, item) => {
     const downloadFolder = store.get("downloadFolder");
     if (downloadFolder) {
-      item.setSavePath(path.join(downloadFolder, item.getFilename()));
+      // Never write over a file that's already there — Chromium only handles
+      // collisions when it shows its own dialog, which it doesn't do once a
+      // save path is set (issue #72).
+      item.setSavePath(uniqueSavePath(downloadFolder, item.getFilename()));
     }
     item.on("done", (_e, state) => {
       if (state !== "completed") return;
