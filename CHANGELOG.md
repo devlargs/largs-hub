@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- The app reopens on the service you were last using instead of always starting on the Welcome screen. If that service has since been removed or disabled, you get the Welcome screen as before.
+
 - The window no longer maximizes every time the app starts. It reopens at the size and position you left it at, which matters most after an auto-update, since that closes and reopens the app for you. If you had it maximized, it still comes back maximized.
 
 - Editing a service's URL to something invalid no longer looks like it saved and then quietly keeps the old address. The form now shows an error, and a bare address like `mail.proton.me` is accepted and completed to `https://`.

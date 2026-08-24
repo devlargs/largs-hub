@@ -130,6 +130,16 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
 
   ipcMain.on("show-service", (_event, serviceId: string) => {
     showService(serviceId);
+    store.set("lastActiveServiceId", serviceId);
+  });
+
+  // The service to reopen on launch. Resolved here rather than in the renderer
+  // so a stale id (service removed or disabled since) never reaches the UI.
+  ipcMain.handle("get-last-active-service", (): string | null => {
+    const serviceId = store.get("lastActiveServiceId");
+    if (typeof serviceId !== "string") return null;
+    const service = store.get("services").find((s) => s.id === serviceId);
+    return service && service.enabled !== false ? service.id : null;
   });
 
   ipcMain.handle("hide-service", () => {

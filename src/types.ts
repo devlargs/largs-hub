@@ -152,6 +152,7 @@ export type NoticeReason = "replied" | "seen" | "typing";
 
 export interface ElectronAPI {
   getServices: () => Promise<Service[]>;
+  getLastActiveService: () => Promise<string | null>;
   addService: (service: Service) => Promise<Service[]>;
   removeService: (serviceId: string) => Promise<Service[]>;
   updateService: (service: Service) => Promise<Service[]>;

@@ -41,6 +41,9 @@ export interface StoreSchema {
   // window maximized on every launch, so an auto-update relaunch threw away
   // whatever size the user had it at (issue #92).
   windowMaximized: boolean;
+  // The service shown when the app was last used, reopened on launch instead
+  // of always landing on the Welcome screen (issue #89)
+  lastActiveServiceId: string | null;
   theme: "dark" | "light";
   downloadFolder: string;
   wakeServicesAutomatically: boolean;
@@ -72,6 +75,7 @@ export const store = new Store<StoreSchema>({
     sidebarWidth: 68,
     windowBounds: { width: 1200, height: 800 },
     windowMaximized: true,
+    lastActiveServiceId: null,
     theme: "dark",
     downloadFolder: "",
     wakeServicesAutomatically: true,

@@ -37,8 +37,16 @@ function App() {
   useEffect(() => {
     if (!window.electronAPI) return;
 
-    window.electronAPI.getServices().then((loaded) => {
+    // Reopen whatever was on screen last time. Main resolves the id, so a
+    // service removed or disabled since launch falls back to Welcome (#89).
+    window.electronAPI.getServices().then(async (loaded) => {
       setServices(loaded);
+      const lastActive = await window.electronAPI.getLastActiveService();
+      if (lastActive) {
+        setActiveServiceId(lastActive);
+        const service = loaded.find((s) => s.id === lastActive);
+        if (!isInternalService(service)) window.electronAPI.showService(lastActive);
+      }
     });
 
     const unsub = window.electronAPI.onNotificationUpdate(

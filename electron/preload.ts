@@ -117,6 +117,8 @@ export type NoticeReason = "replied" | "seen" | "typing";
 const api = {
   // Service CRUD
   getServices: (): Promise<Service[]> => ipcRenderer.invoke("get-services"),
+  getLastActiveService: (): Promise<string | null> =>
+    ipcRenderer.invoke("get-last-active-service"),
   addService: (service: Service): Promise<Service[]> =>
     ipcRenderer.invoke("add-service", service),
   removeService: (serviceId: string): Promise<Service[]> =>
