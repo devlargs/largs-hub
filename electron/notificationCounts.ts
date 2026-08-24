@@ -82,9 +82,17 @@ function totalCount(): number {
   return total;
 }
 
+// Set by main so a count change also re-renders the tray badge (issue #90).
+let onTotalChanged: (() => void) | null = null;
+
+export function setBadgeChangeListener(listener: () => void) {
+  onTotalChanged = listener;
+}
+
 function updateTaskbarBadge() {
   lastTotal = totalCount();
   applyTaskbarBadge();
+  onTotalChanged?.();
 }
 
 /**

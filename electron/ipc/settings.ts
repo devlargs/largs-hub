@@ -2,6 +2,7 @@ import { app, ipcMain, dialog, Menu, BrowserWindow, WebContentsView } from "elec
 import fs from "fs";
 import { store } from "../store";
 import { refreshPrivacyOverlays } from "../serviceViews";
+import { syncTray } from "../tray";
 import {
   customIconsDir as iconsDir,
   resolveCustomIconPath as resolveIconPath,
@@ -34,6 +35,8 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
       downloadAlertOnFinish: store.get("downloadAlertOnFinish"),
       hibernateInactiveMinutes: store.get("hibernateInactiveMinutes"),
       idleQuitMinutes: store.get("idleQuitMinutes"),
+      closeToTray: store.get("closeToTray"),
+      minimizeToTray: store.get("minimizeToTray"),
       pomodoroFocusMinutes: store.get("pomodoroFocusMinutes"),
       pomodoroBreakMinutes: store.get("pomodoroBreakMinutes"),
       privacyCoverPercent: store.get("privacyCoverPercent"),
@@ -64,6 +67,10 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
       value >= 0
     ) {
       store.set("hibernateInactiveMinutes", Math.floor(value));
+    } else if ((key === "closeToTray" || key === "minimizeToTray") && typeof value === "boolean") {
+      store.set(key, value);
+      // Creates the tray when either is switched on, removes it when both go off.
+      syncTray();
     } else if (
       key === "idleQuitMinutes" &&
       typeof value === "number" &&

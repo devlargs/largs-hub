@@ -19,6 +19,9 @@ export interface AppSettings {
   downloadAlertOnFinish: boolean;
   // Minutes an inactive service may idle before its view is hibernated (0 = off)
   hibernateInactiveMinutes: number;
+  // Keep running in the tray instead of quitting when the window is closed
+  closeToTray: boolean;
+  minimizeToTray: boolean;
   // Minutes of no interaction before the app closes itself (0 = never)
   idleQuitMinutes: number;
   // Pomodoro phase lengths in minutes

@@ -14,6 +14,8 @@ export default function SettingsPage() {
     downloadAlertOnFinish: true,
     hibernateInactiveMinutes: 0,
     idleQuitMinutes: 0,
+    closeToTray: false,
+    minimizeToTray: false,
     pomodoroFocusMinutes: 25,
     pomodoroBreakMinutes: 5,
     privacyCoverPercent: 50,
@@ -109,6 +111,12 @@ export default function SettingsPage() {
     setSettings((s) => ({ ...s, [key]: minutes }));
   };
 
+  const handleTrayToggle = async (key: "closeToTray" | "minimizeToTray") => {
+    const next = !settings[key];
+    await window.electronAPI.updateSetting(key, next);
+    setSettings((s) => ({ ...s, [key]: next }));
+  };
+
   const handleIdleQuitChange = async (minutes: number) => {
     await window.electronAPI.updateSetting("idleQuitMinutes", minutes);
     setSettings((s) => ({ ...s, idleQuitMinutes: minutes }));
@@ -180,6 +188,26 @@ export default function SettingsPage() {
               <option value={30}>After 30 min</option>
               <option value={60}>After 1 hour</option>
             </select>
+          </SettingRow>
+
+          <SettingRow
+            label="Close to tray"
+            description="Keep running in the notification area when the window is closed, so badges and notifications carry on"
+          >
+            <Toggle
+              checked={settings.closeToTray}
+              onChange={() => handleTrayToggle("closeToTray")}
+            />
+          </SettingRow>
+
+          <SettingRow
+            label="Minimize to tray"
+            description="Hide to the notification area when the window is minimized"
+          >
+            <Toggle
+              checked={settings.minimizeToTray}
+              onChange={() => handleTrayToggle("minimizeToTray")}
+            />
           </SettingRow>
 
           <SettingRow

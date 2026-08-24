@@ -53,6 +53,10 @@ export interface StoreSchema {
   // Emojis most recently used to start an emoji burst, newest first — the
   // "Recent" pane in the Messenger automation panel.
   recentEmojis: string[];
+  // Tray behaviour. Both off by default, so closing the window still quits the
+  // app exactly as it did before unless asked otherwise (issue #90).
+  closeToTray: boolean;
+  minimizeToTray: boolean;
   // Minutes of no interaction before the app closes itself (0 = never). Off by
   // default: it used to be a hardcoded hour with no setting and no warning.
   idleQuitMinutes: number;
@@ -92,6 +96,8 @@ export const store = new Store<StoreSchema>({
     serviceZoom: {},
     messageListGroups: [],
     recentEmojis: [],
+    closeToTray: false,
+    minimizeToTray: false,
     idleQuitMinutes: 0,
     automationTasks: [],
     automationAutoStops: [],

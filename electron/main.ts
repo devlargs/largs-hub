@@ -13,6 +13,8 @@ import { registerPomodoroTimer, stopTimerForTask, hasRunningTimer } from "./pomo
 import { registerUpdater } from "./updater";
 import { registerServicesIpc } from "./ipc/services";
 import { sweepOrphanedPartitions } from "./partitions";
+import { initTray, isQuitting, isTrayAvailable, refreshTray, syncTray, destroyTray } from "./tray";
+import { windowCloseAction, windowMinimizeAction } from "./trayMenu";
 import { linkPreviewBounds } from "./shared/layout";
 import { registerSettingsIpc } from "./ipc/settings";
 import { registerListGroupsIpc } from "./ipc/listGroups";
@@ -23,7 +25,12 @@ import {
   closeAllDownloadToasts,
   setDownloadToastsVisible,
 } from "./downloads";
-import { initNotificationCounts, refreshTaskbarBadge } from "./notificationCounts";
+import {
+  initNotificationCounts,
+  refreshTaskbarBadge,
+  getNotificationCounts,
+  setBadgeChangeListener,
+} from "./notificationCounts";
 import {
   initServiceViews,
   getServiceView,
@@ -31,6 +38,7 @@ import {
   setAutomationSplitOpen,
   repositionActiveView,
   isAnyServiceAudible,
+  showService,
   setWindowMinimized,
   watchPowerForPolling,
   pushAutomationWidth,
@@ -197,6 +205,24 @@ function createWindow() {
     }
   });
 
+  // Close/minimize to tray (issue #90). Both settings are off by default, so
+  // without them this is a no-op and the window behaves exactly as before.
+  mainWindow.on("close", (event) => {
+    if (isQuitting()) return;
+    if (windowCloseAction(store.get("closeToTray"), isTrayAvailable()) === "hide") {
+      event.preventDefault();
+      mainWindow?.hide();
+      refreshTray(); // the menu's Show/Hide label just changed
+    }
+  });
+
+  mainWindow.on("minimize", () => {
+    if (windowMinimizeAction(store.get("minimizeToTray"), isTrayAvailable()) === "hide") {
+      mainWindow?.hide();
+      refreshTray();
+    }
+  });
+
   mainWindow.on("closed", () => {
     flushBounds(); // persist any bounds still buffered by the debounce
     // Toasts are top-level windows; leaving one open would block "window-all-closed"
@@ -208,6 +234,17 @@ function createWindow() {
     linkPreviewView = null;
     clearAllViewState();
   });
+
+  initTray({
+    getMainWindow: () => mainWindow,
+    showService: (serviceId) => {
+      showService(serviceId);
+      uiView?.webContents.send("service-switched", serviceId);
+    },
+    getNotificationCounts,
+  });
+  syncTray();
+  setBadgeChangeListener(refreshTray);
 
   // Poll rate follows window state and power (issue #80).
   mainWindow.on("minimize", () => setWindowMinimized(true));
@@ -455,9 +492,16 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
+  // A tray-resident app has deliberately hidden its window; quitting here would
+  // defeat the point (issue #90). The tray's own Quit sets the flag.
+  if (isTrayAvailable() && !isQuitting()) return;
   if (process.platform !== "darwin") {
     app.quit();
   }
+});
+
+app.on("before-quit", () => {
+  destroyTray();
 });
 
 app.on("activate", () => {
