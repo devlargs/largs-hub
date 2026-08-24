@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.40] (2026-08-24)
+
 - The Pomodoro view has been redesigned around the timer. The focus session is now the largest thing on the page — a full-size ring with the clock inside it — and it stays on screen even when nothing is running, with a Start focus button that picks up your next unfinished task in one click. The day is a proper header with the date beneath it, progress reads as a real count, and the day's completed sessions are tallied under the timer.
 - Task rows lost their individual boxes: the list is now separated by hairlines, with the row you're focusing on marked by an accent edge. The tomato emoji next to a task has been replaced by small drawn bars, and the delete and timer buttons on each row are now reachable by keyboard instead of appearing on hover only.
 - Muted labels across the Pomodoro view were failing readability contrast against the page background and have been darkened; red, green, and amber now follow the light theme properly instead of staying dark-theme pastels.
