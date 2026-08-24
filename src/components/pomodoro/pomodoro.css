@@ -214,27 +214,27 @@
 
 /* --- Label: strikethrough sweeps left to right --------------------------- */
 
+/* Block, full width, left-aligned — the whole column is the click target, and
+   nothing inherits a <button>'s centred text. */
 .pom-label {
-  position: relative;
-  display: inline-block;
-  transition: color var(--dur-short) var(--ease-out);
-}
-
-.pom-label::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 52%;
-  height: 1.5px;
+  display: block;
   width: 100%;
-  background: currentColor;
-  transform: scaleX(0);
-  transform-origin: left center;
-  transition: transform var(--dur-short) var(--ease-in-out);
+  text-align: left;
+  /* Long URLs break instead of forcing the row wider */
+  overflow-wrap: anywhere;
+  /* A real line-through rather than an absolutely-positioned bar: the bar was
+     one stripe across the middle of a wrapped label, which is wrong on every
+     task longer than a line. */
+  text-decoration-line: line-through;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1.5px;
+  transition:
+    color var(--dur-short) var(--ease-out),
+    text-decoration-color var(--dur-short) var(--ease-in-out);
 }
 
-.pom-label-done::after {
-  transform: scaleX(1);
+.pom-label-done {
+  text-decoration-color: currentColor;
 }
 
 /* --- Links inside a task (issue #66) ------------------------------------- */
@@ -243,11 +243,10 @@
    runs around it still open the inline editor. Underline is 1px at a 2px
    offset — a thick, tight underline reads as a highlight, not a link. */
 .pom-link {
+  /* Inline so it flows with the words around it */
+  display: inline;
   color: var(--accent);
-  background: transparent;
-  border: none;
-  padding: 0;
-  font: inherit;
+  cursor: pointer;
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
@@ -258,17 +257,9 @@
   text-decoration-thickness: 2px;
 }
 
-/* Text runs beside a link — same look as the plain label, no underline. */
-.pom-label-text {
-  color: inherit;
-  background: transparent;
-  border: none;
-  padding: 0;
-  font: inherit;
-}
-
-/* A completed task's link recedes with the rest of the row rather than
-   staying the one bright thing left on it. */
+/* A completed task's link recedes with the rest of the row rather than staying
+   the one bright thing left on it. The strike itself propagates down from
+   .pom-label, so it crosses the link without a rule here. */
 .pom-label-done .pom-link {
   color: color-mix(in srgb, var(--accent) 55%, var(--text-muted));
 }
@@ -433,7 +424,6 @@
   .pom-check,
   .pom-check-tick,
   .pom-label,
-  .pom-label::after,
   .pom-daynav,
   .pom-link,
   .pom-row-action,

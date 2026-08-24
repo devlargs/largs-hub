@@ -115,7 +115,7 @@ export default function SettingsPage() {
       }}
     >
       <div
-        className="px-4 py-6 @lg:px-6 @lg:py-8"
+        className="px-6 py-6 @lg:py-8"
         style={{ maxWidth: 640, margin: "0 auto" }}
       >
         <h1

@@ -26,7 +26,7 @@ function SessionTally({ count }: { count: number }) {
   return (
     <span
       className="shrink-0 flex items-center"
-      style={{ gap: 2 }}
+      style={{ gap: 2, marginTop: 5 }}
       title={`${count} focus session${count === 1 ? "" : "s"}`}
       aria-label={`${count} focus session${count === 1 ? "" : "s"}`}
     >
@@ -87,6 +87,7 @@ export default function TaskRow({
   const actionStyle = {
     width: 28,
     height: 28,
+    marginTop: -4,
     background: "transparent",
     border: "none",
   } as const;
@@ -118,7 +119,7 @@ export default function TaskRow({
       onDragEnd={onDragEnd}
       onAnimationEnd={() => setSpringing(false)}
       className={[
-        "pom-row flex items-center",
+        "pom-row flex items-start",
         task.done ? "pom-row-done" : "",
         focused ? "pom-row-focused" : "",
         springing ? "pom-row-springing" : "",
@@ -131,7 +132,7 @@ export default function TaskRow({
     >
       <span
         className="pom-row-action shrink-0 cursor-grab"
-        style={{ color: "var(--text-muted)" }}
+        style={{ color: "var(--text-muted)", marginTop: 2 }}
         title="Drag to reorder"
       >
         <MdDragIndicator size={16} />
@@ -149,6 +150,7 @@ export default function TaskRow({
         style={{
           width: 19,
           height: 19,
+          marginTop: 1,
           background: task.done ? "var(--accent)" : "transparent",
           border: `1.5px solid ${
             task.done ? "var(--accent)" : "color-mix(in srgb, var(--border) 90%, transparent)"
@@ -205,29 +207,39 @@ export default function TaskRow({
             {task.text}
           </button>
         ) : (
-          // The label carries a link. Each run becomes its own button — text
-          // runs open the editor, links open the browser — so a link is never
-          // nested inside another interactive element (issue #66).
-          <span className={`pom-label ${task.done ? "pom-label-done" : ""}`} style={labelStyle}>
+          // The label carries a link. Runs must be *inline* to share a line
+          // with the text around them — buttons are inline-block and centre
+          // their own wrapped lines, which is what mangled these labels.
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={() => setEditing(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") setEditing(true);
+            }}
+            className={`pom-label cursor-text ${task.done ? "pom-label-done" : ""}`}
+            style={labelStyle}
+            title="Click to edit"
+          >
             {segments.map((segment, i) =>
               segment.type === "link" ? (
-                <button
+                <a
                   key={i}
-                  onClick={() => window.electronAPI.openLinkExternal(segment.href)}
-                  className="pom-link cursor-pointer"
+                  href={segment.href}
+                  className="pom-link"
                   title={`Open ${segment.href}`}
+                  onClick={(e) => {
+                    // Never navigate the app's own view
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.electronAPI.openLinkExternal(segment.href);
+                  }}
+                  onKeyDown={(e) => e.stopPropagation()}
                 >
                   {segment.value}
-                </button>
+                </a>
               ) : (
-                <button
-                  key={i}
-                  onClick={() => setEditing(true)}
-                  className="pom-label-text cursor-text text-left"
-                  title="Click to edit"
-                >
-                  {segment.value}
-                </button>
+                <span key={i}>{segment.value}</span>
               ),
             )}
           </span>

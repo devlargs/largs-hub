@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Tasks containing a link render properly again. A long link used to break onto its own centred lines instead of flowing with the words around it, and the strikethrough on a completed task drew a single stripe across the middle of a multi-line task rather than through each line. The checkbox now lines up with the first line of a long task instead of floating in the middle.
+- The Settings page has a proper gutter again — rows were sitting flush against the left and right edges in a narrow window.
+
 ## [0.1.43] (2026-08-24)
 
 - The installer downloaded by an in-app update is now deleted on the next launch instead of being left in your temp folder for good.
