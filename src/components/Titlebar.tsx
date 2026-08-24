@@ -5,6 +5,9 @@ import { IoArrowBack, IoArrowForward, IoReload, IoSettingsSharp, IoFlashOutline 
 
 interface TitlebarProps {
   activeService: Service | null;
+  // Current zoom of the active service (1 = 100%); shown only when it isn't 100%
+  zoomFactor: number;
+  onResetZoom: () => void;
   onReload: () => void;
   onGoBack: () => void;
   onGoForward: () => void;
@@ -16,6 +19,8 @@ interface TitlebarProps {
 
 export default function Titlebar({
   activeService,
+  zoomFactor,
+  onResetZoom,
   onReload,
   onGoBack,
   onGoForward,
@@ -62,6 +67,18 @@ export default function Titlebar({
             <span className="text-xs ml-2 truncate max-w-[300px]" style={{ color: "var(--text-muted)" }}>
               {activeService.name}
             </span>
+            {/* A zoomed service is easy to forget about — show the factor and
+                make it one click back to 100%. */}
+            {!isInternalService(activeService) && zoomFactor !== 1 && (
+              <button
+                onClick={onResetZoom}
+                className="text-2xs ml-1.5 px-1.5 py-0.5 rounded hover:bg-sidebar-hover transition-colors tabular-nums"
+                style={{ color: "var(--text-muted)", border: "1px solid var(--border)" }}
+                title="Reset zoom to 100% (Ctrl+0)"
+              >
+                {Math.round(zoomFactor * 100)}%
+              </button>
+            )}
           </>
         ) : (
           <div className="flex items-center gap-2.5">

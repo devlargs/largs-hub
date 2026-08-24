@@ -11,6 +11,7 @@ import {
   resetDecreaseDebounce,
 } from "./notificationCounts";
 import { trackInputActivity } from "./idleShutdown";
+import { DEFAULT_ZOOM, nextZoom, sanitizeZoom } from "./zoom";
 
 // Service-view lifecycle: creation (with UA spoofing, permission policy,
 // notification extraction, popup handling), show/hide switching, hibernation,
@@ -41,6 +42,24 @@ let windowFocused = true;
 const SIDEBAR_WIDTH = 68;
 const TITLEBAR_HEIGHT = 46;
 
+// The find bar can't be drawn over a service view (child-view reordering is
+// unreliable on Windows — see the z-order rule in CLAUDE.md), so it takes a
+// strip out of the service view's bounds instead, the same way the automation
+// panel takes a column. Keep FIND_BAR_HEIGHT in sync with FindBar.tsx.
+const FIND_BAR_HEIGHT = 44;
+let findBarOpen = false;
+
+// Ctrl+<key> zoom shortcuts. "Add"/"Subtract" are the numpad keys.
+const ZOOM_KEYS: Record<string, "in" | "out" | "reset"> = {
+  "=": "in",
+  "+": "in",
+  Add: "in",
+  "-": "out",
+  _: "out",
+  Subtract: "out",
+  "0": "reset",
+};
+
 // When the Messenger automation panel is open the layout splits into a
 // service pane (left) and the panel (right). The service view is resized to
 // the left share so it stays visible instead of being hidden. The renderer
@@ -66,6 +85,79 @@ export function setAutomationSplitOpen(open: boolean) {
   repositionActiveView();
 }
 
+// Reserve (or release) the find bar's strip at the top of the service pane.
+// Closing also drops the native match highlighting from the page.
+export function setFindBarOpen(open: boolean) {
+  if (findBarOpen === open) return;
+  findBarOpen = open;
+  repositionActiveView();
+  if (!open && activeServiceId) {
+    const view = serviceViews.get(activeServiceId);
+    if (view && !view.webContents.isDestroyed()) {
+      view.webContents.stopFindInPage("clearSelection");
+      view.webContents.focus();
+    }
+  }
+}
+
+// --- Find in page ------------------------------------------------------------
+
+export function findInService(serviceId: string, text: string, forward: boolean, findNext: boolean) {
+  const view = serviceViews.get(serviceId);
+  if (!view || view.webContents.isDestroyed()) return;
+  if (!text) {
+    view.webContents.stopFindInPage("clearSelection");
+    deps?.getUiView()?.webContents.send("find-results", { serviceId, matches: 0, activeMatchOrdinal: 0 });
+    return;
+  }
+  view.webContents.findInPage(text, { forward, findNext });
+}
+
+// Ask the UI to show the find bar for a service and hand it keyboard focus.
+// React owns whether the bar is open; main only reserves its strip once the
+// renderer confirms with set-find-bar-open.
+export function openFindBarFor(serviceId: string) {
+  const uiView = deps?.getUiView();
+  if (!uiView) return;
+  uiView.webContents.send("open-find-bar", serviceId);
+  uiView.webContents.focus();
+}
+
+export function stopFindInService(serviceId: string) {
+  const view = serviceViews.get(serviceId);
+  if (view && !view.webContents.isDestroyed()) {
+    view.webContents.stopFindInPage("clearSelection");
+  }
+}
+
+// --- Zoom --------------------------------------------------------------------
+
+export function getServiceZoom(serviceId: string): number {
+  return sanitizeZoom(store.get("serviceZoom")[serviceId]);
+}
+
+// Persist the factor and apply it to the live view. Stored per service so it
+// survives hibernation, a reload, and a restart.
+export function setServiceZoom(serviceId: string, factor: number) {
+  const zoom = sanitizeZoom(factor);
+  const all = { ...store.get("serviceZoom") };
+  if (zoom === DEFAULT_ZOOM) delete all[serviceId];
+  else all[serviceId] = zoom;
+  store.set("serviceZoom", all);
+
+  const view = serviceViews.get(serviceId);
+  if (view && !view.webContents.isDestroyed()) {
+    view.webContents.setZoomFactor(zoom);
+  }
+  deps?.getUiView()?.webContents.send("service-zoom-changed", { serviceId, factor: zoom });
+}
+
+export function stepServiceZoom(serviceId: string, direction: "in" | "out" | "reset") {
+  const factor =
+    direction === "reset" ? DEFAULT_ZOOM : nextZoom(getServiceZoom(serviceId), direction);
+  setServiceZoom(serviceId, factor);
+}
+
 function getAutomationInset() {
   const mainWindow = deps?.getMainWindow();
   if (!automationSplitOpen || !mainWindow) return 0;
@@ -77,11 +169,12 @@ function getViewBounds() {
   const mainWindow = deps?.getMainWindow();
   if (!mainWindow) return { x: SIDEBAR_WIDTH, y: TITLEBAR_HEIGHT, width: 800, height: 600 };
   const [width, height] = mainWindow.getContentSize();
+  const top = TITLEBAR_HEIGHT + (findBarOpen ? FIND_BAR_HEIGHT : 0);
   return {
     x: SIDEBAR_WIDTH,
-    y: TITLEBAR_HEIGHT,
+    y: top,
     width: Math.max(0, width - SIDEBAR_WIDTH - getAutomationInset()),
-    height: Math.max(0, height - TITLEBAR_HEIGHT),
+    height: Math.max(0, height - top),
   };
 }
 
@@ -313,6 +406,7 @@ function openCallWindow(callUrl: string, partition: string, spoofedUA: string) {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      spellcheck: true,
     },
   });
 
@@ -522,6 +616,32 @@ function createServiceView(service: Service): WebContentsView {
   // Also set at session level so OAuth popups inherit the spoofed UA
   view.webContents.session.setUserAgent(spoofedUA);
 
+  // Electron underlines misspellings but only once a dictionary is chosen.
+  // macOS uses the OS spellchecker and rejects the call, hence the guard.
+  if (process.platform !== "darwin") {
+    try {
+      view.webContents.session.setSpellCheckerLanguages(["en-US"]);
+    } catch {
+      // Dictionary unavailable — the page simply goes unchecked.
+    }
+  }
+
+  // Zoom is per service and persisted, so re-apply it on every load: a
+  // navigation resets the view's zoom factor back to 100%.
+  view.webContents.on("did-finish-load", () => {
+    const zoom = getServiceZoom(service.id);
+    if (zoom !== DEFAULT_ZOOM) view.webContents.setZoomFactor(zoom);
+  });
+
+  // findInPage results drive the "3/12" counter in the find bar.
+  view.webContents.on("found-in-page", (_event, result) => {
+    deps?.getUiView()?.webContents.send("find-results", {
+      serviceId: service.id,
+      matches: result.matches,
+      activeMatchOrdinal: result.activeMatchOrdinal,
+    });
+  });
+
   // Deny-by-default permission policy. Without a handler Electron grants
   // whatever the page asks for (camera, mic, geolocation, clipboard, ...).
   // Setting the handler is idempotent per session, so calling it again on
@@ -601,6 +721,52 @@ function createServiceView(service: Service): WebContentsView {
   view.webContents.on("context-menu", (_event, params) => {
     const menuItems: Electron.MenuItemConstructorOptions[] = [];
 
+    // Spellcheck first: right-clicking a squiggle should open onto the
+    // corrections, not scroll past image and link items to reach them.
+    if (params.misspelledWord) {
+      for (const suggestion of params.dictionarySuggestions.slice(0, 5)) {
+        menuItems.push({
+          label: suggestion,
+          click: () => view.webContents.replaceMisspelling(suggestion),
+        });
+      }
+      if (params.dictionarySuggestions.length === 0) {
+        menuItems.push({ label: "No suggestions", enabled: false });
+      }
+      menuItems.push(
+        {
+          label: "Add to dictionary",
+          click: () =>
+            view.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord),
+        },
+        { type: "separator" },
+      );
+    }
+
+    // Cut/Copy/Paste act on the service view explicitly rather than through
+    // menu roles, which would target whichever webContents happens to be
+    // focused when the popup opens.
+    const { editFlags } = params;
+    if (params.isEditable) {
+      menuItems.push(
+        { label: "Cut", enabled: editFlags.canCut, click: () => view.webContents.cut() },
+        { label: "Copy", enabled: editFlags.canCopy, click: () => view.webContents.copy() },
+        { label: "Paste", enabled: editFlags.canPaste, click: () => view.webContents.paste() },
+        {
+          label: "Paste as plain text",
+          enabled: editFlags.canPaste,
+          click: () => view.webContents.pasteAndMatchStyle(),
+        },
+        { label: "Select all", click: () => view.webContents.selectAll() },
+        { type: "separator" },
+      );
+    } else if (params.selectionText) {
+      menuItems.push(
+        { label: "Copy", enabled: editFlags.canCopy, click: () => view.webContents.copy() },
+        { type: "separator" },
+      );
+    }
+
     if (params.mediaType === "image") {
       menuItems.push(
         {
@@ -627,11 +793,38 @@ function createServiceView(service: Service): WebContentsView {
       });
     }
 
-    if (menuItems.length > 0) {
-      const mainWindow = deps?.getMainWindow();
-      if (mainWindow) {
-        Menu.buildFromTemplate(menuItems).popup({ window: mainWindow });
-      }
+    // Page-wide items are always offered, so the menu is never empty and
+    // Ctrl+F / zoom stay discoverable without a keyboard shortcut.
+    if (menuItems.length > 0 && menuItems[menuItems.length - 1].type !== "separator") {
+      menuItems.push({ type: "separator" });
+    }
+    menuItems.push(
+      {
+        label: "Find in page",
+        accelerator: "Ctrl+F",
+        click: () => openFindBarFor(service.id),
+      },
+      {
+        label: "Zoom in",
+        accelerator: "Ctrl+=",
+        click: () => stepServiceZoom(service.id, "in"),
+      },
+      {
+        label: "Zoom out",
+        accelerator: "Ctrl+-",
+        click: () => stepServiceZoom(service.id, "out"),
+      },
+      {
+        label: "Reset zoom",
+        accelerator: "Ctrl+0",
+        enabled: getServiceZoom(service.id) !== DEFAULT_ZOOM,
+        click: () => stepServiceZoom(service.id, "reset"),
+      },
+    );
+
+    const mainWindow = deps?.getMainWindow();
+    if (mainWindow) {
+      Menu.buildFromTemplate(menuItems).popup({ window: mainWindow });
     }
   });
 
@@ -708,8 +901,27 @@ function createServiceView(service: Service): WebContentsView {
     if (directFetchInterval) clearInterval(directFetchInterval);
   });
 
-  // Intercept Ctrl+Number shortcuts so they work even when a service view has focus
+  // Browser shortcuts have to be intercepted here too — a service view with
+  // focus never lets these reach the renderer's window keydown handler.
   view.webContents.on("before-input-event", (event, input) => {
+    if (input.type === "keyDown" && input.key === "Escape" && findBarOpen) {
+      event.preventDefault();
+      deps?.getUiView()?.webContents.send("close-find-bar");
+      return;
+    }
+    // Zoom tolerates shift: "+" is shift+"=" on most layouts, so requiring an
+    // unshifted key would break the shortcut people actually press.
+    if (
+      input.type === "keyDown" &&
+      input.control &&
+      !input.alt &&
+      !input.meta &&
+      ZOOM_KEYS[input.key] !== undefined
+    ) {
+      event.preventDefault();
+      stepServiceZoom(service.id, ZOOM_KEYS[input.key]);
+      return;
+    }
     if (
       input.type === "keyDown" &&
       input.control &&
@@ -717,6 +929,11 @@ function createServiceView(service: Service): WebContentsView {
       !input.alt &&
       !input.meta
     ) {
+      if (input.key.toLowerCase() === "f") {
+        event.preventDefault();
+        openFindBarFor(service.id);
+        return;
+      }
       const num = parseInt(input.key, 10);
       if (num >= 1 && num <= 9) {
         const services = store.get("services");

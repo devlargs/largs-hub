@@ -167,6 +167,50 @@ const api = {
   goForward: (serviceId: string): void =>
     ipcRenderer.send("go-forward", serviceId),
 
+  // Find in page (service views)
+  setFindBarOpen: (open: boolean): void =>
+    ipcRenderer.send("set-find-bar-open", open),
+  findInPage: (serviceId: string, text: string, forward: boolean, findNext: boolean): void =>
+    ipcRenderer.send("find-in-page", { serviceId, text, forward, findNext }),
+  stopFindInPage: (serviceId: string): void =>
+    ipcRenderer.send("stop-find-in-page", serviceId),
+  onFindResults: (
+    callback: (data: { serviceId: string; matches: number; activeMatchOrdinal: number }) => void
+  ) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { serviceId: string; matches: number; activeMatchOrdinal: number },
+    ) => callback(data);
+    ipcRenderer.on("find-results", handler);
+    return () => ipcRenderer.removeListener("find-results", handler);
+  },
+  onOpenFindBar: (callback: (serviceId: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, serviceId: string) => callback(serviceId);
+    ipcRenderer.on("open-find-bar", handler);
+    return () => ipcRenderer.removeListener("open-find-bar", handler);
+  },
+  onCloseFindBar: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on("close-find-bar", handler);
+    return () => ipcRenderer.removeListener("close-find-bar", handler);
+  },
+
+  // Zoom (per service, persisted)
+  getServiceZoom: (serviceId: string): Promise<number> =>
+    ipcRenderer.invoke("get-service-zoom", serviceId),
+  setServiceZoom: (serviceId: string, factor: number): void =>
+    ipcRenderer.send("set-service-zoom", { serviceId, factor }),
+  stepServiceZoom: (serviceId: string, direction: "in" | "out" | "reset"): void =>
+    ipcRenderer.send("step-service-zoom", { serviceId, direction }),
+  onServiceZoomChanged: (callback: (data: { serviceId: string; factor: number }) => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { serviceId: string; factor: number },
+    ) => callback(data);
+    ipcRenderer.on("service-zoom-changed", handler);
+    return () => ipcRenderer.removeListener("service-zoom-changed", handler);
+  },
+
   // Link preview
   closeLinkPreview: (): void => ipcRenderer.send("close-link-preview"),
   openLinkExternal: (url: string): void =>

@@ -62,6 +62,9 @@ export interface StoreSchema {
   privacyOpacity: number;
   privacyHorizontalPercent: number;
   privacyHorizontalOpacity: number;
+  // Per-service zoom factor, keyed by service id. Re-applied whenever the
+  // service view is created so a zoom survives hibernation and restarts.
+  serviceZoom: Record<string, number>;
   // Pomodoro service: local task state (the source of truth for writes) and
   // the optional Notion connection behind it, both keyed by service id
   pomodoroTasks: Record<string, PomodoroData>;
@@ -86,6 +89,7 @@ export const store = new Store<StoreSchema>({
     privacyOpacity: 100,
     privacyHorizontalPercent: 0,
     privacyHorizontalOpacity: 100,
+    serviceZoom: {},
     pomodoroTasks: {},
     pomodoroNotion: {},
   },

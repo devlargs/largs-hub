@@ -173,6 +173,18 @@ export interface ElectronAPI {
   reloadService: (serviceId: string) => void;
   goBack: (serviceId: string) => void;
   goForward: (serviceId: string) => void;
+  setFindBarOpen: (open: boolean) => void;
+  findInPage: (serviceId: string, text: string, forward: boolean, findNext: boolean) => void;
+  stopFindInPage: (serviceId: string) => void;
+  onFindResults: (
+    callback: (data: { serviceId: string; matches: number; activeMatchOrdinal: number }) => void
+  ) => () => void;
+  onOpenFindBar: (callback: (serviceId: string) => void) => () => void;
+  onCloseFindBar: (callback: () => void) => () => void;
+  getServiceZoom: (serviceId: string) => Promise<number>;
+  setServiceZoom: (serviceId: string, factor: number) => void;
+  stepServiceZoom: (serviceId: string, direction: "in" | "out" | "reset") => void;
+  onServiceZoomChanged: (callback: (data: { serviceId: string; factor: number }) => void) => () => void;
   closeLinkPreview: () => void;
   openLinkExternal: (url: string) => void;
   onLinkPreviewOpen: (callback: (url: string) => void) => () => void;

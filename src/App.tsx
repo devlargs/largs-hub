@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { AutomationTask, isInternalService, Service } from "./types";
 import Sidebar from "./components/Sidebar";
 import Titlebar from "./components/Titlebar";
 import AddServiceModal from "./components/AddServiceModal";
 import LinkPreviewModal from "./components/LinkPreviewModal";
+import FindBar from "./components/FindBar";
 import MessengerAutomationPanel from "./components/MessengerAutomationPanel";
 import WelcomeScreen from "./components/WelcomeScreen";
 import SettingsPage from "./components/SettingsPage";
@@ -22,6 +23,16 @@ function isMessengerService(service: Service | null | undefined): boolean {
   }
 }
 
+// Ctrl+<key> zoom shortcuts, mirroring ZOOM_KEYS in electron/serviceViews.ts so
+// the shortcut behaves the same whether the interface or a service has focus.
+const ZOOM_KEYS: Record<string, "in" | "out" | "reset"> = {
+  "=": "in",
+  "+": "in",
+  "-": "out",
+  _: "out",
+  "0": "reset",
+};
+
 function App() {
   const [services, setServices] = useState<Service[]>([]);
   const [activeServiceId, setActiveServiceId] = useState<string | null>(null);
@@ -30,7 +41,15 @@ function App() {
   const [showSettingsPage, setShowSettingsPage] = useState(false);
   const [linkPreviewUrl, setLinkPreviewUrl] = useState<string | null>(null);
   const [showAutomationPanel, setShowAutomationPanel] = useState(false);
+  // Find bar: the service it is searching, or null when closed.
+  const [findServiceId, setFindServiceId] = useState<string | null>(null);
+  // Per-service zoom factors, mirrored from the main process for the titlebar.
+  const [zoomFactors, setZoomFactors] = useState<Record<string, number>>({});
   const [automationTasks, setAutomationTasks] = useState<AutomationTask[]>([]);
+  // Read inside window-level key handlers, which are registered once and must
+  // not re-bind on every service switch.
+  const activeServiceIdRef = useRef<string | null>(null);
+  activeServiceIdRef.current = activeServiceId;
   const updateNotificationCount = useNotificationStore((s) => s.updateCount);
   const setNotificationCounts = useNotificationStore((s) => s.setCounts);
   const removeNotificationService = useNotificationStore((s) => s.removeService);
@@ -106,6 +125,19 @@ function App() {
       }
     });
 
+    // Ctrl+F (or the context menu) inside a service view — main has already
+    // handed keyboard focus to this view, so the input can take it.
+    const unsubFindOpen = window.electronAPI.onOpenFindBar((serviceId) => {
+      setFindServiceId(serviceId);
+    });
+    const unsubFindClose = window.electronAPI.onCloseFindBar(() => {
+      setFindServiceId(null);
+    });
+
+    const unsubZoom = window.electronAPI.onServiceZoomChanged(({ serviceId, factor }) => {
+      setZoomFactors((current) => ({ ...current, [serviceId]: factor }));
+    });
+
     // Link preview modal opened from a service view's context menu
     const unsubLinkOpen = window.electronAPI.onLinkPreviewOpen((url) => {
       setLinkPreviewUrl(url);
@@ -127,6 +159,9 @@ function App() {
       unsubLinkOpen();
       unsubLinkClosed();
       unsubAutomation();
+      unsubFindOpen();
+      unsubFindClose();
+      unsubZoom();
     };
   }, [updateNotificationCount, setNotificationCounts, removeNotificationService]);
 
@@ -163,7 +198,21 @@ function App() {
 
   useEffect(() => {
     const handleKeydown = (e: KeyboardEvent) => {
-      if (!e.ctrlKey || e.shiftKey || e.altKey || e.metaKey) return;
+      if (!e.ctrlKey || e.altKey || e.metaKey) return;
+      // Zoom tolerates shift ("+" is shift+"=" on most layouts).
+      const zoomDirection = ZOOM_KEYS[e.key];
+      if (zoomDirection && activeServiceIdRef.current) {
+        e.preventDefault();
+        window.electronAPI?.stepServiceZoom(activeServiceIdRef.current, zoomDirection);
+        return;
+      }
+      if (e.shiftKey) return;
+      if (e.key.toLowerCase() === "f") {
+        if (!activeServiceIdRef.current) return;
+        e.preventDefault();
+        setFindServiceId(activeServiceIdRef.current);
+        return;
+      }
       const num = parseInt(e.key, 10);
       if (num >= 1 && num <= 9) {
         e.preventDefault();
@@ -240,6 +289,33 @@ function App() {
     };
   }, [linkPreviewOpen]);
 
+  // Reserve the find bar's strip in the service view's bounds while it is open,
+  // and drop the page's match highlighting when it closes.
+  const findOpen = findServiceId !== null;
+  useEffect(() => {
+    window.electronAPI?.setFindBarOpen(findOpen);
+    return () => {
+      window.electronAPI?.setFindBarOpen(false);
+    };
+  }, [findOpen]);
+
+  // The bar searches one service; switching away (or hiding the view) closes it.
+  useEffect(() => {
+    if (findServiceId && findServiceId !== activeServiceId) {
+      window.electronAPI?.stopFindInPage(findServiceId);
+      setFindServiceId(null);
+    }
+  }, [findServiceId, activeServiceId]);
+
+  // Seed the titlebar's zoom indicator when a service is opened; later changes
+  // arrive on the service-zoom-changed event.
+  useEffect(() => {
+    if (!activeServiceId) return;
+    window.electronAPI?.getServiceZoom(activeServiceId).then((factor) => {
+      setZoomFactors((current) => ({ ...current, [activeServiceId]: factor }));
+    });
+  }, [activeServiceId]);
+
   const activeService = services.find((s) => s.id === activeServiceId) ?? null;
 
   // Split the layout into a service pane (left) and the automation panel
@@ -272,6 +348,10 @@ function App() {
           setActiveServiceId(null);
           setShowSettingsPage(true);
           await window.electronAPI?.hideService();
+        }}
+        zoomFactor={activeServiceId ? (zoomFactors[activeServiceId] ?? 1) : 1}
+        onResetZoom={() => {
+          if (activeServiceId) window.electronAPI?.stepServiceZoom(activeServiceId, "reset");
         }}
         showAutomation={automationAvailable}
         automationActive={automationTasks.some((t) => t.serviceId === activeServiceId)}
@@ -320,6 +400,15 @@ function App() {
           })()}
         </div>
       </div>
+      {findServiceId && (
+        <FindBar
+          serviceId={findServiceId}
+          onClose={() => {
+            window.electronAPI?.stopFindInPage(findServiceId);
+            setFindServiceId(null);
+          }}
+        />
+      )}
       {linkPreviewUrl && (
         <LinkPreviewModal
           url={linkPreviewUrl}

@@ -11,6 +11,12 @@ import {
   removeBlurFromView,
   applyPrivacyToView,
   removePrivacyFromView,
+  setFindBarOpen,
+  findInService,
+  stopFindInService,
+  getServiceZoom,
+  setServiceZoom,
+  stepServiceZoom,
 } from "../serviceViews";
 import { getNotificationCounts } from "../notificationCounts";
 import { forgetPomodoroService } from "../tasks";
@@ -163,6 +169,49 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     if (view) {
       view.webContents.reload();
     }
+  });
+
+  // --- Find in page ----------------------------------------------------------
+  // The renderer owns whether the bar is open; main reserves its strip and
+  // drives webContents.findInPage.
+
+  ipcMain.on("set-find-bar-open", (_event, open: unknown) => {
+    setFindBarOpen(open === true);
+  });
+
+  ipcMain.on(
+    "find-in-page",
+    (_event, payload: { serviceId?: unknown; text?: unknown; forward?: unknown; findNext?: unknown }) => {
+      if (typeof payload?.serviceId !== "string" || typeof payload?.text !== "string") return;
+      findInService(
+        payload.serviceId,
+        payload.text,
+        payload.forward !== false,
+        payload.findNext === true,
+      );
+    },
+  );
+
+  ipcMain.on("stop-find-in-page", (_event, serviceId: string) => {
+    if (typeof serviceId === "string") stopFindInService(serviceId);
+  });
+
+  // --- Zoom ------------------------------------------------------------------
+
+  ipcMain.handle("get-service-zoom", (_event, serviceId: unknown): number =>
+    typeof serviceId === "string" ? getServiceZoom(serviceId) : 1,
+  );
+
+  ipcMain.on("set-service-zoom", (_event, payload: { serviceId?: unknown; factor?: unknown }) => {
+    if (typeof payload?.serviceId !== "string" || typeof payload?.factor !== "number") return;
+    setServiceZoom(payload.serviceId, payload.factor);
+  });
+
+  ipcMain.on("step-service-zoom", (_event, payload: { serviceId?: unknown; direction?: unknown }) => {
+    if (typeof payload?.serviceId !== "string") return;
+    const { direction } = payload;
+    if (direction !== "in" && direction !== "out" && direction !== "reset") return;
+    stepServiceZoom(payload.serviceId, direction);
   });
 
   ipcMain.on("go-back", (_event, serviceId: string) => {

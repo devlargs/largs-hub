@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Service tabs now behave like browser tabs. **Ctrl+F** opens a find bar above the page with a match counter and next/previous (Enter and Shift+Enter step through, Esc closes). **Ctrl+`+`**, **Ctrl+`-`** and **Ctrl+0** zoom a service, each service remembers its own zoom across reloads and restarts, and the titlebar shows the current percentage with one click back to 100%. Right-clicking a misspelled word now offers corrections and "Add to dictionary", and the right-click menu has Cut, Copy, Paste, Paste as plain text and Select all in text boxes.
+
 - Releases are now built from the newest commit on `main`. If you push again while a release is still building, that run is cancelled and restarted on the newer commit, so the version bump, tag and changelog can no longer describe an older state of the code. The typecheck, lint and test checks work the same way on every branch and pull request.
 
 - Settings no longer sits flush against the edges of the window. A global CSS reset was quietly cancelling every spacing class in the app, so the page lost its top, bottom and right gutters and the rows lost their breathing room. The reset is now scoped properly, Settings has its margins back at every window size, and the column is a little wider on large screens.
