@@ -1,12 +1,20 @@
 import { ipcMain, Notification, WebContentsView } from "electron";
+import { store } from "./store";
+import { restoreTimer, sanitizeLengths } from "./pomodoroRestore";
 
-// The 25/5 Pomodoro timer, bound to one task at a time. It lives in the main
-// process so it keeps running while you're in another service (the React page
-// unmounts on every service switch) and only pushes on phase changes — the
-// renderer ticks the countdown itself from `endsAt`.
+// The Pomodoro timer, bound to one task at a time. It lives in the main process
+// so it keeps running while you're in another service (the React page unmounts
+// on every service switch) and only pushes on phase changes — the renderer
+// ticks the countdown itself from `endsAt`.
+//
+// State is mirrored into the store on every change, so a quit (including the
+// idle auto-quit) doesn't throw away a running session (issue #74). Phase
+// lengths are settings rather than constants.
 
-export const FOCUS_MINUTES = 25;
-export const BREAK_MINUTES = 5;
+/** Current focus/break lengths, re-read each time so a settings change lands. */
+function lengths() {
+  return sanitizeLengths(store.get("pomodoroFocusMinutes"), store.get("pomodoroBreakMinutes"));
+}
 
 export type TimerPhase = "focus" | "break";
 
@@ -29,7 +37,10 @@ interface TimerDeps {
   onFocusSessionComplete: (serviceId: string, taskId: string) => void;
 }
 
-const phaseMs = (phase: TimerPhase) => (phase === "focus" ? FOCUS_MINUTES : BREAK_MINUTES) * 60_000;
+const phaseMs = (phase: TimerPhase) => {
+  const { focusMinutes, breakMinutes } = lengths();
+  return (phase === "focus" ? focusMinutes : breakMinutes) * 60_000;
+};
 
 let state: TimerState | null = null;
 let timer: NodeJS.Timeout | null = null;
@@ -43,12 +54,29 @@ function clearPhaseTimer() {
 
 export function registerPomodoroTimer(deps: TimerDeps): void {
   const push = () => {
+    // Mirror to disk first: a crash between the write and the send is
+    // recoverable, the other way round is not.
+    store.set("pomodoroTimer", state);
     const ui = deps.getUiView();
     if (ui && !ui.webContents.isDestroyed()) {
       ui.webContents.send("pomodoro-timer-updated", state);
     }
   };
   pushState = push;
+
+  // Pick a stored session back up. Phases that ran out while the app was closed
+  // are rolled forward and their focus sessions banked, and the timer comes
+  // back paused rather than silently resuming a cycle nobody has seen.
+  const restored = restoreTimer(store.get("pomodoroTimer"), lengths(), Date.now());
+  state = restored.state;
+  if (restored.state) {
+    for (let i = 0; i < restored.bankedFocusSessions; i++) {
+      if (restored.state.taskId) {
+        deps.onFocusSessionComplete(restored.state.serviceId, restored.state.taskId);
+      }
+    }
+    store.set("pomodoroTimer", state);
+  }
 
   function notify(title: string, body: string) {
     if (!Notification.isSupported()) return;
@@ -79,11 +107,12 @@ export function registerPomodoroTimer(deps: TimerDeps): void {
       endsAt: Date.now() + phaseMs(phase),
       remainingMs: phaseMs(phase),
     };
+    const { focusMinutes, breakMinutes } = lengths();
     notify(
       finished === "focus" ? "Focus session complete" : "Break's over",
       finished === "focus"
-        ? `Take a ${BREAK_MINUTES} minute break.`
-        : `Back to it — ${FOCUS_MINUTES} minutes of focus.`,
+        ? `Take a ${breakMinutes} minute break.`
+        : `Back to it — ${focusMinutes} minutes of focus.`,
     );
     arm();
     push();

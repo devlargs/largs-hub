@@ -1,7 +1,7 @@
 import Store from "electron-store";
 import { PomodoroData, PomodoroNotionConfig } from "./tasks";
 import { MessageListGroup } from "./messageLists";
-import type { Service } from "./shared/types";
+import type { PomodoroTimerState, Service } from "./shared/types";
 
 // Persistent app state (electron-store) and the shapes stored in it.
 // The Service interface is intentionally duplicated in preload.ts and
@@ -53,6 +53,11 @@ export interface StoreSchema {
   // Emojis most recently used to start an emoji burst, newest first — the
   // "Recent" pane in the Messenger automation panel.
   recentEmojis: string[];
+  // Pomodoro focus/break lengths in minutes, and the timer state itself so a
+  // running session survives a quit, a crash or the idle auto-quit (issue #74).
+  pomodoroFocusMinutes: number;
+  pomodoroBreakMinutes: number;
+  pomodoroTimer: PomodoroTimerState | null;
   // Pomodoro service: local task state (the source of truth for writes) and
   // the optional Notion connection behind it, both keyed by service id
   pomodoroTasks: Record<string, PomodoroData>;
@@ -80,6 +85,9 @@ export const store = new Store<StoreSchema>({
     serviceZoom: {},
     messageListGroups: [],
     recentEmojis: [],
+    pomodoroFocusMinutes: 25,
+    pomodoroBreakMinutes: 5,
+    pomodoroTimer: null,
     pomodoroTasks: {},
     pomodoroNotion: {},
   },

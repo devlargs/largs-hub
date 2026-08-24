@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- A running Pomodoro session survives closing the app. It used to be thrown away entirely — including the focus sessions it had banked toward a task — which made the focus count untrustworthy. On reopening, any phases that finished while you were away are counted and the timer comes back paused where it got to, rather than silently resuming. Focus and break lengths are now settings (Settings → Pomodoro) instead of a fixed 25/5.
+
 - You can now add any web app by address, not just the eleven presets. A **Custom** tile at the end of the add grid opens a name/address/icon form, the name is filled in from the address as you type (`app.slack.com` becomes "Slack"), and a bare address like `mail.proton.me` is accepted. Searching for something with no matching preset now points you at it instead of showing an empty grid.
 
 - Uploaded service icons are no longer left on disk forever. Replacing an icon, cancelling out of the icon picker, or removing a service now deletes the file it was using, and icons abandoned by earlier versions are cleaned up at startup. An icon shared by two services is only deleted once nothing points at it.

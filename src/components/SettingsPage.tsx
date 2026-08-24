@@ -13,6 +13,8 @@ export default function SettingsPage() {
     openFileOnFinish: false,
     downloadAlertOnFinish: true,
     hibernateInactiveMinutes: 0,
+    pomodoroFocusMinutes: 25,
+    pomodoroBreakMinutes: 5,
     privacyCoverPercent: 50,
     privacyOpacity: 100,
     privacyHorizontalPercent: 0,
@@ -98,6 +100,14 @@ export default function SettingsPage() {
     await window.electronAPI.updateSetting(key, value);
   };
 
+  const handlePomodoroChange = async (
+    key: "pomodoroFocusMinutes" | "pomodoroBreakMinutes",
+    minutes: number,
+  ) => {
+    await window.electronAPI.updateSetting(key, minutes);
+    setSettings((s) => ({ ...s, [key]: minutes }));
+  };
+
   const handleHibernateChange = async (minutes: number) => {
     await window.electronAPI.updateSetting("hibernateInactiveMinutes", minutes);
     setSettings((s) => ({ ...s, hibernateInactiveMinutes: minutes }));
@@ -163,6 +173,55 @@ export default function SettingsPage() {
               <option value={15}>After 15 min</option>
               <option value={30}>After 30 min</option>
               <option value={60}>After 1 hour</option>
+            </select>
+          </SettingRow>
+        </Section>
+
+        {/* Pomodoro */}
+        <Section title="Pomodoro">
+          <SettingRow
+            label="Focus length"
+            description="How long a focus session runs before the break starts"
+          >
+            <select
+              value={settings.pomodoroFocusMinutes}
+              onChange={(e) => handlePomodoroChange("pomodoroFocusMinutes", Number(e.target.value))}
+              className="text-sm rounded-lg cursor-pointer outline-none"
+              style={{
+                padding: "6px 10px",
+                backgroundColor: "var(--sidebar-hover)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              {[15, 20, 25, 30, 45, 50, 60, 90].map((m) => (
+                <option key={m} value={m}>
+                  {m} min
+                </option>
+              ))}
+            </select>
+          </SettingRow>
+
+          <SettingRow
+            label="Break length"
+            description="How long the break runs before the next focus session"
+          >
+            <select
+              value={settings.pomodoroBreakMinutes}
+              onChange={(e) => handlePomodoroChange("pomodoroBreakMinutes", Number(e.target.value))}
+              className="text-sm rounded-lg cursor-pointer outline-none"
+              style={{
+                padding: "6px 10px",
+                backgroundColor: "var(--sidebar-hover)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              {[3, 5, 10, 15, 20].map((m) => (
+                <option key={m} value={m}>
+                  {m} min
+                </option>
+              ))}
             </select>
           </SettingRow>
         </Section>

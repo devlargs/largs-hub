@@ -19,6 +19,9 @@ export interface AppSettings {
   downloadAlertOnFinish: boolean;
   // Minutes an inactive service may idle before its view is hibernated (0 = off)
   hibernateInactiveMinutes: number;
+  // Pomodoro phase lengths in minutes
+  pomodoroFocusMinutes: number;
+  pomodoroBreakMinutes: number;
   // Privacy mode appearance: the vertical cover spans a share of the page
   // height from the top, the horizontal cover a share of the width from the
   // left. Sizes and opacities are 0-100; a size of 0 disables that cover.
