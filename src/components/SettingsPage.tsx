@@ -398,9 +398,8 @@ function Section({
       >
         {title}
       </h2>
-      <div className="flex flex-col" style={{ gap: 4 }}>
-        {children}
-      </div>
+      {/* Stacked rows need real separation; side by side they don't. */}
+      <div className="flex flex-col gap-4 @lg:gap-1">{children}</div>
     </div>
   );
 }
@@ -420,8 +419,7 @@ function SettingRow({
     // Narrow windows stack the control under its label; from `sm` up the row
     // goes back to label-left / control-right.
     <div
-      className="flex flex-col items-stretch gap-2 rounded-lg @lg:flex-row @lg:items-center @lg:justify-between @lg:gap-4"
-      style={{ padding: "12px 14px" }}
+      className="flex flex-col items-stretch gap-2 rounded-lg py-1 @lg:flex-row @lg:items-center @lg:justify-between @lg:gap-4 @lg:px-3.5 @lg:py-3"
     >
       <div style={{ minWidth: 0, flex: 1 }}>
         <div

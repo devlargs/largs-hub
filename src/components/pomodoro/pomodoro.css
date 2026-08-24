@@ -16,6 +16,22 @@
   font-family: var(--font-ui);
   /* Optical: the day masthead reads better with more air above than below */
   padding: var(--space-xl) var(--space-lg) var(--space-2xl);
+  /* Everything below sizes against the pane, not the viewport — the sidebar
+     takes 68px, so the pane is always narrower than the window. */
+  container-type: inline-size;
+  container-name: pom;
+  --pom-ring: 168px;
+}
+
+.pom-ring-box,
+.pom-ring {
+  width: var(--pom-ring);
+  height: var(--pom-ring);
+}
+
+.pom-hero {
+  padding: var(--space-lg) var(--space-lg) var(--space-xl);
+  margin-bottom: var(--space-lg);
 }
 
 /* The one raised surface on the page. Elevation by lightness, not shadow —
@@ -353,6 +369,61 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* --- Narrow pane --------------------------------------------------------- */
+
+/* The window floor is 480px wide, so the pane bottoms out around 412px. Claw
+   back the gutters and step the display type down a rung. */
+@container pom (max-width: 30rem) {
+  .pom-page {
+    padding: var(--space-lg) var(--space-md) var(--space-xl);
+  }
+
+  .pom-day {
+    font-size: var(--text-2xl);
+  }
+
+  .pom-hero {
+    padding: var(--space-md) var(--space-sm) var(--space-lg);
+    margin-bottom: var(--space-md);
+  }
+
+  .pom-row {
+    gap: var(--space-xs) !important;
+    padding-inline: var(--space-2xs) !important;
+  }
+}
+
+/* --- Short window -------------------------------------------------------- */
+
+/* The real failure this fixes: at the 600px window floor the hero was ~450px
+   of the ~554px content height, leaving no room for the task list. The ring is
+   the only thing here that can afford to give up space. */
+@media (max-height: 700px) {
+  .pom-page {
+    --pom-ring: 116px;
+    padding-top: var(--space-lg);
+  }
+
+  .pom-clock {
+    font-size: var(--text-display-s);
+  }
+
+  .pom-hero {
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+}
+
+@media (max-height: 560px) {
+  .pom-page {
+    --pom-ring: 88px;
+  }
+
+  .pom-clock {
+    font-size: var(--text-xl);
+  }
 }
 
 /* --- Reduced motion: every effect above becomes an instant state change -- */

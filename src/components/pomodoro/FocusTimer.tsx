@@ -21,6 +21,8 @@ interface FocusTimerProps {
 // how much of the phase is left without the main process pushing every second.
 const PHASE_MS = { focus: 25 * 60_000, break: 5 * 60_000 } as const;
 
+// The SVG's coordinate space. The rendered size comes from CSS (--pom-ring),
+// so a short window can shrink the ring without touching this maths.
 const RING_SIZE = 168;
 const RING_STROKE = 3;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
@@ -95,17 +97,13 @@ export default function FocusTimer({
 
   return (
     <section
-      className="pom-stage rounded-2xl flex flex-col items-center"
-      style={{
-        padding: `var(--space-lg) var(--space-lg) var(--space-xl)`,
-        marginBottom: "var(--space-lg)",
-      }}
+      className="pom-stage pom-hero rounded-2xl flex flex-col items-center"
     >
       {/* The figure. Stat-Led: the number is the largest thing on the page. */}
-      <div className="relative" style={{ width: RING_SIZE, height: RING_SIZE }}>
+      <div className="pom-ring-box relative">
         <svg
-          width={RING_SIZE}
-          height={RING_SIZE}
+          viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+          className="pom-ring"
           style={{ transform: "rotate(-90deg)" }}
           aria-hidden="true"
         >

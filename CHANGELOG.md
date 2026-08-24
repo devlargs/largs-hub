@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- The Pomodoro page now fits a small window. At the minimum window size the focus ring took up almost the whole page and left no room for the task list; it now shrinks as the window gets shorter, and the padding and day heading tighten up when the window is narrow.
+- Settings rows no longer run together in a narrow window — stacked rows get real spacing between them and use the full width instead of being indented.
+
 ## [0.1.41] (2026-08-24)
 
 - Links inside a Pomodoro task are now detected automatically. They appear underlined in the accent colour, and clicking one opens it in your default browser instead of dropping the task into edit mode — clicking the text around a link still edits it as before. Both `https://…` links and bare `www.` addresses are picked up, and trailing punctuation stays out of the link.
