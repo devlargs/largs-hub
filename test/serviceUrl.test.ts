@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeServiceUrl } from "../src/lib/serviceUrl";
+import { normalizeServiceUrl, serviceNameFromUrl } from "../src/lib/serviceUrl";
 
 describe("normalizeServiceUrl", () => {
   it("accepts a full http(s) URL", () => {
@@ -28,5 +28,36 @@ describe("normalizeServiceUrl", () => {
     expect(normalizeServiceUrl("")).toBeNull();
     expect(normalizeServiceUrl("   ")).toBeNull();
     expect(normalizeServiceUrl("https://")).toBeNull();
+  });
+});
+
+describe("serviceNameFromUrl", () => {
+  it("uses the registrable label, capitalised", () => {
+    expect(serviceNameFromUrl("https://app.slack.com")).toBe("Slack");
+    expect(serviceNameFromUrl("https://mail.google.com")).toBe("Google");
+    expect(serviceNameFromUrl("https://www.notion.so")).toBe("Notion");
+  });
+
+  it("works on a schemeless address, the way the form is actually typed into", () => {
+    expect(serviceNameFromUrl("mail.proton.me")).toBe("Proton");
+  });
+
+  it("ignores the path, query and port", () => {
+    expect(serviceNameFromUrl("https://jira.example.com:8443/browse/ABC-1?x=1")).toBe("Example");
+  });
+
+  it("handles a host with no subdomain", () => {
+    expect(serviceNameFromUrl("https://reddit.com")).toBe("Reddit");
+  });
+
+  it("handles a single-label host", () => {
+    expect(serviceNameFromUrl("http://localhost:3000")).toBe("Localhost");
+  });
+
+  it("returns null when no name can be derived", () => {
+    expect(serviceNameFromUrl("")).toBeNull();
+    expect(serviceNameFromUrl("   ")).toBeNull();
+    expect(serviceNameFromUrl("htps://x.com")).toBeNull();
+    expect(serviceNameFromUrl("file:///c:/x")).toBeNull();
   });
 });

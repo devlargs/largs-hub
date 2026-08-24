@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { InternalServiceType, Service } from "../types";
-import { normalizeServiceUrl } from "../lib/serviceUrl";
+import { normalizeServiceUrl, serviceNameFromUrl } from "../lib/serviceUrl";
 import { v4 as uuidv4 } from "uuid";
 import serviceIcons, { resolveIcon } from "../assets/serviceIcons";
-import { IoCloudUploadOutline, IoTrashOutline } from "react-icons/io5";
+import { IoAdd, IoCloudUploadOutline, IoTrashOutline } from "react-icons/io5";
 
 const POPULAR_SERVICES: {
   name: string;
@@ -57,6 +57,13 @@ export default function AddServiceModal({
     return null;
   });
   const [urlError, setUrlError] = useState<string | null>(null);
+  // Add mode has two faces: pick a preset, or fill in the same name/URL/icon
+  // form the edit mode uses. Without this, the only way to run anything outside
+  // the preset list was to add a preset and edit it afterwards (issue #77).
+  const [customMode, setCustomMode] = useState(false);
+  // True once the name has been typed in, so deriving it from the URL host
+  // stops overwriting what the user wrote.
+  const nameTouched = useRef(false);
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -113,6 +120,16 @@ export default function AddServiceModal({
     e.target.value = "";
   };
 
+  // Typing "app.slack.com" should not also mean typing "Slack" — derive a
+  // reasonable name from the host until the name field is touched.
+  const handleCustomUrlChange = (value: string) => {
+    setEditUrl(value);
+    if (urlError) setUrlError(null);
+    if (!customMode || isEditing || nameTouched.current) return;
+    const derived = serviceNameFromUrl(value);
+    if (derived) setEditName(derived);
+  };
+
   const handleDeleteIcon = async () => {
     if (editIcon.startsWith("custom:")) {
       const fileName = editIcon.slice(7);
@@ -125,6 +142,24 @@ export default function AddServiceModal({
 
   const handleConfirm = () => {
     submitted.current = true;
+    if (customMode && !isEditing) {
+      const url = normalizeServiceUrl(editUrl);
+      if (!editName.trim() || !url) {
+        setUrlError("Enter a web address like https://example.com");
+        submitted.current = false;
+        return;
+      }
+      setUrlError(null);
+      onSubmit({
+        id: uuidv4(),
+        name: editName.trim(),
+        url,
+        icon: editIcon,
+        color: "#06b6d4",
+        notificationCount: 0,
+      });
+      return;
+    }
     if (isEditing) {
       if (!editName.trim() || !editUrl.trim()) {
         submitted.current = false;
@@ -164,7 +199,9 @@ export default function AddServiceModal({
     }
   };
 
-  const canConfirm = isEditing
+  // The name/URL/icon form backs both editing and adding a custom service.
+  const showForm = isEditing || customMode;
+  const canConfirm = showForm
     ? editName.trim().length > 0 && editUrl.trim().length > 0
     : selectedIndex !== null;
 
@@ -196,11 +233,15 @@ export default function AddServiceModal({
           className="text-center"
           style={{ fontSize: 24, fontWeight: 700, marginBottom: 24, color: "var(--text-primary)" }}
         >
-          {isEditing ? "Edit service" : "Add a service to your workspace"}
+          {isEditing
+            ? "Edit service"
+            : customMode
+              ? "Add a custom service"
+              : "Add a service to your workspace"}
         </h2>
 
-        {isEditing ? (
-          /* Edit form */
+        {showForm ? (
+          /* Name / URL / icon form — editing, or adding a custom service */
           <div className="flex flex-col" style={{ gap: 16, marginBottom: 28 }}>
             {/* Icon upload */}
             <div className="flex flex-col items-center" style={{ gap: 8 }}>
@@ -290,7 +331,10 @@ export default function AddServiceModal({
               <input
                 type="text"
                 value={editName}
-                onChange={(e) => setEditName(e.target.value)}
+                onChange={(e) => {
+                  nameTouched.current = true;
+                  setEditName(e.target.value);
+                }}
                 className="text-sm outline-none rounded-xl"
                 style={{
                   padding: "10px 16px",
@@ -307,10 +351,7 @@ export default function AddServiceModal({
               <input
                 type="text"
                 value={editUrl}
-                onChange={(e) => {
-                  setEditUrl(e.target.value);
-                  if (urlError) setUrlError(null);
-                }}
+                onChange={(e) => handleCustomUrlChange(e.target.value)}
                 placeholder="https://example.com"
                 aria-invalid={urlError !== null}
                 className="text-sm outline-none rounded-xl"
@@ -414,14 +455,67 @@ export default function AddServiceModal({
                   </span>
                 </button>
               ))}
+
+              {/* Anything not in the list — the whole point of a workspace
+                  browser, and previously only reachable by adding a preset and
+                  editing it afterwards (issue #77). */}
+              <button
+                onClick={() => {
+                  setSelectedIndex(null);
+                  setUrlError(null);
+                  // Carry the search text over: someone who typed a URL into
+                  // the filter and found nothing was already halfway here.
+                  if (search.trim()) handleCustomUrlChange(search.trim());
+                  setCustomMode(true);
+                }}
+                className="flex flex-col items-center cursor-pointer group"
+                style={{ gap: 10 }}
+              >
+                <div
+                  className="flex items-center justify-center rounded-2xl transition-colors"
+                  style={{
+                    width: 72,
+                    height: 72,
+                    background: "transparent",
+                    border: "2px dashed var(--border)",
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  <IoAdd size={32} />
+                </div>
+                <span
+                  className="transition-colors"
+                  style={{ fontSize: 12, color: "var(--text-muted)" }}
+                >
+                  Custom
+                </span>
+              </button>
             </div>
+
+            {filtered.length === 0 && search.trim().length > 0 && (
+              <p
+                className="text-xs text-center"
+                style={{ color: "var(--text-muted)", marginTop: -12, marginBottom: 20 }}
+              >
+                No preset matches “{search.trim()}” — use Custom to add it by address.
+              </p>
+            )}
           </>
         )}
 
         {/* Footer buttons */}
         <div className="flex justify-end" style={{ gap: 12 }}>
           <button
-            onClick={handleClose}
+            onClick={() => {
+              // From the custom form, Cancel steps back to the preset grid
+              // rather than throwing away the whole modal.
+              if (customMode && !isEditing) {
+                setCustomMode(false);
+                setUrlError(null);
+                return;
+              }
+              handleClose();
+            }}
             className="text-sm cursor-pointer transition-colors"
             style={{
               padding: "10px 24px",
@@ -431,7 +525,7 @@ export default function AddServiceModal({
               color: "var(--text-secondary)",
             }}
           >
-            Cancel
+            {customMode && !isEditing ? "Back" : "Cancel"}
           </button>
           <button
             onClick={handleConfirm}
@@ -448,7 +542,7 @@ export default function AddServiceModal({
               opacity: canConfirm ? 1 : 0.5,
             }}
           >
-            {isEditing ? "Save" : "Confirm"}
+            {isEditing ? "Save" : customMode ? "Add service" : "Confirm"}
           </button>
         </div>
       </div>

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- You can now add any web app by address, not just the eleven presets. A **Custom** tile at the end of the add grid opens a name/address/icon form, the name is filled in from the address as you type (`app.slack.com` becomes "Slack"), and a bare address like `mail.proton.me` is accepted. Searching for something with no matching preset now points you at it instead of showing an empty grid.
+
 - Uploaded service icons are no longer left on disk forever. Replacing an icon, cancelling out of the icon picker, or removing a service now deletes the file it was using, and icons abandoned by earlier versions are cleaned up at startup. An icon shared by two services is only deleted once nothing points at it.
 
 - Downloading a file whose name already exists in your download folder no longer overwrites the old one without asking. It saves alongside it as `report (1).pdf`, the way a browser does. This only affected people with a custom download folder set.

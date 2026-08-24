@@ -33,3 +33,27 @@ export function normalizeServiceUrl(raw: string): string | null {
   if (!url.hostname) return null;
   return url.toString();
 }
+
+/**
+ * A default service name derived from a URL, for the custom-add form: the
+ * registrable label, capitalised. "https://app.slack.com" -> "Slack".
+ *
+ * Returns null when nothing sensible can be derived, so the caller leaves the
+ * name field alone rather than filling it with junk.
+ */
+export function serviceNameFromUrl(raw: string): string | null {
+  const normalized = normalizeServiceUrl(raw);
+  if (!normalized) return null;
+  let host: string;
+  try {
+    host = new URL(normalized).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+  const labels = host.split(".").filter(Boolean);
+  if (labels.length === 0) return null;
+  // Skip the TLD; a bare host ("localhost") has nothing to skip.
+  const label = labels.length >= 2 ? labels[labels.length - 2] : labels[0];
+  if (!label) return null;
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
