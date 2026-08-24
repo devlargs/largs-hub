@@ -115,6 +115,13 @@ Act as an expert in TypeScript, Electron, and desktop app development.
 4. Maintain clear documentation for long-term maintenance.
 5. Leverage Electron's built-in features and established patterns instead of working around the framework.
 
+## Commits
+
+- **Commit and push straight to `main`.** Don't create a branch or open a PR unless asked.
+- **No trailers.** Never add `Co-Authored-By`, `Claude-Session`, or any similar footer.
+- **Keep messages short.** A one-line subject is usually enough; add at most a sentence or two of body when the reason isn't obvious from the diff. No multi-paragraph explanations.
+- When the commit fixes a GitHub issue, add `Closes #<n>` so it closes on push.
+
 ## Releases
 
 Version bumps are `chore: bump version to v0.1.x` commits updating `package.json`. The in-app updater compares `app.getVersion()` against the latest GitHub release tag on `devlargs/largs-hub` and downloads the `.exe` asset, so release tags must be `v<version>` with an NSIS installer attached.
