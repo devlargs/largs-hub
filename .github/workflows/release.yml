@@ -3,6 +3,15 @@ name: Release
 on:
   push:
     branches: [main]
+    # A docs or CI commit shouldn't mint a version, publish an installer and
+    # prompt every user to update. Code changes still release automatically.
+    paths-ignore:
+      - "**.md"
+      - ".github/**"
+      - ".vscode/**"
+      - "LICENSE"
+  # Ship a release for an ignored-path commit (or re-run a failed one) on demand.
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -25,7 +34,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Bump patch version

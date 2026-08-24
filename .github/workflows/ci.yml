@@ -31,5 +31,33 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Format
+        run: npm run format:check
+
       - name: Test
         run: npm test
+
+  # The shipped artifact is built on Windows, so a packaging break has to be
+  # caught on Windows too — checks alone never compile the Electron bundle.
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build renderer and main
+        run: npm run build
+
+      # --dir packages without producing an installer: enough to catch a broken
+      # electron-builder config without the cost of a full NSIS build.
+      - name: Package (unpacked)
+        run: npx electron-builder --dir --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

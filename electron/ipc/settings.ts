@@ -130,12 +130,10 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
       {
         label: "Check for Updates",
         click: () => {
-          deps
-            .getUiView()
-            ?.webContents.send("context-menu-action", {
-              action: "show-update-page",
-              serviceId: "",
-            });
+          deps.getUiView()?.webContents.send("context-menu-action", {
+            action: "show-update-page",
+            serviceId: "",
+          });
         },
       },
     ]);
