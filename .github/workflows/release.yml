@@ -7,6 +7,13 @@ on:
 permissions:
   contents: write
 
+# One release at a time per branch. A newer push to main cancels the run that is
+# still going and releases from the newer commit instead, so the version bump,
+# tag and changelog always describe the tip of main rather than a stale commit.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   release:
     runs-on: windows-latest
