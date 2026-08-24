@@ -1,5 +1,6 @@
 import { isInternalService, Service } from "../types";
 import appIcon from "../../assets/ico/icon.png";
+import { TITLEBAR_HEIGHT } from "@shared/layout";
 import { VscChromeMinimize, VscChromeMaximize, VscChromeClose } from "react-icons/vsc";
 import {
   IoArrowBack,
@@ -39,7 +40,7 @@ export default function Titlebar({
     <div
       className="titlebar-drag flex items-center bg-sidebar select-none shrink-0"
       style={{
-        height: 46,
+        height: TITLEBAR_HEIGHT,
         paddingLeft: 24,
         paddingRight: 8,
         borderBottom: "1px solid var(--border)",

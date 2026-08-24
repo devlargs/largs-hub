@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IoArrowUp, IoArrowDown, IoClose } from "react-icons/io5";
+import { SIDEBAR_WIDTH, TITLEBAR_HEIGHT, FIND_BAR_HEIGHT } from "@shared/layout";
 
 // The bar occupies a strip the main process carves out of the service view's
 // bounds — it can't be drawn *over* a WebContentsView (see the z-order rule in
-// CLAUDE.md). SIDEBAR_WIDTH, TITLEBAR_HEIGHT and BAR_HEIGHT must match
-// SIDEBAR_WIDTH / TITLEBAR_HEIGHT / FIND_BAR_HEIGHT in serviceViews.ts.
-const SIDEBAR_WIDTH = 68;
-const TITLEBAR_HEIGHT = 46;
-const BAR_HEIGHT = 44;
+// CLAUDE.md). Main reserves the strip from these same constants.
 
 interface FindBarProps {
   serviceId: string;
@@ -71,7 +68,7 @@ export default function FindBar({ serviceId, onClose }: FindBarProps) {
         top: TITLEBAR_HEIGHT,
         left: SIDEBAR_WIDTH,
         right: 0,
-        height: BAR_HEIGHT,
+        height: FIND_BAR_HEIGHT,
         gap: 8,
         padding: "0 12px",
         backgroundColor: "var(--panel)",

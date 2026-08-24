@@ -40,7 +40,9 @@ Everything hangs off one frameless `BrowserWindow`:
 
 **Native menus:** HTML menus/tooltips can't render above WebContentsViews, so all context menus are native `Menu.buildFromTemplate` in the main process. Results flow back to React via the `"context-menu-action"` IPC event, handled in `App.tsx`.
 
-**Hybrid modals:** the link preview modal shows arbitrary pages (iframes would be blocked by X-Frame-Options), so the page renders in a native `WebContentsView` while React draws the chrome (backdrop/header) around it. The geometry constants in `getLinkPreviewBounds()` (main.ts) and `LinkPreviewModal.tsx` must stay in sync.
+**Hybrid modals:** the link preview modal shows arbitrary pages (iframes would be blocked by X-Frame-Options), so the page renders in a native `WebContentsView` while React draws the chrome (backdrop/header) around it. Both sides take their geometry from `electron/shared/layout.ts`.
+
+**Shared layout constants:** every number where a native view's bounds have to line up with CSS — `SIDEBAR_WIDTH`, `TITLEBAR_HEIGHT`, `FIND_BAR_HEIGHT`, the link-preview geometry — lives in `electron/shared/layout.ts`. Main imports it directly; the renderer imports it as `@shared/layout` (aliased in `vite.config.ts` and `tsconfig.json`). Put pure values and pure functions there only — no `electron` or `node:` imports, since the file is compiled into both bundles. Never re-type one of these numbers in a component.
 
 ### IPC bridge — three files per change
 

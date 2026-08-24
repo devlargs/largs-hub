@@ -9,6 +9,7 @@ import { registerPomodoroTimer, stopTimerForTask } from "./pomodoroTimer";
 import { registerUpdater } from "./updater";
 import { registerServicesIpc } from "./ipc/services";
 import { sweepOrphanedPartitions } from "./partitions";
+import { linkPreviewBounds } from "./shared/layout";
 import { registerSettingsIpc } from "./ipc/settings";
 import { registerListGroupsIpc } from "./ipc/listGroups";
 import { addRecentEmoji, sanitizeRecentEmojis } from "./recentEmojis";
@@ -216,20 +217,11 @@ function createWindow() {
 
 // Link preview modal: the page renders in a WebContentsView layered on top,
 // while the React UI draws the modal chrome (backdrop, header, close button)
-// around it. Geometry must stay in sync with LinkPreviewModal.tsx.
-const LINK_PREVIEW_MARGIN = 40;
-const LINK_PREVIEW_HEADER = 52;
-
+// around it. Both sides read the geometry from shared/layout.ts.
 function getLinkPreviewBounds() {
   if (!mainWindow) return { x: 0, y: 0, width: 0, height: 0 };
   const [width, height] = mainWindow.getContentSize();
-  const modalWidth = Math.min(1100, width - LINK_PREVIEW_MARGIN * 2);
-  return {
-    x: Math.round((width - modalWidth) / 2),
-    y: LINK_PREVIEW_MARGIN + LINK_PREVIEW_HEADER,
-    width: Math.max(0, modalWidth),
-    height: Math.max(0, height - LINK_PREVIEW_MARGIN * 2 - LINK_PREVIEW_HEADER),
-  };
+  return linkPreviewBounds(width, height);
 }
 
 function openLinkPreview(url: string, partition: string) {

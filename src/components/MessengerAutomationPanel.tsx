@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AutoStopState, AutomationTask, MessageListGroup, NoticeReason, TaskSpec } from "../types";
 import MessageListPicker from "./MessageListPicker";
 import { IoClose, IoStopCircleOutline } from "react-icons/io5";
+import { TITLEBAR_HEIGHT } from "@shared/layout";
 
 interface MessengerAutomationPanelProps {
   serviceId: string;
@@ -12,9 +13,8 @@ interface MessengerAutomationPanelProps {
 // The panel takes the right share of a split with the service view. Main owns
 // that calculation (electron/automationLayout.ts) and pushes the width here, so
 // the panel always covers exactly the strip main reserved for it — no formula
-// duplicated across the two layers. TITLEBAR_HEIGHT still has to match
-// serviceViews.ts, since the panel starts below the titlebar.
-const TITLEBAR_HEIGHT = 46;
+// duplicated across the two layers. The panel starts below the titlebar, whose
+// height comes from the shared layout module.
 // Used only for the first paint, before main's width arrives.
 const FALLBACK_PANEL_WIDTH = 340;
 // Below this the two-column rows are cramped, so they stack instead.

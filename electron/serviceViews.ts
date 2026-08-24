@@ -13,6 +13,7 @@ import {
 import { trackInputActivity } from "./idleShutdown";
 import { DEFAULT_ZOOM, nextZoom, sanitizeZoom } from "./zoom";
 import { computeAutomationLayout } from "./automationLayout";
+import { SIDEBAR_WIDTH, TITLEBAR_HEIGHT, FIND_BAR_HEIGHT } from "./shared/layout";
 
 // Service-view lifecycle: creation (with UA spoofing, permission policy,
 // notification extraction, popup handling), show/hide switching, hibernation,
@@ -40,14 +41,10 @@ let hibernationSweepTimer: ReturnType<typeof setInterval> | null = null;
 let activeServiceId: string | null = null;
 let windowFocused = true;
 
-const SIDEBAR_WIDTH = 68;
-const TITLEBAR_HEIGHT = 46;
-
 // The find bar can't be drawn over a service view (child-view reordering is
 // unreliable on Windows — see the z-order rule in CLAUDE.md), so it takes a
 // strip out of the service view's bounds instead, the same way the automation
-// panel takes a column. Keep FIND_BAR_HEIGHT in sync with FindBar.tsx.
-const FIND_BAR_HEIGHT = 44;
+// panel takes a column.
 let findBarOpen = false;
 
 // Ctrl+<key> zoom shortcuts. "Add"/"Subtract" are the numpad keys.

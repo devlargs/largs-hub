@@ -3,6 +3,7 @@ import { Service } from "../types";
 import { resolveIcon } from "../assets/serviceIcons";
 import { IoSunny, IoMoon, IoHome } from "react-icons/io5";
 import { useNotificationStore } from "../store/notifications";
+import { SIDEBAR_WIDTH } from "@shared/layout";
 
 interface SidebarProps {
   services: Service[];
@@ -130,8 +131,10 @@ export default function Sidebar({
   return (
     <>
       <div
-        className="w-17 bg-sidebar flex flex-col items-center pb-4 shrink-0 overflow-y-auto"
-        style={{ gap: 8, paddingTop: 8 }}
+        className="bg-sidebar flex flex-col items-center pb-4 shrink-0 overflow-y-auto"
+        // Width comes from the shared constant main positions service views
+        // against, rather than a Tailwind class that could drift from it.
+        style={{ width: SIDEBAR_WIDTH, gap: 8, paddingTop: 8 }}
       >
         {/* Home button */}
         <button

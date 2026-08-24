@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { IoClose, IoOpenOutline } from "react-icons/io5";
+import { LINK_PREVIEW_HEADER, LINK_PREVIEW_MARGIN, LINK_PREVIEW_MAX_WIDTH } from "@shared/layout";
 
-// Geometry must stay in sync with getLinkPreviewBounds() in electron/main.ts
-const MARGIN = 40;
-const HEADER = 52;
+// The page renders in a native view main positions from these same constants,
+// so the chrome drawn here lines up with it exactly.
 
 interface LinkPreviewModalProps {
   url: string;
@@ -36,7 +36,7 @@ export default function LinkPreviewModal({ url, onClose }: LinkPreviewModalProps
     return () => window.removeEventListener("keydown", handleKeydown);
   }, [onClose]);
 
-  const modalWidth = Math.min(1100, windowWidth - MARGIN * 2);
+  const modalWidth = Math.min(LINK_PREVIEW_MAX_WIDTH, windowWidth - LINK_PREVIEW_MARGIN * 2);
 
   let hostname = currentUrl;
   try {
@@ -54,8 +54,8 @@ export default function LinkPreviewModal({ url, onClose }: LinkPreviewModalProps
       <div
         className="bg-sidebar shadow-2xl absolute flex flex-col overflow-hidden"
         style={{
-          top: MARGIN,
-          bottom: MARGIN,
+          top: LINK_PREVIEW_MARGIN,
+          bottom: LINK_PREVIEW_MARGIN,
           left: Math.round((windowWidth - modalWidth) / 2),
           width: modalWidth,
           borderRadius: "12px 12px 0 0",
@@ -66,7 +66,7 @@ export default function LinkPreviewModal({ url, onClose }: LinkPreviewModalProps
         <div
           className="flex items-center"
           style={{
-            height: HEADER,
+            height: LINK_PREVIEW_HEADER,
             padding: "0 10px 0 16px",
             gap: 12,
             borderBottom: "1px solid var(--border)",

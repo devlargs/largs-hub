@@ -12,6 +12,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
+      // Layout/type declarations shared with the main process. Pure modules
+      // only — see electron/shared/layout.ts.
+      "@shared": path.resolve(__dirname, "electron/shared"),
     },
   },
 });

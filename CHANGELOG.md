@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Internal: the layout numbers that keep native views lined up with the interface around them (sidebar width, titlebar height, link-preview geometry) now come from one shared module instead of being typed out separately in each layer. No visible change — it removes a class of misalignment bug.
+
 - Documentation and CI-only commits no longer publish a new version, so you stop getting update prompts for changes that don't affect the app. Behind the scenes CI now builds and packages the app on Windows, checks formatting, and pins the same Node version the release uses, so a packaging break is caught before it ships.
 
 - The Messenger automation panel now sizes itself to the window. It no longer shrinks to an unusable sliver on a small window or stretch into a half-empty wall of form on a large display, its side-by-side fields stack when space is tight, and on a very narrow window it takes the whole pane instead of leaving a useless strip of Messenger beside it.
