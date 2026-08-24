@@ -11,6 +11,8 @@ import {
   applyPrivacyToView,
   removePrivacyFromView,
 } from "../serviceViews";
+import { forgetPomodoroService } from "../tasks";
+import { stopTimerForService } from "../pomodoroTimer";
 
 // IPC: service CRUD, per-service toggles, view navigation, and the native
 // service context menu.
@@ -42,12 +44,10 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     // Clean up the view
     destroyServiceView(serviceId, { clearCounts: true });
 
-    // Drop any Notion Note Taker credentials tied to this service
-    const notionConfigs = store.get("notionNotes");
-    if (notionConfigs[serviceId]) {
-      delete notionConfigs[serviceId];
-      store.set("notionNotes", notionConfigs);
-    }
+    // Drop the Pomodoro service's tasks, queue, and Notion credentials, and
+    // stop any focus timer bound to it
+    forgetPomodoroService(store, serviceId);
+    stopTimerForService(serviceId);
 
     return services;
   });

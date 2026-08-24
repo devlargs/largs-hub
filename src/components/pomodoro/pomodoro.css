@@ -1,0 +1,183 @@
+/* Motion for the Pomodoro task list. Plain CSS transitions and keyframes —
+   the FLIP reflow and the row-collapse on delete are driven from JS with the
+   Web Animations API, so no animation library is needed. Every effect here is
+   turned off under prefers-reduced-motion at the bottom of the file. */
+
+.pom-row {
+  transition:
+    background-color 160ms ease,
+    opacity 220ms ease;
+}
+
+/* Completed rows recede without disappearing */
+.pom-row-done {
+  opacity: 0.55;
+}
+
+/* --- Checkbox: the tick draws itself on, and rubs itself out ------------- */
+
+.pom-check {
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pom-check:active {
+  transform: scale(0.88);
+}
+
+.pom-check-tick {
+  stroke-dasharray: 22;
+  stroke-dashoffset: 22;
+  transition: stroke-dashoffset 240ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.pom-check-on .pom-check-tick {
+  stroke-dashoffset: 0;
+}
+
+/* The row springs a little as it's checked */
+@keyframes pom-spring {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.014); }
+  100% { transform: scale(1); }
+}
+
+.pom-row-springing {
+  animation: pom-spring 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* --- Label: strikethrough sweeps left to right --------------------------- */
+
+.pom-label {
+  position: relative;
+  display: inline-block;
+  transition: color 240ms ease;
+}
+
+.pom-label::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 52%;
+  height: 1.5px;
+  width: 100%;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 260ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.pom-label-done::after {
+  transform: scaleX(1);
+}
+
+/* --- Add: the new row grows in from nothing ------------------------------ */
+
+@keyframes pom-row-in {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+    max-height: 0;
+    margin-bottom: 0;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 64px;
+    margin-bottom: 6px;
+  }
+}
+
+.pom-row-entering {
+  animation: pom-row-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+}
+
+/* --- Drag: the lifted row floats, the rest part around it ---------------- */
+
+.pom-row-dragging {
+  transform: scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  opacity: 0.95;
+  cursor: grabbing;
+}
+
+.pom-row-drop-target {
+  box-shadow: inset 0 2px 0 0 var(--accent);
+}
+
+/* --- Day switch: the list slides in from the direction of travel --------- */
+
+@keyframes pom-day-in-next {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pom-day-in-prev {
+  from { opacity: 0; transform: translateX(-18px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.pom-day-next { animation: pom-day-in-next 220ms cubic-bezier(0.22, 1, 0.36, 1); }
+.pom-day-prev { animation: pom-day-in-prev 220ms cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* --- All done: a short flourish, not a confetti cannon ------------------- */
+
+@keyframes pom-celebrate {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+@keyframes pom-glow {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.pom-celebrating { animation: pom-celebrate 620ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.pom-glow { animation: pom-glow 900ms ease-out; }
+
+/* --- Sync pill: pulses while there's something to push ------------------- */
+
+@keyframes pom-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.pom-pill-syncing { animation: pom-pulse 1.4s ease-in-out infinite; }
+
+/* --- Progress bar -------------------------------------------------------- */
+
+.pom-progress-fill {
+  transition: width 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* --- Reduced motion: every effect above becomes an instant state change --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .pom-row,
+  .pom-check,
+  .pom-check-tick,
+  .pom-label,
+  .pom-label::after,
+  .pom-progress-fill {
+    transition: none !important;
+  }
+
+  .pom-row-springing,
+  .pom-row-entering,
+  .pom-day-next,
+  .pom-day-prev,
+  .pom-celebrating,
+  .pom-glow,
+  .pom-pill-syncing {
+    animation: none !important;
+  }
+
+  .pom-row-dragging {
+    transform: none;
+  }
+}

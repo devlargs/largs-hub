@@ -16,6 +16,12 @@ export interface AppSettings {
   privacyHorizontalOpacity: number;
 }
 
+export type InternalServiceType = "pomodoro" | "notion-notes";
+
+export function isInternalService(service: { type?: string } | null | undefined): boolean {
+  return service?.type === "pomodoro" || service?.type === "notion-notes";
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -29,62 +35,73 @@ export interface Service {
   blurWhenInactive?: boolean;
   // Covers the top half of the service page so only the bottom 50% is visible
   privacyMode?: boolean;
-  // Internal services (e.g. "notion-notes") render as React pages instead of
-  // getting a WebContentsView in the main process
-  type?: "notion-notes";
+  // Internal services render as React pages instead of getting a
+  // WebContentsView in the main process. "notion-notes" is retired (the Note
+  // Taker was replaced by Pomodoro) and only renders a migration notice.
+  type?: InternalServiceType;
 }
 
-export interface NotionNoteItem {
-  text: string;
-  checked: boolean;
-}
+// --- Pomodoro (internal "pomodoro" service) ---------------------------------
 
-export interface NotionNote {
+export interface PomodoroTask {
   id: string;
-  title: string;
-  kind: "text" | "list";
   text: string;
-  items: NotionNoteItem[];
-  imageUrl?: string;
-  pinned: boolean;
+  done: boolean;
+  // The day this task belongs to, YYYY-MM-DD in local time
+  date: string;
+  order: number;
+  // Notion page id, present once the task has been pushed
+  pageId?: string;
   editedAt: string;
+  // Completed focus sessions spent on this task
+  focusSessions: number;
 }
 
-export type NotionNoteImage =
-  | { action: "keep" }
-  | { action: "remove" }
-  | { action: "upload"; fileName: string; mimeType: string; base64: string };
+// Notion connection state for the service (not the same as sync health)
+export type PomodoroConnectionState = "local" | "pending" | "pending-adoptable" | "ready";
 
-export interface NotionNoteInput {
-  title: string;
-  kind: "text" | "list";
-  text: string;
-  items: NotionNoteItem[];
-  pinned: boolean;
-  image?: NotionNoteImage;
-}
+export type PomodoroSyncStatus = "local" | "synced" | "syncing" | "offline";
 
-// "pending-adoptable" — connected to a non-empty database that already follows
-// this app's conventions (previous connection's notes); the user can keep them
-export type NotionNotesState = "none" | "pending" | "pending-adoptable" | "ready";
-
-export interface NotionNotesResult {
-  ok: boolean;
+export interface PomodoroSyncState {
+  serviceId: string;
+  status: PomodoroSyncStatus;
+  pending: number;
   error?: string;
 }
 
-export interface NotionNoteResult extends NotionNotesResult {
-  note?: NotionNote;
+export interface PomodoroListResult {
+  ok: boolean;
+  error?: string;
+  tasks?: PomodoroTask[];
+  pulledAt?: number;
+  sync?: PomodoroSyncState;
 }
 
-export interface NotionNotesListResult extends NotionNotesResult {
-  notes?: NotionNote[];
+export interface PomodoroTaskResult {
+  ok: boolean;
+  error?: string;
+  task?: PomodoroTask;
+  tasks?: PomodoroTask[];
 }
 
-export interface NotionConnectResult extends NotionNotesResult {
+export interface PomodoroConnectResult {
+  ok: boolean;
+  error?: string;
   needsReset?: boolean;
-  // The non-empty database already holds notes from a previous connection
   adoptable?: boolean;
+}
+
+export type PomodoroTimerPhase = "focus" | "break";
+
+export interface PomodoroTimerState {
+  serviceId: string;
+  taskId: string | null;
+  phase: PomodoroTimerPhase;
+  running: boolean;
+  // Epoch ms the current phase ends; the UI ticks its countdown from this
+  endsAt: number;
+  remainingMs: number;
+  completedFocus: number;
 }
 
 export type TaskSpec =
@@ -177,17 +194,47 @@ export interface ElectronAPI {
   downloadAndInstallUpdate: () => Promise<void>;
   onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
   onDownloadComplete: (callback: (fileName: string) => void) => () => void;
-  notionNotes: {
-    getState: (serviceId: string) => Promise<NotionNotesState>;
-    connect: (serviceId: string, apiKey: string, databaseId: string) => Promise<NotionConnectResult>;
-    resetDatabase: (serviceId: string) => Promise<NotionNotesResult>;
-    adoptDatabase: (serviceId: string) => Promise<NotionNotesResult>;
+  pomodoro: {
+    getState: (serviceId: string) => Promise<PomodoroConnectionState>;
+    connect: (
+      serviceId: string,
+      apiKey: string,
+      databaseId: string
+    ) => Promise<PomodoroConnectResult>;
+    resetDatabase: (serviceId: string) => Promise<{ ok: boolean; error?: string }>;
+    adoptDatabase: (serviceId: string) => Promise<{ ok: boolean; error?: string }>;
     disconnect: (serviceId: string) => Promise<void>;
-    list: (serviceId: string) => Promise<NotionNotesListResult>;
-    create: (serviceId: string, input: NotionNoteInput) => Promise<NotionNoteResult>;
-    update: (serviceId: string, noteId: string, input: NotionNoteInput) => Promise<NotionNoteResult>;
-    setPinned: (serviceId: string, noteId: string, pinned: boolean) => Promise<NotionNoteResult>;
-    remove: (serviceId: string, noteId: string) => Promise<NotionNotesResult>;
+    list: (serviceId: string, date: string) => Promise<PomodoroListResult>;
+    refresh: (serviceId: string, date: string) => Promise<PomodoroListResult>;
+    create: (serviceId: string, date: string, text: string) => Promise<PomodoroTaskResult>;
+    update: (
+      serviceId: string,
+      taskId: string,
+      patch: { text?: string; done?: boolean }
+    ) => Promise<PomodoroTaskResult>;
+    remove: (serviceId: string, taskId: string) => Promise<PomodoroTaskResult>;
+    reorder: (serviceId: string, date: string, taskIds: string[]) => Promise<PomodoroTaskResult>;
+    carryOver: (
+      serviceId: string,
+      fromDate: string,
+      toDate: string
+    ) => Promise<PomodoroTaskResult & { moved?: number }>;
+    pendingCount: (serviceId: string, date: string) => Promise<number>;
+    syncState: (serviceId: string) => Promise<PomodoroSyncState | null>;
+    retrySync: (serviceId: string) => Promise<PomodoroSyncState | null>;
+    onSyncUpdated: (callback: (state: PomodoroSyncState) => void) => () => void;
+    onTasksUpdated: (
+      callback: (data: { serviceId: string; tasks: PomodoroTask[] }) => void
+    ) => () => void;
+    timer: {
+      get: () => Promise<PomodoroTimerState | null>;
+      start: (serviceId: string, taskId: string | null) => Promise<PomodoroTimerState | null>;
+      pause: () => Promise<PomodoroTimerState | null>;
+      resume: () => Promise<PomodoroTimerState | null>;
+      skip: () => Promise<PomodoroTimerState | null>;
+      stop: () => Promise<null>;
+      onUpdated: (callback: (state: PomodoroTimerState | null) => void) => () => void;
+    };
   };
   messengerAutomation: {
     start: (serviceId: string, spec: TaskSpec) => Promise<StartResult>;

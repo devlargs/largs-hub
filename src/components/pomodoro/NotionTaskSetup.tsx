@@ -1,15 +1,18 @@
 import { useState } from "react";
 import notionIcon from "../../assets/images/notion.png";
 
-interface NotionSetupProps {
+interface NotionTaskSetupProps {
   serviceId: string;
   // True when a previous connect found a non-empty database and we're still
   // waiting for the user to decide what to do with it
   initialNeedsReset: boolean;
   // True when that non-empty database already follows this app's conventions —
-  // it holds notes from a previous connection that the user can keep
+  // it holds tasks from a previous connection that the user can keep
   initialAdoptable: boolean;
   onReady: () => void;
+  // Back to the list without connecting anything — Notion is optional here,
+  // unlike the note taker this service replaced
+  onCancel: () => void;
 }
 
 const inputStyle: React.CSSProperties = {
@@ -21,12 +24,13 @@ const inputStyle: React.CSSProperties = {
   fontSize: 14,
 };
 
-export default function NotionSetup({
+export default function NotionTaskSetup({
   serviceId,
   initialNeedsReset,
   initialAdoptable,
   onReady,
-}: NotionSetupProps) {
+  onCancel,
+}: NotionTaskSetupProps) {
   const [mode, setMode] = useState<"form" | "reset">(initialNeedsReset ? "reset" : "form");
   const [adoptable, setAdoptable] = useState(initialAdoptable);
   const [apiKey, setApiKey] = useState("");
@@ -40,7 +44,7 @@ export default function NotionSetup({
     if (!canConnect) return;
     setBusy(true);
     setError(null);
-    const res = await window.electronAPI.notionNotes.connect(
+    const res = await window.electronAPI.pomodoro.connect(
       serviceId,
       apiKey.trim(),
       databaseId.trim(),
@@ -61,31 +65,33 @@ export default function NotionSetup({
   const handleReset = async () => {
     setBusy(true);
     setError(null);
-    const res = await window.electronAPI.notionNotes.resetDatabase(serviceId);
+    const res = await window.electronAPI.pomodoro.resetDatabase(serviceId);
     setBusy(false);
-    if (res.ok) {
-      onReady();
-    } else {
-      setError(res.error || "Could not empty the database.");
-    }
+    if (res.ok) onReady();
+    else setError(res.error || "Could not empty the database.");
   };
 
   const handleAdopt = async () => {
     setBusy(true);
     setError(null);
-    const res = await window.electronAPI.notionNotes.adoptDatabase(serviceId);
+    const res = await window.electronAPI.pomodoro.adoptDatabase(serviceId);
     setBusy(false);
-    if (res.ok) {
-      onReady();
-    } else {
-      setError(res.error || "Could not reconnect to the existing notes.");
-    }
+    if (res.ok) onReady();
+    else setError(res.error || "Could not reconnect to the existing tasks.");
   };
 
   const handleUseDifferent = async () => {
-    await window.electronAPI.notionNotes.disconnect(serviceId);
+    await window.electronAPI.pomodoro.disconnect(serviceId);
     setError(null);
     setMode("form");
+  };
+
+  const secondaryButtonStyle: React.CSSProperties = {
+    padding: "12px 24px",
+    borderRadius: 12,
+    background: "transparent",
+    border: "1px solid var(--border)",
+    color: "var(--text-secondary)",
   };
 
   return (
@@ -105,15 +111,26 @@ export default function NotionSetup({
         {mode === "form" ? (
           <>
             <div className="flex items-center" style={{ gap: 12, marginBottom: 12 }}>
-              <img src={notionIcon} alt="Notion" style={{ width: 32, height: 32, objectFit: "contain" }} />
+              <img
+                src={notionIcon}
+                alt="Notion"
+                style={{ width: 32, height: 32, objectFit: "contain" }}
+              />
               <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>
-                Connect your Notion database
+                Sync your tasks with Notion
               </h2>
             </div>
-            <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text-secondary)", marginBottom: 16 }}>
-              Your notes are stored as pages in a Notion database that you own. Use a{" "}
-              <strong>freshly created, empty database</strong> — this app takes full control of its
-              contents.
+            <p
+              style={{
+                fontSize: 13,
+                lineHeight: 1.6,
+                color: "var(--text-secondary)",
+                marginBottom: 16,
+              }}
+            >
+              Optional — your tasks already work offline on this device. Connect a{" "}
+              <strong>freshly created, empty database</strong> you own and every task also lives in
+              Notion, editable from anywhere.
             </p>
             <ol
               style={{
@@ -183,54 +200,91 @@ export default function NotionSetup({
             </div>
 
             {error && (
-              <div style={{ fontSize: 13, color: "#f38ba8", marginBottom: 14, lineHeight: 1.5 }}>{error}</div>
+              <div style={{ fontSize: 13, color: "#f38ba8", marginBottom: 14, lineHeight: 1.5 }}>
+                {error}
+              </div>
             )}
 
-            <button
-              onClick={handleConnect}
-              disabled={!canConnect}
-              className="w-full text-sm font-semibold cursor-pointer transition-all"
+            <div className="flex flex-col" style={{ gap: 10 }}>
+              <button
+                onClick={handleConnect}
+                disabled={!canConnect}
+                className="w-full text-sm font-semibold cursor-pointer transition-all"
+                style={{
+                  padding: "12px 24px",
+                  borderRadius: 12,
+                  background: canConnect
+                    ? "var(--accent)"
+                    : "color-mix(in srgb, var(--accent) 30%, transparent)",
+                  border: "none",
+                  color: canConnect ? "var(--surface)" : "var(--text-secondary)",
+                  opacity: canConnect ? 1 : 0.5,
+                }}
+              >
+                {busy ? "Connecting…" : "Connect"}
+              </button>
+              <button
+                onClick={onCancel}
+                disabled={busy}
+                className="w-full text-sm cursor-pointer transition-colors"
+                style={secondaryButtonStyle}
+              >
+                Keep tasks on this device only
+              </button>
+            </div>
+            <p
               style={{
-                padding: "12px 24px",
-                borderRadius: 12,
-                background: canConnect
-                  ? "var(--accent)"
-                  : "color-mix(in srgb, var(--accent) 30%, transparent)",
-                border: "none",
-                color: canConnect ? "var(--surface)" : "var(--text-secondary)",
-                opacity: canConnect ? 1 : 0.5,
+                fontSize: 11,
+                color: "var(--text-muted)",
+                marginTop: 12,
+                textAlign: "center",
               }}
             >
-              {busy ? "Connecting…" : "Connect"}
-            </button>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 12, textAlign: "center" }}>
-              Your API key is stored locally on this device and only used to talk to the Notion API.
+              Your API key is stored encrypted on this device and only used to talk to the Notion
+              API.
             </p>
           </>
         ) : (
           <>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>
-              {adoptable ? "This database already contains notes" : "This database isn't empty"}
+            <h2
+              style={{
+                fontSize: 20,
+                fontWeight: 700,
+                color: "var(--text-primary)",
+                marginBottom: 12,
+              }}
+            >
+              {adoptable ? "This database already contains tasks" : "This database isn't empty"}
             </h2>
-            <p style={{ fontSize: 13, lineHeight: 1.7, color: "var(--text-secondary)", marginBottom: 20 }}>
+            <p
+              style={{
+                fontSize: 13,
+                lineHeight: 1.7,
+                color: "var(--text-secondary)",
+                marginBottom: 20,
+              }}
+            >
               {adoptable ? (
                 <>
-                  This looks like a Largs Hub notes database — perhaps from a previous connection
-                  or install. You can <strong>keep the existing notes and pick up where you left
+                  This looks like a Largs Hub task database — perhaps from a previous connection or
+                  install. You can <strong>keep the existing tasks and pick up where you left
                   off</strong>, or empty the database and start fresh.
                 </>
               ) : (
                 <>
-                  The Note Taker needs full control of the database you connect. To keep using this
-                  one, Largs Hub will <strong>move all of its existing pages to Notion's trash</strong>{" "}
-                  and repurpose its fields for notes. If that data matters to you, connect a
-                  different, freshly created database instead.
+                  Pomodoro needs full control of the database you connect. To keep using this one,
+                  Largs Hub will{" "}
+                  <strong>move all of its existing pages to Notion's trash</strong> and repurpose
+                  its fields for tasks. If that data matters to you, connect a different, freshly
+                  created database instead.
                 </>
               )}
             </p>
 
             {error && (
-              <div style={{ fontSize: 13, color: "#f38ba8", marginBottom: 14, lineHeight: 1.5 }}>{error}</div>
+              <div style={{ fontSize: 13, color: "#f38ba8", marginBottom: 14, lineHeight: 1.5 }}>
+                {error}
+              </div>
             )}
 
             <div className="flex flex-col" style={{ gap: 10 }}>
@@ -248,7 +302,7 @@ export default function NotionSetup({
                     opacity: busy ? 0.6 : 1,
                   }}
                 >
-                  {busy ? "Reconnecting…" : "Keep the existing notes"}
+                  {busy ? "Reconnecting…" : "Keep the existing tasks"}
                 </button>
               )}
               <button
@@ -259,7 +313,9 @@ export default function NotionSetup({
                   padding: "12px 24px",
                   borderRadius: 12,
                   background: adoptable ? "transparent" : "#f38ba8",
-                  border: adoptable ? "1px solid color-mix(in srgb, #f38ba8 50%, transparent)" : "none",
+                  border: adoptable
+                    ? "1px solid color-mix(in srgb, #f38ba8 50%, transparent)"
+                    : "none",
                   color: adoptable ? "#f38ba8" : "#11111b",
                   opacity: busy ? 0.6 : 1,
                 }}
@@ -274,15 +330,17 @@ export default function NotionSetup({
                 onClick={handleUseDifferent}
                 disabled={busy}
                 className="w-full text-sm cursor-pointer transition-colors"
-                style={{
-                  padding: "12px 24px",
-                  borderRadius: 12,
-                  background: "transparent",
-                  border: "1px solid var(--border)",
-                  color: "var(--text-secondary)",
-                }}
+                style={secondaryButtonStyle}
               >
                 Use a different database
+              </button>
+              <button
+                onClick={onCancel}
+                disabled={busy}
+                className="w-full text-sm cursor-pointer transition-colors"
+                style={secondaryButtonStyle}
+              >
+                Cancel and keep tasks on this device
               </button>
             </div>
           </>

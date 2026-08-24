@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 
+export type InternalServiceType = "pomodoro" | "notion-notes";
+
 export interface Service {
   id: string;
   name: string;
@@ -12,35 +14,58 @@ export interface Service {
   notificationsEnabled?: boolean;
   blurWhenInactive?: boolean;
   privacyMode?: boolean;
-  type?: "notion-notes";
+  type?: InternalServiceType;
 }
 
-export interface NotionNoteItem {
-  text: string;
-  checked: boolean;
-}
+// --- Pomodoro (internal "pomodoro" service) ---------------------------------
 
-export interface NotionNote {
+export interface PomodoroTask {
   id: string;
-  title: string;
-  kind: "text" | "list";
   text: string;
-  items: NotionNoteItem[];
-  imageUrl?: string;
-  pinned: boolean;
+  done: boolean;
+  date: string;
+  order: number;
+  pageId?: string;
   editedAt: string;
+  focusSessions: number;
 }
 
-export interface NotionNoteInput {
-  title: string;
-  kind: "text" | "list";
-  text: string;
-  items: NotionNoteItem[];
-  pinned: boolean;
-  image?:
-    | { action: "keep" }
-    | { action: "remove" }
-    | { action: "upload"; fileName: string; mimeType: string; base64: string };
+export type PomodoroConnectionState = "local" | "pending" | "pending-adoptable" | "ready";
+
+export type PomodoroSyncStatus = "local" | "synced" | "syncing" | "offline";
+
+export interface PomodoroSyncState {
+  serviceId: string;
+  status: PomodoroSyncStatus;
+  pending: number;
+  error?: string;
+}
+
+export interface PomodoroListResult {
+  ok: boolean;
+  error?: string;
+  tasks?: PomodoroTask[];
+  pulledAt?: number;
+  sync?: PomodoroSyncState;
+}
+
+export interface PomodoroTaskResult {
+  ok: boolean;
+  error?: string;
+  task?: PomodoroTask;
+  tasks?: PomodoroTask[];
+}
+
+export type PomodoroTimerPhase = "focus" | "break";
+
+export interface PomodoroTimerState {
+  serviceId: string;
+  taskId: string | null;
+  phase: PomodoroTimerPhase;
+  running: boolean;
+  endsAt: number;
+  remainingMs: number;
+  completedFocus: number;
 }
 
 export type TaskSpec =
@@ -206,46 +231,85 @@ const api = {
     return () => ipcRenderer.removeListener("download-complete", handler);
   },
 
-  // Notion Note Taker (internal service)
-  notionNotes: {
-    getState: (serviceId: string): Promise<"none" | "pending" | "pending-adoptable" | "ready"> =>
-      ipcRenderer.invoke("notion-notes-get-state", serviceId),
+  // Pomodoro (internal service): daily tasks + focus timer
+  pomodoro: {
+    getState: (serviceId: string): Promise<PomodoroConnectionState> =>
+      ipcRenderer.invoke("pomodoro-get-state", serviceId),
     connect: (
       serviceId: string,
       apiKey: string,
       databaseId: string,
     ): Promise<{ ok: boolean; error?: string; needsReset?: boolean; adoptable?: boolean }> =>
-      ipcRenderer.invoke("notion-notes-connect", serviceId, apiKey, databaseId),
+      ipcRenderer.invoke("pomodoro-connect", serviceId, apiKey, databaseId),
     resetDatabase: (serviceId: string): Promise<{ ok: boolean; error?: string }> =>
-      ipcRenderer.invoke("notion-notes-reset-database", serviceId),
+      ipcRenderer.invoke("pomodoro-reset-database", serviceId),
     adoptDatabase: (serviceId: string): Promise<{ ok: boolean; error?: string }> =>
-      ipcRenderer.invoke("notion-notes-adopt-database", serviceId),
+      ipcRenderer.invoke("pomodoro-adopt-database", serviceId),
     disconnect: (serviceId: string): Promise<void> =>
-      ipcRenderer.invoke("notion-notes-disconnect", serviceId),
-    list: (serviceId: string): Promise<{ ok: boolean; error?: string; notes?: NotionNote[] }> =>
-      ipcRenderer.invoke("notion-notes-list", serviceId),
-    create: (
-      serviceId: string,
-      input: NotionNoteInput,
-    ): Promise<{ ok: boolean; error?: string; note?: NotionNote }> =>
-      ipcRenderer.invoke("notion-notes-create", serviceId, input),
+      ipcRenderer.invoke("pomodoro-disconnect", serviceId),
+    list: (serviceId: string, date: string): Promise<PomodoroListResult> =>
+      ipcRenderer.invoke("pomodoro-list", serviceId, date),
+    refresh: (serviceId: string, date: string): Promise<PomodoroListResult> =>
+      ipcRenderer.invoke("pomodoro-refresh", serviceId, date),
+    create: (serviceId: string, date: string, text: string): Promise<PomodoroTaskResult> =>
+      ipcRenderer.invoke("pomodoro-create", serviceId, date, text),
     update: (
       serviceId: string,
-      noteId: string,
-      input: NotionNoteInput,
-    ): Promise<{ ok: boolean; error?: string; note?: NotionNote }> =>
-      ipcRenderer.invoke("notion-notes-update", serviceId, noteId, input),
-    setPinned: (
+      taskId: string,
+      patch: { text?: string; done?: boolean },
+    ): Promise<PomodoroTaskResult> =>
+      ipcRenderer.invoke("pomodoro-update", serviceId, taskId, patch),
+    remove: (serviceId: string, taskId: string): Promise<PomodoroTaskResult> =>
+      ipcRenderer.invoke("pomodoro-remove", serviceId, taskId),
+    reorder: (serviceId: string, date: string, taskIds: string[]): Promise<PomodoroTaskResult> =>
+      ipcRenderer.invoke("pomodoro-reorder", serviceId, date, taskIds),
+    carryOver: (
       serviceId: string,
-      noteId: string,
-      pinned: boolean,
-    ): Promise<{ ok: boolean; error?: string; note?: NotionNote }> =>
-      ipcRenderer.invoke("notion-notes-set-pinned", serviceId, noteId, pinned),
-    remove: (serviceId: string, noteId: string): Promise<{ ok: boolean; error?: string }> =>
-      ipcRenderer.invoke("notion-notes-remove", serviceId, noteId),
+      fromDate: string,
+      toDate: string,
+    ): Promise<PomodoroTaskResult & { moved?: number }> =>
+      ipcRenderer.invoke("pomodoro-carry-over", serviceId, fromDate, toDate),
+    pendingCount: (serviceId: string, date: string): Promise<number> =>
+      ipcRenderer.invoke("pomodoro-pending-count", serviceId, date),
+    syncState: (serviceId: string): Promise<PomodoroSyncState | null> =>
+      ipcRenderer.invoke("pomodoro-sync-state", serviceId),
+    retrySync: (serviceId: string): Promise<PomodoroSyncState | null> =>
+      ipcRenderer.invoke("pomodoro-retry-sync", serviceId),
+    onSyncUpdated: (callback: (state: PomodoroSyncState) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, state: PomodoroSyncState) =>
+        callback(state);
+      ipcRenderer.on("pomodoro-sync-updated", handler);
+      return () => ipcRenderer.removeListener("pomodoro-sync-updated", handler);
+    },
+    onTasksUpdated: (
+      callback: (data: { serviceId: string; tasks: PomodoroTask[] }) => void,
+    ) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        data: { serviceId: string; tasks: PomodoroTask[] },
+      ) => callback(data);
+      ipcRenderer.on("pomodoro-tasks-updated", handler);
+      return () => ipcRenderer.removeListener("pomodoro-tasks-updated", handler);
+    },
+    timer: {
+      get: (): Promise<PomodoroTimerState | null> => ipcRenderer.invoke("pomodoro-timer-get"),
+      start: (serviceId: string, taskId: string | null): Promise<PomodoroTimerState | null> =>
+        ipcRenderer.invoke("pomodoro-timer-start", serviceId, taskId),
+      pause: (): Promise<PomodoroTimerState | null> => ipcRenderer.invoke("pomodoro-timer-pause"),
+      resume: (): Promise<PomodoroTimerState | null> => ipcRenderer.invoke("pomodoro-timer-resume"),
+      skip: (): Promise<PomodoroTimerState | null> => ipcRenderer.invoke("pomodoro-timer-skip"),
+      stop: (): Promise<null> => ipcRenderer.invoke("pomodoro-timer-stop"),
+      onUpdated: (callback: (state: PomodoroTimerState | null) => void) => {
+        const handler = (
+          _event: Electron.IpcRendererEvent,
+          state: PomodoroTimerState | null,
+        ) => callback(state);
+        ipcRenderer.on("pomodoro-timer-updated", handler);
+        return () => ipcRenderer.removeListener("pomodoro-timer-updated", handler);
+      },
+    },
   },
 
-  // Messenger automation
   messengerAutomation: {
     start: (serviceId: string, spec: TaskSpec): Promise<StartResult> =>
       ipcRenderer.invoke("messenger-automation-start", serviceId, spec),

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Tomato timer: the Pomodoro service icon -->
+  <path d="M32 12c-3 0-5.5 1-7 2.5-2-2.5-5.5-3.5-8.5-2.5 1 3 3.5 5 6.5 5.5-3 .5-5.5 2-7 4 4-1 7-.5 9.5 1 2.5-1.5 5.5-2 9.5-1-1.5-2-4-3.5-7-4 3-.5 5.5-2.5 6.5-5.5-3-1-6.5 0-8.5 2.5" fill="#40a02b"/>
+  <ellipse cx="32" cy="38" rx="22" ry="19" fill="#e64553"/>
+  <ellipse cx="32" cy="38" rx="15" ry="12.5" fill="#f2f2f7"/>
+  <circle cx="32" cy="38" r="1.8" fill="#4c4f69"/>
+  <path d="M32 38V29" stroke="#4c4f69" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M32 38l6.5 4" stroke="#e64553" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M24 15c-2-2.5-5-3.5-7.5-2.8" stroke="#40a02b" stroke-width="2" stroke-linecap="round" fill="none"/>
+</svg>

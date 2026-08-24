@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Service } from "../types";
+import { InternalServiceType, Service } from "../types";
 import { v4 as uuidv4 } from "uuid";
 import serviceIcons, { resolveIcon } from "../assets/serviceIcons";
 import { IoCloudUploadOutline, IoTrashOutline } from "react-icons/io5";
@@ -8,7 +8,7 @@ const POPULAR_SERVICES: {
   name: string;
   url: string;
   icon: string;
-  type?: "notion-notes";
+  type?: InternalServiceType;
 }[] = [
   { name: "Gmail", url: "https://mail.google.com", icon: "gmail.png" },
   { name: "Slack", url: "https://app.slack.com", icon: "slack.png" },
@@ -17,10 +17,10 @@ const POPULAR_SERVICES: {
   { name: "Telegram", url: "https://web.telegram.org", icon: "telegram.png" },
   { name: "Notion", url: "https://www.notion.so", icon: "notion.png" },
   {
-    name: "Notion Note Taker",
-    url: "notion-notes://internal",
-    icon: "notion.png",
-    type: "notion-notes",
+    name: "Pomodoro",
+    url: "pomodoro://internal",
+    icon: "pomodoro.svg",
+    type: "pomodoro",
   },
   { name: "Twitter / X", url: "https://x.com", icon: "x.png" },
   { name: "Reddit", url: "https://reddit.com", icon: "reddit.png" },

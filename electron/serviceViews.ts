@@ -1,6 +1,6 @@
 import { BrowserWindow, WebContentsView, Menu } from "electron";
 import { shell } from "electron";
-import { store, Service, isSafeServiceUrl } from "./store";
+import { store, Service, isSafeServiceUrl, isInternalService } from "./store";
 import { hookDownloadSession } from "./downloads";
 import { findBadgeAdapter, buildPollScript, parseTitleCount } from "./badge-adapters";
 import { messengerAdapter } from "./badge-adapters/messenger";
@@ -868,7 +868,7 @@ export function showService(serviceId: string) {
   // Internal services render as React pages in the UI view — just make sure
   // no web view is covering them
   const requested = store.get("services").find((s) => s.id === serviceId);
-  if (requested?.type === "notion-notes") {
+  if (isInternalService(requested)) {
     hideActiveService();
     return;
   }
@@ -927,7 +927,7 @@ export function preloadServices() {
   if (!store.get("wakeServicesAutomatically")) return;
   const services = store.get("services");
   for (const service of services) {
-    if (service.type === "notion-notes") continue; // internal — no web view
+    if (isInternalService(service)) continue; // internal — no web view
     if (!serviceViews.has(service.id) && mainWindow && service.enabled !== false) {
       const view = createServiceView(service);
       serviceViews.set(service.id, view);

@@ -10,7 +10,8 @@ import {
 import path from "path";
 import { store, StoreSchema } from "./store";
 import { registerMessengerAutomation } from "./messengerAutomation";
-import { registerNotionNotes } from "./notionNotes";
+import { registerPomodoro, recordFocusSession } from "./tasks";
+import { registerPomodoroTimer, stopTimerForTask } from "./pomodoroTimer";
 import { registerUpdater } from "./updater";
 import { registerServicesIpc } from "./ipc/services";
 import { registerSettingsIpc } from "./ipc/settings";
@@ -42,6 +43,8 @@ import { startIdleShutdown, stopIdleShutdown, trackInputActivity, noteActivity }
 // Entry point: owns the frameless window and the React UI layer (uiView), the
 // link-preview overlay, and z-order IPC. Everything else lives in modules:
 //   store.ts              persistent state + stored-shape validation
+//   tasks.ts              Pomodoro tasks: local store + optional Notion sync
+//   pomodoroTimer.ts      the 25/5 focus timer, bound to one task
 //   serviceViews.ts       service view lifecycle, switching, hibernation
 //   downloads.ts          per-session download handling + completion toast
 //   notificationCounts.ts badge state, debounce, taskbar overlay
@@ -298,8 +301,18 @@ registerUpdater({
   getUiView: () => uiView,
 });
 
-// Notion-backed note taker (internal "notion-notes" service)
-registerNotionNotes(store);
+// Pomodoro (internal "pomodoro" service): daily tasks, optionally synced to
+// Notion, plus the focus timer that runs alongside them.
+registerPomodoro({
+  store,
+  getUiView: () => uiView,
+  onTaskRemoved: (serviceId, taskId) => stopTimerForTask(serviceId, taskId),
+});
+
+registerPomodoroTimer({
+  getUiView: () => uiView,
+  onFocusSessionComplete: (serviceId, taskId) => recordFocusSession(store, serviceId, taskId),
+});
 
 // Messenger automation (scheduled/interval sends, call cycles)
 registerMessengerAutomation({

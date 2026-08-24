@@ -1,9 +1,17 @@
 import Store from "electron-store";
-import { NotionNotesConfig } from "./notionNotes";
+import { PomodoroData, PomodoroNotionConfig } from "./tasks";
 
 // Persistent app state (electron-store) and the shapes stored in it.
 // The Service interface is intentionally duplicated in preload.ts and
 // src/types.ts — the three layers must stay in sync (see CLAUDE.md).
+
+// Internal (non-web) service types. Kept in sync with preload.ts and
+// src/types.ts, where the Service interface is duplicated (see CLAUDE.md).
+export type InternalServiceType = "pomodoro" | "notion-notes";
+
+export function isInternalService(service: { type?: string } | undefined | null): boolean {
+  return service?.type === "pomodoro" || service?.type === "notion-notes";
+}
 
 export interface Service {
   id: string;
@@ -19,9 +27,10 @@ export interface Service {
   // Privacy mode: cover the top half of the service page so only the bottom
   // 50% is readable to onlookers
   privacyMode?: boolean;
-  // Internal services (e.g. "notion-notes") render as React pages in the UI
-  // view instead of getting a WebContentsView
-  type?: "notion-notes";
+  // Internal services render as React pages in the UI view instead of getting
+  // a WebContentsView. "notion-notes" is retired — the Note Taker was replaced
+  // by Pomodoro; services still carrying it render a one-time notice.
+  type?: InternalServiceType;
 }
 
 export interface StoreSchema {
@@ -47,7 +56,10 @@ export interface StoreSchema {
   privacyOpacity: number;
   privacyHorizontalPercent: number;
   privacyHorizontalOpacity: number;
-  notionNotes: Record<string, NotionNotesConfig>;
+  // Pomodoro service: local task state (the source of truth for writes) and
+  // the optional Notion connection behind it, both keyed by service id
+  pomodoroTasks: Record<string, PomodoroData>;
+  pomodoroNotion: Record<string, PomodoroNotionConfig>;
 }
 
 export const store = new Store<StoreSchema>({
@@ -67,9 +79,21 @@ export const store = new Store<StoreSchema>({
     privacyOpacity: 100,
     privacyHorizontalPercent: 0,
     privacyHorizontalOpacity: 100,
-    notionNotes: {},
+    pomodoroTasks: {},
+    pomodoroNotion: {},
   },
 });
+
+// One-time cleanup: the Notion Note Taker was replaced by the Pomodoro
+// service, so its stored configs (which hold an encrypted integration token)
+// are dead weight. Nothing reads the key any more — drop it on first launch.
+const legacyStore = store as unknown as {
+  has(key: string): boolean;
+  delete(key: string): void;
+};
+if (legacyStore.has("notionNotes")) {
+  legacyStore.delete("notionNotes");
+}
 
 // --- Stored-shape validation -------------------------------------------------
 // IPC payload types are compile-time only; validate shapes at runtime before
@@ -90,7 +114,9 @@ export function sanitizeService(raw: unknown): Service | null {
   const s = raw as Record<string, unknown>;
   if (typeof s.id !== "string" || s.id.length === 0) return null;
   if (typeof s.name !== "string" || s.name.length === 0) return null;
-  if (s.type !== "notion-notes" && !isSafeServiceUrl(s.url)) return null;
+  const type: InternalServiceType | undefined =
+    s.type === "pomodoro" || s.type === "notion-notes" ? s.type : undefined;
+  if (!type && !isSafeServiceUrl(s.url)) return null;
   return {
     id: s.id,
     name: s.name,
@@ -103,6 +129,6 @@ export function sanitizeService(raw: unknown): Service | null {
     notificationsEnabled: s.notificationsEnabled !== false,
     blurWhenInactive: s.blurWhenInactive === true,
     privacyMode: s.privacyMode === true,
-    ...(s.type === "notion-notes" ? { type: "notion-notes" as const } : {}),
+    ...(type ? { type } : {}),
   };
 }

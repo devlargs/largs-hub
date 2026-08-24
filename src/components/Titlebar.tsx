@@ -1,4 +1,4 @@
-import { Service } from "../types";
+import { isInternalService, Service } from "../types";
 import appIcon from "../../assets/ico/icon.png";
 import { VscChromeMinimize, VscChromeMaximize, VscChromeClose } from "react-icons/vsc";
 import { IoArrowBack, IoArrowForward, IoReload, IoSettingsSharp, IoFlashOutline } from "react-icons/io5";
@@ -31,7 +31,7 @@ export default function Titlebar({
         {activeService ? (
           <>
             {/* Internal services (React pages) have no web view to navigate */}
-            {activeService.type !== "notion-notes" && (
+            {!isInternalService(activeService) && (
               <>
                 <button
                   onClick={onGoBack}

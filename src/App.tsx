@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { AutomationTask, Service } from "./types";
+import { AutomationTask, isInternalService, Service } from "./types";
 import Sidebar from "./components/Sidebar";
 import Titlebar from "./components/Titlebar";
 import AddServiceModal from "./components/AddServiceModal";
@@ -8,7 +8,8 @@ import MessengerAutomationPanel from "./components/MessengerAutomationPanel";
 import WelcomeScreen from "./components/WelcomeScreen";
 import SettingsPage from "./components/SettingsPage";
 import DisabledServiceScreen from "./components/DisabledServiceScreen";
-import NotionNotesPage from "./components/notion-notes/NotionNotesPage";
+import PomodoroPage from "./components/pomodoro/PomodoroPage";
+import RetiredNoteTakerScreen from "./components/RetiredNoteTakerScreen";
 import { useNotificationStore } from "./store/notifications";
 
 // Mirrors the main process's hostname-based Messenger detection (main.ts)
@@ -116,12 +117,28 @@ function App() {
     };
   }, [updateNotificationCount, removeNotificationService]);
 
+  const handleRemoveService = useCallback(
+    async (serviceId: string) => {
+      const updated = await window.electronAPI.removeService(serviceId);
+      setServices(updated);
+      removeNotificationService(serviceId);
+      setActiveServiceId((prev) => {
+        if (prev === serviceId) {
+          window.electronAPI.hideService();
+          return null;
+        }
+        return prev;
+      });
+    },
+    [removeNotificationService],
+  );
+
   const handleSelectService = useCallback((serviceId: string) => {
     setActiveServiceId(serviceId);
     setShowSettingsPage(false);
     setServices((current) => {
       const svc = current.find((s) => s.id === serviceId);
-      if (svc?.type === "notion-notes" || svc?.enabled === false) {
+      if (isInternalService(svc) || svc?.enabled === false) {
         // Internal services render as React pages — no web view to show
         window.electronAPI?.hideService();
       } else {
@@ -266,8 +283,14 @@ function App() {
             <WelcomeScreen onAddService={() => setShowAddModal(true)} hasServices={services.length > 0} />
           )}
           {showSettingsPage && !activeServiceId && <SettingsPage />}
+          {activeService?.type === "pomodoro" && activeService.enabled !== false && (
+            <PomodoroPage key={activeService.id} service={activeService} />
+          )}
           {activeService?.type === "notion-notes" && activeService.enabled !== false && (
-            <NotionNotesPage key={activeService.id} service={activeService} />
+            <RetiredNoteTakerScreen
+              service={activeService}
+              onRemove={() => handleRemoveService(activeService.id)}
+            />
           )}
           {activeServiceId && (() => {
             const svc = services.find((s) => s.id === activeServiceId);
