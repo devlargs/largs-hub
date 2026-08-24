@@ -200,7 +200,7 @@ export default function NotionTaskSetup({
             </div>
 
             {error && (
-              <div style={{ fontSize: 13, color: "#f38ba8", marginBottom: 14, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 13, color: "var(--danger)", marginBottom: 14, lineHeight: 1.5 }}>
                 {error}
               </div>
             )}
@@ -282,7 +282,7 @@ export default function NotionTaskSetup({
             </p>
 
             {error && (
-              <div style={{ fontSize: 13, color: "#f38ba8", marginBottom: 14, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 13, color: "var(--danger)", marginBottom: 14, lineHeight: 1.5 }}>
                 {error}
               </div>
             )}
@@ -312,11 +312,11 @@ export default function NotionTaskSetup({
                 style={{
                   padding: "12px 24px",
                   borderRadius: 12,
-                  background: adoptable ? "transparent" : "#f38ba8",
+                  background: adoptable ? "transparent" : "var(--danger)",
                   border: adoptable
-                    ? "1px solid color-mix(in srgb, #f38ba8 50%, transparent)"
+                    ? "1px solid color-mix(in srgb, var(--danger) 50%, transparent)"
                     : "none",
-                  color: adoptable ? "#f38ba8" : "#11111b",
+                  color: adoptable ? "var(--danger)" : "var(--panel)",
                   opacity: busy ? 0.6 : 1,
                 }}
               >

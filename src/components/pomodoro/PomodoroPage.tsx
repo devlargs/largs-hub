@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
+  MdAdd,
   MdChevronLeft,
   MdChevronRight,
   MdOutlineSettings,
@@ -68,6 +69,10 @@ export default function PomodoroPage({ service }: PomodoroPageProps) {
   const ordered = useMemo(() => displayOrder(tasks), [tasks]);
   const doneCount = ordered.filter((t) => t.done).length;
   const progress = ordered.length === 0 ? 0 : doneCount / ordered.length;
+  const sessionsToday = useMemo(
+    () => tasks.reduce((sum, t) => sum + (t.focusSessions ?? 0), 0),
+    [tasks],
+  );
 
   // --- loading ---------------------------------------------------------------
 
@@ -131,10 +136,12 @@ export default function PomodoroPage({ service }: PomodoroPageProps) {
   // Pushes from the main process: a background flush that assigned a page id,
   // or a pull that merged remote changes.
   useEffect(() => {
-    const unsubTasks = window.electronAPI.pomodoro.onTasksUpdated(({ serviceId: id, tasks: all }) => {
-      if (id !== serviceId) return;
-      setTasks(all.filter((t) => t.date === date));
-    });
+    const unsubTasks = window.electronAPI.pomodoro.onTasksUpdated(
+      ({ serviceId: id, tasks: all }) => {
+        if (id !== serviceId) return;
+        setTasks(all.filter((t) => t.date === date));
+      },
+    );
     const unsubSync = window.electronAPI.pomodoro.onSyncUpdated((state) => {
       if (state.serviceId === serviceId) setSync(state);
     });
@@ -163,7 +170,7 @@ export default function PomodoroPage({ service }: PomodoroPageProps) {
       if (prev && !reduce && Math.abs(prev.top - next.top) > 1) {
         el.animate(
           [{ transform: `translateY(${prev.top - next.top}px)` }, { transform: "translateY(0)" }],
-          { duration: 260, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+          { duration: 260, easing: "cubic-bezier(0.16, 1, 0.3, 1)" },
         );
       }
       prevRects.current.set(id, next);
@@ -179,13 +186,15 @@ export default function PomodoroPage({ service }: PomodoroPageProps) {
     const el = rowRefs.current.get(taskId);
     if (!el || prefersReducedMotion()) return;
     const { height } = el.getBoundingClientRect();
-    await el.animate(
-      [
-        { height: `${height}px`, opacity: 1, marginBottom: "6px" },
-        { height: "0px", opacity: 0, marginBottom: "0px" },
-      ],
-      { duration: 200, easing: "ease-in", fill: "forwards" },
-    ).finished.catch(() => undefined);
+    await el
+      .animate(
+        [
+          { height: `${height}px`, opacity: 1 },
+          { height: "0px", opacity: 0 },
+        ],
+        { duration: 200, easing: "cubic-bezier(0.7, 0, 0.84, 0)", fill: "forwards" },
+      )
+      .finished.catch(() => undefined);
   }, []);
 
   // The flourish when the last open task of the day is checked
@@ -224,9 +233,7 @@ export default function PomodoroPage({ service }: PomodoroPageProps) {
   const handleToggle = useCallback(
     async (task: PomodoroTask) => {
       // Optimistic: the checkbox must never wait on anything
-      setTasks((current) =>
-        current.map((t) => (t.id === task.id ? { ...t, done: !t.done } : t)),
-      );
+      setTasks((current) => current.map((t) => (t.id === task.id ? { ...t, done: !t.done } : t)));
       applyResult(
         await window.electronAPI.pomodoro.update(serviceId, task.id, { done: !task.done }),
       );
@@ -274,11 +281,7 @@ export default function PomodoroPage({ service }: PomodoroPageProps) {
 
   const handleCarryOver = useCallback(async () => {
     const before = new Set(tasks.map((t) => t.id));
-    const res = await window.electronAPI.pomodoro.carryOver(
-      serviceId,
-      shiftDateKey(date, -1),
-      date,
-    );
+    const res = await window.electronAPI.pomodoro.carryOver(serviceId, shiftDateKey(date, -1), date);
     applyResult(res);
     if (res.ok) {
       // Only the tasks that actually arrived get the grow-in animation
@@ -286,6 +289,13 @@ export default function PomodoroPage({ service }: PomodoroPageProps) {
       setCarryCount(0);
     }
   }, [tasks, serviceId, date, applyResult]);
+
+  // Starting from the hero picks up the next unfinished task, so the common
+  // case ("just start working") costs one click instead of two.
+  const handleStartSession = useCallback(() => {
+    const next = ordered.find((t) => !t.done) ?? null;
+    void window.electronAPI.pomodoro.timer.start(serviceId, next?.id ?? null).then(setTimer);
+  }, [ordered, serviceId]);
 
   const goToDay = useCallback((next: string, direction: "next" | "prev") => {
     setSlide(direction);
@@ -341,26 +351,34 @@ export default function PomodoroPage({ service }: PomodoroPageProps) {
 
   const timerTask = timer?.taskId ? tasks.find((t) => t.id === timer.taskId) : null;
 
+  const chromeButton = {
+    width: 30,
+    height: 30,
+    color: "var(--text-muted)",
+    background: "transparent",
+    border: "none",
+  } as const;
+
   const syncPill = (() => {
     if (!sync || sync.status === "local") return null;
     const label =
       sync.status === "synced"
         ? "Synced"
         : sync.status === "syncing"
-          ? "Syncing…"
-          : `Offline — ${sync.pending} pending`;
-    const color = sync.status === "offline" ? "#f9e2af" : "var(--text-muted)";
+          ? "Syncing"
+          : `${sync.pending} pending`;
     return (
       <button
         onClick={() => window.electronAPI.pomodoro.retrySync(serviceId).then(setSync)}
-        title={sync.error || (sync.status === "offline" ? "Retry now" : "Notion sync")}
+        title={sync.error || (sync.status === "offline" ? "Offline — retry now" : "Notion sync")}
         className={`rounded-full cursor-pointer ${sync.status === "syncing" ? "pom-pill-syncing" : ""}`}
         style={{
-          padding: "3px 10px",
-          fontSize: 11,
-          color,
-          background: "var(--panel)",
-          border: "1px solid var(--border)",
+          padding: "var(--space-3xs) var(--space-xs)",
+          fontSize: "var(--text-2xs)",
+          whiteSpace: "nowrap",
+          color: sync.status === "offline" ? "var(--warning)" : "var(--text-secondary)",
+          background: "transparent",
+          border: `1px solid color-mix(in srgb, var(--border) 70%, transparent)`,
         }}
       >
         {label}
@@ -369,223 +387,207 @@ export default function PomodoroPage({ service }: PomodoroPageProps) {
   })();
 
   return (
-    <div className="h-full overflow-y-auto" style={{ background: "var(--surface)" }}>
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "16px 24px 80px" }}>
-        {/* Day navigation + progress */}
-        <div className="flex items-center" style={{ gap: 8, marginBottom: 6 }}>
-          <button
-            onClick={() => goToDay(shiftDateKey(date, -1), "prev")}
-            className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer hover:bg-sidebar-hover"
-            style={{ color: "var(--text-muted)", background: "transparent", border: "none" }}
-            title="Previous day"
-          >
-            <MdChevronLeft size={20} />
-          </button>
-          <div className="flex flex-col flex-1 min-w-0">
-            <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>
+    <div className="pom-page h-full overflow-y-auto" style={{ background: "var(--surface)" }}>
+      <div style={{ maxWidth: 620, margin: "0 auto" }}>
+        {/* --- Day masthead. Left-flush and the largest text on the page after
+            the clock; the chrome sits right at a quieter weight. --- */}
+        <header
+          className="flex items-start justify-between flex-wrap"
+          style={{ gap: "var(--space-sm)", marginBottom: "var(--space-lg)" }}
+        >
+          <div className="min-w-0">
+            <h1 className="pom-day" style={{ color: "var(--text-primary)" }}>
               {formatDayLabel(date)}
-            </span>
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{formatFullDate(date)}</span>
-          </div>
-          <button
-            onClick={() => goToDay(shiftDateKey(date, 1), "next")}
-            className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer hover:bg-sidebar-hover"
-            style={{ color: "var(--text-muted)", background: "transparent", border: "none" }}
-            title="Next day"
-          >
-            <MdChevronRight size={20} />
-          </button>
-          {date !== todayKey() && (
-            <button
-              onClick={() => goToDay(todayKey(), date < todayKey() ? "next" : "prev")}
-              className="rounded-full cursor-pointer"
+            </h1>
+            <p
               style={{
-                padding: "4px 12px",
-                fontSize: 12,
-                color: "var(--accent)",
-                background: "transparent",
-                border: "1px solid var(--accent)",
+                marginTop: "var(--space-3xs)",
+                fontSize: "var(--text-xs)",
+                color: "var(--text-secondary)",
               }}
             >
-              Today
-            </button>
-          )}
-          {syncPill}
-          <button
-            onClick={() => void pullDay(date)}
-            title="Refresh from Notion"
-            disabled={connection !== "ready"}
-            className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer hover:bg-sidebar-hover"
-            style={{
-              color: "var(--text-muted)",
-              background: "transparent",
-              border: "none",
-              opacity: connection === "ready" ? 1 : 0.35,
-            }}
-          >
-            <MdRefresh size={16} className={refreshing ? "animate-spin" : ""} />
-          </button>
-          <div className="relative">
+              {formatFullDate(date)}
+            </p>
+          </div>
+
+          <div className="flex items-center shrink-0" style={{ gap: "var(--space-3xs)" }}>
+            {date !== todayKey() && (
+              <button
+                onClick={() => goToDay(todayKey(), date < todayKey() ? "next" : "prev")}
+                className="rounded-full cursor-pointer"
+                style={{
+                  padding: "var(--space-3xs) var(--space-xs)",
+                  marginRight: "var(--space-2xs)",
+                  fontSize: "var(--text-2xs)",
+                  whiteSpace: "nowrap",
+                  color: "var(--accent)",
+                  background: "transparent",
+                  border: "1px solid color-mix(in srgb, var(--accent) 45%, transparent)",
+                }}
+              >
+                Today
+              </button>
+            )}
+            {syncPill}
             <button
-              onClick={() => setMenuOpen((v) => !v)}
-              title="Pomodoro settings"
-              className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer hover:bg-sidebar-hover"
-              style={{ color: "var(--text-muted)", background: "transparent", border: "none" }}
+              onClick={() => goToDay(shiftDateKey(date, -1), "prev")}
+              className="pom-daynav flex items-center justify-center rounded-full cursor-pointer hover:bg-sidebar-hover"
+              style={chromeButton}
+              title="Previous day"
+              aria-label="Previous day"
             >
-              <MdOutlineSettings size={16} />
+              <MdChevronLeft size={18} />
             </button>
-            {menuOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onMouseDown={() => setMenuOpen(false)} />
-                <div
-                  className="absolute right-0 z-20 rounded-lg"
-                  style={{
-                    top: 34,
-                    minWidth: 230,
-                    padding: "4px 0",
-                    background: "var(--context-bg)",
-                    border: "1px solid var(--border)",
-                    boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
-                  }}
-                >
-                  {connection === "ready" ? (
-                    <button
-                      onClick={() => void handleDisconnect()}
-                      className="block w-full text-left cursor-pointer hover:bg-sidebar-hover"
-                      style={{
-                        padding: "8px 14px",
-                        fontSize: 13,
-                        color: "var(--text-primary)",
-                        background: "transparent",
-                        border: "none",
-                      }}
-                    >
-                      Disconnect Notion database
-                    </button>
-                  ) : (
+            <button
+              onClick={() => goToDay(shiftDateKey(date, 1), "next")}
+              className="pom-daynav flex items-center justify-center rounded-full cursor-pointer hover:bg-sidebar-hover"
+              style={chromeButton}
+              title="Next day"
+              aria-label="Next day"
+            >
+              <MdChevronRight size={18} />
+            </button>
+            <button
+              onClick={() => void pullDay(date)}
+              title="Refresh from Notion"
+              aria-label="Refresh from Notion"
+              disabled={connection !== "ready"}
+              className="pom-daynav flex items-center justify-center rounded-full cursor-pointer hover:bg-sidebar-hover"
+              style={{ ...chromeButton, opacity: connection === "ready" ? 1 : 0.3 }}
+            >
+              <MdRefresh size={15} className={refreshing ? "animate-spin" : ""} />
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                title="Pomodoro settings"
+                aria-label="Pomodoro settings"
+                className="pom-daynav flex items-center justify-center rounded-full cursor-pointer hover:bg-sidebar-hover"
+                style={chromeButton}
+              >
+                <MdOutlineSettings size={15} />
+              </button>
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onMouseDown={() => setMenuOpen(false)} />
+                  <div
+                    className="absolute right-0 z-20 rounded-lg"
+                    style={{
+                      top: 34,
+                      minWidth: 230,
+                      padding: "4px 0",
+                      background: "var(--context-bg)",
+                      border: "1px solid var(--border)",
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+                    }}
+                  >
                     <button
                       onClick={() => {
-                        setMenuOpen(false);
-                        setShowSetup(true);
+                        if (connection === "ready") void handleDisconnect();
+                        else {
+                          setMenuOpen(false);
+                          setShowSetup(true);
+                        }
                       }}
                       className="block w-full text-left cursor-pointer hover:bg-sidebar-hover"
                       style={{
-                        padding: "8px 14px",
-                        fontSize: 13,
+                        padding: "var(--space-xs) var(--space-sm)",
+                        fontSize: "var(--text-sm)",
                         color: "var(--text-primary)",
                         background: "transparent",
                         border: "none",
                       }}
                     >
-                      Sync with a Notion database…
+                      {connection === "ready"
+                        ? "Disconnect Notion database"
+                        : "Sync with a Notion database…"}
                     </button>
-                  )}
-                </div>
-              </>
-            )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        </header>
 
-        {/* Progress */}
-        <div
-          className={celebrating ? "pom-celebrating" : ""}
-          style={{ marginBottom: 14 }}
-        >
-          <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              {ordered.length === 0
-                ? "Nothing planned"
-                : `${doneCount} / ${ordered.length} done`}
+        {/* --- Progress. The count is a figure, set in mono. --- */}
+        <div className={celebrating ? "pom-celebrating" : ""} style={{ marginBottom: "var(--space-lg)" }}>
+          <div
+            className="flex items-baseline justify-between"
+            style={{ gap: "var(--space-sm)", marginBottom: "var(--space-xs)" }}
+          >
+            <span className="flex items-baseline" style={{ gap: "var(--space-2xs)" }}>
+              <span
+                className="pom-figure"
+                style={{ fontSize: "var(--text-xl)", color: "var(--text-primary)" }}
+              >
+                {doneCount}
+                <span style={{ color: "var(--text-secondary)" }}>/{ordered.length}</span>
+              </span>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>
+                {ordered.length === 0 ? "nothing planned" : "done"}
+              </span>
             </span>
             {celebrating && (
-              <span className="pom-glow" style={{ fontSize: 12, color: "#a6e3a1" }}>
-                All done for {formatDayLabel(date).toLowerCase()} 🎉
+              <span className="pom-glow" style={{ fontSize: "var(--text-xs)", color: "var(--success)" }}>
+                Everything's done.
               </span>
             )}
           </div>
-          <div
-            style={{
-              height: 4,
-              borderRadius: 2,
-              background: "var(--border)",
-              overflow: "hidden",
-            }}
-          >
+          <div className="pom-progress-track">
             <div
-              className="pom-progress-fill"
-              style={{
-                width: `${progress * 100}%`,
-                height: "100%",
-                borderRadius: 2,
-                background: progress === 1 ? "#a6e3a1" : "var(--accent)",
-              }}
+              className={`pom-progress-fill ${progress === 1 ? "pom-progress-fill-complete" : ""}`}
+              style={{ width: `${progress * 100}%` }}
             />
           </div>
         </div>
 
-        {timer && (
-          <FocusTimer
-            timer={timer}
-            taskText={timerTask?.text ?? null}
-            onPause={() => window.electronAPI.pomodoro.timer.pause().then(setTimer)}
-            onResume={() => window.electronAPI.pomodoro.timer.resume().then(setTimer)}
-            onSkip={() => window.electronAPI.pomodoro.timer.skip().then(setTimer)}
-            onStop={() => window.electronAPI.pomodoro.timer.stop().then(() => setTimer(null))}
-          />
-        )}
-
-        {/* Composer */}
-        <input
-          ref={composerRef}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void handleCreate();
-          }}
-          placeholder="Add a task and press Enter…"
-          className="w-full outline-none rounded-xl"
-          style={{
-            padding: "12px 16px",
-            marginBottom: 14,
-            fontSize: 14,
-            background: "var(--panel)",
-            color: "var(--text-primary)",
-            border: "1px solid var(--border)",
-          }}
+        {/* --- The hero. Present whether or not a session is running. --- */}
+        <FocusTimer
+          timer={timer}
+          taskText={timerTask?.text ?? null}
+          sessionsToday={sessionsToday}
+          onStart={handleStartSession}
+          onPause={() => window.electronAPI.pomodoro.timer.pause().then(setTimer)}
+          onResume={() => window.electronAPI.pomodoro.timer.resume().then(setTimer)}
+          onSkip={() => window.electronAPI.pomodoro.timer.skip().then(setTimer)}
+          onStop={() => window.electronAPI.pomodoro.timer.stop().then(() => setTimer(null))}
         />
 
         {carryCount > 0 && (
           <button
             onClick={() => void handleCarryOver()}
-            className="flex items-center rounded-xl cursor-pointer"
+            className="flex items-center rounded-lg cursor-pointer w-full"
             style={{
-              gap: 8,
-              width: "100%",
-              padding: "9px 14px",
-              marginBottom: 12,
-              fontSize: 13,
+              gap: "var(--space-xs)",
+              padding: "var(--space-xs) var(--space-sm)",
+              marginBottom: "var(--space-sm)",
+              fontSize: "var(--text-sm)",
+              textAlign: "left",
+              whiteSpace: "nowrap",
               color: "var(--accent)",
               background: "transparent",
-              border: "1px dashed color-mix(in srgb, var(--accent) 50%, transparent)",
+              border: "1px dashed color-mix(in srgb, var(--accent) 40%, transparent)",
             }}
           >
-            <MdSubdirectoryArrowRight size={16} />
-            Carry over {carryCount} unfinished task{carryCount === 1 ? "" : "s"} from{" "}
-            {formatDayLabel(shiftDateKey(date, -1)).toLowerCase()}
+            <MdSubdirectoryArrowRight size={15} className="shrink-0" />
+            <span className="truncate">
+              Carry over {carryCount} from{" "}
+              {formatDayLabel(shiftDateKey(date, -1)).toLowerCase()}
+            </span>
           </button>
         )}
 
         {error && (
           <div
-            className="flex items-center rounded-xl"
+            className="flex items-center rounded-lg"
             style={{
-              padding: "10px 16px",
-              marginBottom: 12,
-              gap: 12,
-              fontSize: 13,
-              color: "#f38ba8",
-              border: "1px solid color-mix(in srgb, #f38ba8 40%, transparent)",
-              background: "color-mix(in srgb, #f38ba8 8%, transparent)",
+              padding: "var(--space-xs) var(--space-sm)",
+              marginBottom: "var(--space-sm)",
+              gap: "var(--space-sm)",
+              fontSize: "var(--text-sm)",
+              color: "var(--danger)",
+              border: "1px solid color-mix(in srgb, var(--danger) 35%, transparent)",
+              background: "color-mix(in srgb, var(--danger) 7%, transparent)",
             }}
           >
             <span className="flex-1" style={{ lineHeight: 1.5 }}>
@@ -593,70 +595,96 @@ export default function PomodoroPage({ service }: PomodoroPageProps) {
             </span>
             <button
               onClick={() => setError(null)}
-              className="cursor-pointer text-xs font-semibold"
-              style={{ color: "var(--text-primary)", background: "transparent", border: "none" }}
+              className="cursor-pointer shrink-0"
+              style={{
+                fontSize: "var(--text-xs)",
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                color: "var(--text-primary)",
+                background: "transparent",
+                border: "none",
+              }}
             >
               Dismiss
             </button>
           </div>
         )}
 
-        {/* The list slides in from the direction of travel on a day change */}
+        {/* --- The list. Hairline-separated rows, no per-row card. --- */}
         <div
           key={date}
           className={slide === "next" ? "pom-day-next" : slide === "prev" ? "pom-day-prev" : ""}
         >
-          {ordered.length === 0 ? (
+          {ordered.map((task) => (
             <div
-              style={{
-                textAlign: "center",
-                marginTop: 56,
-                color: "var(--text-muted)",
-                fontSize: 14,
-                lineHeight: 1.7,
+              key={task.id}
+              ref={(el) => {
+                if (el) rowRefs.current.set(task.id, el);
+                else rowRefs.current.delete(task.id);
               }}
+              className={enteringIds.includes(task.id) ? "pom-row-entering" : ""}
+              onAnimationEnd={() => setEnteringIds((ids) => ids.filter((id) => id !== task.id))}
             >
-              No tasks for {formatDayLabel(date).toLowerCase()}.
-              <br />
-              <span style={{ fontSize: 13 }}>Add one above to get started.</span>
-            </div>
-          ) : (
-            ordered.map((task) => (
-              <div
-                key={task.id}
-                ref={(el) => {
-                  if (el) rowRefs.current.set(task.id, el);
-                  else rowRefs.current.delete(task.id);
+              <TaskRow
+                task={task}
+                focused={timer?.taskId === task.id}
+                onToggle={() => void handleToggle(task)}
+                onRename={(text) => void handleRename(task, text)}
+                onDelete={() => void handleDelete(task)}
+                onFocus={() => {
+                  if (timer?.taskId === task.id) {
+                    void window.electronAPI.pomodoro.timer.stop().then(() => setTimer(null));
+                  } else {
+                    void window.electronAPI.pomodoro.timer
+                      .start(serviceId, task.id)
+                      .then(setTimer);
+                  }
                 }}
-                className={enteringIds.includes(task.id) ? "pom-row-entering" : ""}
-                onAnimationEnd={() => setEnteringIds((ids) => ids.filter((id) => id !== task.id))}
-              >
-                <TaskRow
-                  task={task}
-                  focused={timer?.taskId === task.id}
-                  onToggle={() => void handleToggle(task)}
-                  onRename={(text) => void handleRename(task, text)}
-                  onDelete={() => void handleDelete(task)}
-                  onFocus={() => {
-                    if (timer?.taskId === task.id) {
-                      void window.electronAPI.pomodoro.timer.stop().then(() => setTimer(null));
-                    } else {
-                      void window.electronAPI.pomodoro.timer.start(serviceId, task.id).then(setTimer);
-                    }
-                  }}
-                  onDragStart={() => setDraggingId(task.id)}
-                  onDragOver={() => setDropTargetId(task.id)}
-                  onDrop={() => void handleDrop()}
-                  onDragEnd={() => {
-                    setDraggingId(null);
-                    setDropTargetId(null);
-                  }}
-                  dragging={draggingId === task.id}
-                  dropTarget={dropTargetId === task.id && draggingId !== task.id}
-                />
-              </div>
-            ))
-          )}
+                onDragStart={() => setDraggingId(task.id)}
+                onDragOver={() => setDropTargetId(task.id)}
+                onDrop={() => void handleDrop()}
+                onDragEnd={() => {
+                  setDraggingId(null);
+                  setDropTargetId(null);
+                }}
+                dragging={draggingId === task.id}
+                dropTarget={dropTargetId === task.id && draggingId !== task.id}
+              />
+            </div>
+          ))}
+
+          {/* The composer is the last line of the list, aligned to the rows
+              above it, rather than a separate box floating over them. */}
+          <div
+            className="flex items-center"
+            style={{
+              gap: "var(--space-sm)",
+              padding: "var(--space-sm)",
+              borderTop:
+                ordered.length > 0
+                  ? "1px solid color-mix(in srgb, var(--border) 45%, transparent)"
+                  : "none",
+            }}
+          >
+            <span className="shrink-0" style={{ width: 16 }} />
+            <MdAdd size={17} className="shrink-0" style={{ color: "var(--text-muted)" }} />
+            <input
+              ref={composerRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void handleCreate();
+              }}
+              placeholder={ordered.length === 0 ? "What needs doing today?" : "Add a task"}
+              className="flex-1 min-w-0 outline-none"
+              style={{
+                fontSize: "var(--text-md)",
+                color: "var(--text-primary)",
+                background: "transparent",
+                border: "none",
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>

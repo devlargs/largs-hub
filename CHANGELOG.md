@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- The Pomodoro view has been redesigned around the timer. The focus session is now the largest thing on the page — a full-size ring with the clock inside it — and it stays on screen even when nothing is running, with a Start focus button that picks up your next unfinished task in one click. The day is a proper header with the date beneath it, progress reads as a real count, and the day's completed sessions are tallied under the timer.
+- Task rows lost their individual boxes: the list is now separated by hairlines, with the row you're focusing on marked by an accent edge. The tomato emoji next to a task has been replaced by small drawn bars, and the delete and timer buttons on each row are now reachable by keyboard instead of appearing on hover only.
+- Muted labels across the Pomodoro view were failing readability contrast against the page background and have been darkened; red, green, and amber now follow the light theme properly instead of staying dark-theme pastels.
+
 ## [0.1.39] (2026-08-24)
 
 - New **Pomodoro** service: a daily task list with a 25/5 focus timer. Add tasks with Enter, check them off, edit inline, delete, drag to reorder, and step through days with the arrows (or jump back with "Today"). Unfinished work moves forward with a one-click "Carry over" button, the header tracks your progress for the day, and starting a focus session on a task keeps the timer running even while you're in another service. Everything is animated — ticking a task draws its checkbox, strikes the label through, and sinks it to the bottom — and all of it turns off if your system asks for reduced motion.

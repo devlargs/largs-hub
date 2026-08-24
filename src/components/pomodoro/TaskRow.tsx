@@ -18,6 +18,32 @@ interface TaskRowProps {
   dropTarget: boolean;
 }
 
+// Completed focus sessions, drawn as bars rather than an emoji — the tomato
+// glyph was OS-rendered and never part of the page's type system.
+function SessionTally({ count }: { count: number }) {
+  const shown = Math.min(count, 4);
+  return (
+    <span
+      className="shrink-0 flex items-center"
+      style={{ gap: 2 }}
+      title={`${count} focus session${count === 1 ? "" : "s"}`}
+      aria-label={`${count} focus session${count === 1 ? "" : "s"}`}
+    >
+      {Array.from({ length: shown }, (_, i) => (
+        <span key={i} className="pom-tally-bar" />
+      ))}
+      {count > shown && (
+        <span
+          className="pom-figure"
+          style={{ fontSize: "var(--text-3xs)", color: "var(--text-secondary)", marginLeft: 2 }}
+        >
+          +{count - shown}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export default function TaskRow({
   task,
   focused,
@@ -32,7 +58,6 @@ export default function TaskRow({
   dragging,
   dropTarget,
 }: TaskRowProps) {
-  const [hover, setHover] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(task.text);
   // Runs the one-shot spring class; cleared on animation end so a later toggle
@@ -58,10 +83,12 @@ export default function TaskRow({
     else setDraft(task.text);
   };
 
-  const handleToggle = () => {
-    setSpringing(true);
-    onToggle();
-  };
+  const actionStyle = {
+    width: 28,
+    height: 28,
+    background: "transparent",
+    border: "none",
+  } as const;
 
   return (
     <div
@@ -76,29 +103,22 @@ export default function TaskRow({
         onDrop();
       }}
       onDragEnd={onDragEnd}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
       onAnimationEnd={() => setSpringing(false)}
       className={[
-        "pom-row flex items-center rounded-xl",
+        "pom-row flex items-center",
         task.done ? "pom-row-done" : "",
+        focused ? "pom-row-focused" : "",
         springing ? "pom-row-springing" : "",
         dragging ? "pom-row-dragging" : "",
         dropTarget ? "pom-row-drop-target" : "",
       ]
         .filter(Boolean)
         .join(" ")}
-      style={{
-        gap: 10,
-        padding: "10px 12px",
-        marginBottom: 6,
-        background: hover || focused ? "var(--sidebar-hover)" : "var(--panel)",
-        border: `1px solid ${focused ? "var(--accent)" : "var(--border)"}`,
-      }}
+      style={{ gap: "var(--space-sm)", padding: "var(--space-sm) var(--space-sm)" }}
     >
       <span
-        className="shrink-0 cursor-grab"
-        style={{ color: "var(--text-muted)", opacity: hover ? 0.8 : 0.25 }}
+        className="pom-row-action shrink-0 cursor-grab"
+        style={{ color: "var(--text-muted)" }}
         title="Drag to reorder"
       >
         <MdDragIndicator size={16} />
@@ -106,20 +126,25 @@ export default function TaskRow({
 
       {/* Checkbox — the tick draws itself in */}
       <button
-        onClick={handleToggle}
+        onClick={() => {
+          setSpringing(true);
+          onToggle();
+        }}
         className={`pom-check shrink-0 flex items-center justify-center rounded-md cursor-pointer ${
           task.done ? "pom-check-on" : ""
         }`}
         style={{
-          width: 20,
-          height: 20,
+          width: 19,
+          height: 19,
           background: task.done ? "var(--accent)" : "transparent",
-          border: `1.5px solid ${task.done ? "var(--accent)" : "var(--border)"}`,
+          border: `1.5px solid ${
+            task.done ? "var(--accent)" : "color-mix(in srgb, var(--border) 90%, transparent)"
+          }`,
         }}
         title={task.done ? "Mark as not done" : "Mark as done"}
         aria-pressed={task.done}
       >
-        <svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
             className="pom-check-tick"
             d="M5 12.5l4.5 4.5L19 7.5"
@@ -148,49 +173,40 @@ export default function TaskRow({
             }}
             className="w-full outline-none rounded-md"
             style={{
-              padding: "2px 6px",
-              fontSize: 14,
+              padding: "var(--space-3xs) var(--space-2xs)",
+              fontSize: "var(--text-md)",
               background: "var(--surface)",
               color: "var(--text-primary)",
               border: "1px solid var(--accent)",
             }}
           />
         ) : (
-          <span
+          <button
             onClick={() => setEditing(true)}
-            className={`pom-label cursor-text ${task.done ? "pom-label-done" : ""}`}
+            className={`pom-label cursor-text text-left ${task.done ? "pom-label-done" : ""}`}
             style={{
-              fontSize: 14,
+              fontSize: "var(--text-md)",
+              lineHeight: 1.45,
               color: task.done ? "var(--text-muted)" : "var(--text-primary)",
+              background: "transparent",
+              border: "none",
+              padding: 0,
             }}
             title="Click to edit"
           >
             {task.text}
-          </span>
+          </button>
         )}
       </div>
 
-      {task.focusSessions > 0 && (
-        <span
-          className="shrink-0 tabular-nums"
-          style={{ fontSize: 11, color: "var(--text-muted)" }}
-          title={`${task.focusSessions} focus session${task.focusSessions === 1 ? "" : "s"}`}
-        >
-          🍅 {task.focusSessions}
-        </span>
-      )}
+      {task.focusSessions > 0 && <SessionTally count={task.focusSessions} />}
 
       <button
         onClick={onFocus}
-        className="shrink-0 flex items-center justify-center rounded-md cursor-pointer hover:bg-sidebar-hover"
-        style={{
-          width: 26,
-          height: 26,
-          color: focused ? "var(--accent)" : "var(--text-muted)",
-          background: "transparent",
-          border: "none",
-          opacity: hover || focused ? 1 : 0,
-        }}
+        className={`shrink-0 flex items-center justify-center rounded-md cursor-pointer hover:bg-sidebar-hover ${
+          focused ? "" : "pom-row-action"
+        }`}
+        style={{ ...actionStyle, color: focused ? "var(--accent)" : "var(--text-muted)" }}
         title={focused ? "Stop the focus timer" : "Start a focus session on this task"}
       >
         {focused ? <MdTimerOff size={16} /> : <MdTimer size={16} />}
@@ -198,15 +214,8 @@ export default function TaskRow({
 
       <button
         onClick={onDelete}
-        className="shrink-0 flex items-center justify-center rounded-md cursor-pointer hover:bg-sidebar-hover"
-        style={{
-          width: 26,
-          height: 26,
-          color: "#f38ba8",
-          background: "transparent",
-          border: "none",
-          opacity: hover ? 1 : 0,
-        }}
+        className="pom-row-action shrink-0 flex items-center justify-center rounded-md cursor-pointer hover:bg-sidebar-hover"
+        style={{ ...actionStyle, color: "var(--danger)" }}
         title="Delete task"
       >
         <MdOutlineDeleteOutline size={16} />

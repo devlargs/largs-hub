@@ -14,6 +14,12 @@
 
   --context-bg: #1e1e2e;
   --context-hover: #313244;
+
+  /* Status hues, per theme — Mocha here, Latte below. Components reference
+     these rather than inlining the hex, so the light theme actually switches. */
+  --success: #a6e3a1;
+  --danger: #f38ba8;
+  --warning: #f9e2af;
 }
 
 :root.light {
@@ -30,6 +36,51 @@
   --stat-ring-bg: #ccd0da;
   --context-bg: #e6e9ef;
   --context-hover: #ccd0da;
+
+  --success: #40a02b;
+  --danger: #d20f39;
+  --warning: #df8e1d;
+}
+
+/* --- Scales -----------------------------------------------------------------
+   Type, space, and motion scales shared by the app. Colour stays in the two
+   blocks above so the light/dark switch keeps working; everything here is
+   theme-independent. */
+:root {
+  /* Type — major third (1.25), anchored on a 13px UI base */
+  --text-3xs: 0.625rem;    /* 10 */
+  --text-2xs: 0.6875rem;   /* 11 */
+  --text-xs: 0.75rem;      /* 12 */
+  --text-sm: 0.8125rem;    /* 13 */
+  --text-md: 0.875rem;     /* 14 */
+  --text-lg: 1.0625rem;    /* 17 */
+  --text-xl: 1.3125rem;    /* 21 */
+  --text-2xl: 1.625rem;    /* 26 */
+  --text-display-s: 2.125rem; /* 34 */
+  --text-display: 3.25rem;    /* 52 */
+
+  /* Space — 4pt base, named by role */
+  --space-3xs: 0.125rem;
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+
+  /* Motion — three easings, three durations. Never the browser default. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+
+  /* The one font pairing: system sans for text, system mono for figures */
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-figure: ui-monospace, "Cascadia Mono", "Segoe UI Mono", "SF Mono", Menlo,
+    Consolas, monospace;
 }
 
 @theme {
