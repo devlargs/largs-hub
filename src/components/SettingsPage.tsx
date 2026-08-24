@@ -115,8 +115,8 @@ export default function SettingsPage() {
       }}
     >
       <div
-        className="px-6 py-6 @lg:py-8"
-        style={{ maxWidth: 640, margin: "0 auto" }}
+        className="px-5 pt-6 pb-10 @lg:px-8 @lg:pt-8 @lg:pb-12"
+        style={{ maxWidth: 720, margin: "0 auto" }}
       >
         <h1
           className="text-xl font-semibold"

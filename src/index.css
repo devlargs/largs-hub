@@ -91,10 +91,14 @@
   --color-accent: var(--accent);
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* Layered so Tailwind's utilities still win: an unlayered rule beats every
+   layered one, so a bare `*` reset here silently killed every p-*/m-* class. */
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 }
 
 html,

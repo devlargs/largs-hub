@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Settings no longer sits flush against the edges of the window. A global CSS reset was quietly cancelling every spacing class in the app, so the page lost its top, bottom and right gutters and the rows lost their breathing room. The reset is now scoped properly, Settings has its margins back at every window size, and the column is a little wider on large screens.
+
 - Privacy: removing a service now really forgets the account. Its cookies, site data and cache are deleted instead of being left on disk forever, leftovers from services removed by earlier versions are cleaned up at startup, and a new "Clear data and sign out" item in the service right-click menu resets a stuck login without removing the service.
 
 - Sidebar unread badges no longer sit blank until a count changes — they now load the current counts as soon as the interface starts.
