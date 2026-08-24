@@ -167,6 +167,22 @@ export default function MessengerAutomationPanel({
     return unsubscribe;
   }, [serviceId]);
 
+  // A scheduled send whose moment passed while the app was closed is not
+  // restored — say so instead of showing an unexplained empty list (issue #75).
+  useEffect(() => {
+    const unsubscribe = window.electronAPI?.messengerAutomation.onMissed((missedTasks) => {
+      const mine = missedTasks.filter((t) => t.serviceId === serviceId);
+      if (mine.length === 0) return;
+      setError(null);
+      setFeedback(
+        mine.length === 1
+          ? "A scheduled message was missed while the app was closed"
+          : `${mine.length} scheduled messages were missed while the app was closed`,
+      );
+    });
+    return unsubscribe;
+  }, [serviceId]);
+
   // The auto-stop lives in the main process (it must survive this panel being
   // closed), so read the armed state on mount and follow it from there.
   useEffect(() => {

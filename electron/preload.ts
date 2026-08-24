@@ -303,6 +303,12 @@ const api = {
       ipcRenderer.on("messenger-automation-updated", handler);
       return () => ipcRenderer.removeListener("messenger-automation-updated", handler);
     },
+    onMissed: (callback: (tasks: AutomationTask[]) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, tasks: AutomationTask[]) =>
+        callback(tasks);
+      ipcRenderer.on("messenger-automation-missed", handler);
+      return () => ipcRenderer.removeListener("messenger-automation-missed", handler);
+    },
     onNotice: (callback: (data: { serviceId: string; reason: NoticeReason }) => void) => {
       const handler = (
         _event: Electron.IpcRendererEvent,

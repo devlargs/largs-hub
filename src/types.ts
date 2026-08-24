@@ -155,6 +155,7 @@ export interface ElectronAPI {
     getRecentEmojis: () => Promise<string[]>;
     onRecentEmojisUpdated: (callback: (emojis: string[]) => void) => () => void;
     onUpdated: (callback: (tasks: AutomationTask[]) => void) => () => void;
+    onMissed: (callback: (tasks: AutomationTask[]) => void) => () => void;
     onNotice: (callback: (data: { serviceId: string; reason: NoticeReason }) => void) => () => void;
     onAutoStopUpdated: (callback: (data: AutoStopUpdate) => void) => () => void;
   };

@@ -3,7 +3,7 @@ import path from "path";
 import { pathToFileURL } from "url";
 import { customIconsDir, resolveCustomIconPath, sweepOrphanedIcons } from "./customIcons";
 import { store, StoreSchema } from "./store";
-import { registerMessengerAutomation } from "./messengerAutomation";
+import { registerMessengerAutomation, restoreAutomationState } from "./messengerAutomation";
 import { registerPomodoro, recordFocusSession } from "./tasks";
 import { registerPomodoroTimer, stopTimerForTask } from "./pomodoroTimer";
 import { registerUpdater } from "./updater";
@@ -208,6 +208,9 @@ function createWindow() {
   uiView.webContents.on("did-finish-load", () => {
     preloadServices();
     refreshTaskbarBadge();
+    // Only now do the service views a stored task needs to inject into exist
+    // (issue #75). Restoring earlier would tear each task down on its first fire.
+    restoreAutomationState();
   });
 
   // An overlay set before the window is on screen is discarded by Windows
@@ -338,6 +341,11 @@ registerMessengerAutomation({
   monitorCallForAnswer: (serviceId, timeoutMs) => monitorCallForAnswer(serviceId, timeoutMs),
   closeCallWindow: (serviceId) => closeCallWindow(serviceId),
   armAutomationCall: (serviceId) => armAutomationCall(serviceId),
+  loadPersistedTasks: () => store.get("automationTasks"),
+  savePersistedTasks: (tasks) => store.set("automationTasks", tasks),
+  loadPersistedAutoStops: () => store.get("automationAutoStops"),
+  savePersistedAutoStops: (autoStops) => store.set("automationAutoStops", autoStops),
+  getServiceIds: () => store.get("services").map((s) => s.id),
   getRecentEmojis: () => sanitizeRecentEmojis(store.get("recentEmojis")),
   recordRecentEmoji: (emoji) => {
     const updated = addRecentEmoji(store.get("recentEmojis"), emoji);

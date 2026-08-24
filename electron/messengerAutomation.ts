@@ -1,6 +1,7 @@
-import { ipcMain, WebContentsView } from "electron";
+import { ipcMain, powerMonitor, WebContentsView } from "electron";
 import { randomUUID } from "crypto";
 import { MAX_MESSAGE_LENGTH, MAX_GROUP_MESSAGES, pickNextIndex } from "./messageLists";
+import { isAutoStopStillArmed, planTaskRestore, restorableTasks } from "./automationRestore";
 
 // Messenger automation: scheduling/looping lives here in the main process so
 // tasks survive page reloads and keep running while the view is hidden or
@@ -74,9 +75,19 @@ interface AutomationDeps {
   // stays free of electron-store (and unit-testable without it).
   getRecentEmojis: () => string[];
   recordRecentEmoji: (emoji: string) => string[];
+  // Task/auto-stop persistence, injected for the same reason (issue #75).
+  loadPersistedTasks: () => unknown;
+  savePersistedTasks: (tasks: AutomationTask[]) => void;
+  loadPersistedAutoStops: () => unknown;
+  savePersistedAutoStops: (autoStops: AutoStopState[]) => void;
+  /** Ids of services that still exist, so tasks for removed ones are dropped. */
+  getServiceIds: () => string[];
 }
 
 const tasks = new Map<string, InternalTask>();
+// Set by registerMessengerAutomation so main can trigger the restore once the
+// service views it needs to inject into actually exist.
+let restoreAll: () => void = () => {};
 // Services that already have a webContents "destroyed" cleanup hook attached
 const hookedServices = new Set<string>();
 // serviceId -> armed auto-stop (state + its timer). At most one per service.
@@ -87,6 +98,10 @@ const MIN_AUTO_STOP_MINUTES = 1;
 const MAX_AUTO_STOP_MINUTES = 1440;
 // How often the call cycle re-reads the conversation for a reaction.
 const NOTICE_POLL_MS = 2000;
+// How often the wall clock is re-checked for timers that drifted (OS sleep
+// skews a long setTimeout), and how late a task must be before that counts.
+const OVERDUE_SWEEP_MS = 60_000;
+const OVERDUE_SLACK_MS = 30_000;
 
 function toPublic(task: InternalTask): AutomationTask {
   const { timer: _timer, noticeTimer: _noticeTimer, ...publicTask } = task;
@@ -297,11 +312,20 @@ export function validateAutoStopMinutes(minutes: unknown): string | null {
 }
 
 export function registerMessengerAutomation(deps: AutomationDeps): void {
+  // Every task-list change goes to disk as well as to the panel, so a quit at
+  // any point leaves something restorable (issue #75).
   function pushUpdate() {
+    deps.savePersistedTasks(publicTasks());
     const ui = deps.getUiView();
     if (ui && !ui.webContents.isDestroyed()) {
       ui.webContents.send("messenger-automation-updated", publicTasks());
     }
+  }
+
+  function persistAutoStops() {
+    deps.savePersistedAutoStops(
+      [...autoStops.values()].map(({ timer: _timer, ...state }) => state),
+    );
   }
 
   // Tell the UI why a call cycle cancelled itself — the task is already gone
@@ -323,6 +347,7 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
   // `fired` marks the push that follows an expired auto-stop, so the panel can
   // say why the task list emptied instead of silently clearing it.
   function pushAutoStop(serviceId: string, fired = false) {
+    persistAutoStops();
     const ui = deps.getUiView();
     if (ui && !ui.webContents.isDestroyed()) {
       ui.webContents.send("messenger-automation-auto-stop-updated", {
@@ -341,7 +366,27 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
     clearTimeout(armed.timer);
     autoStops.delete(serviceId);
     if (notify) pushAutoStop(serviceId);
+    else persistAutoStops();
     return true;
+  }
+
+  // Arm (or re-arm) a service's auto-stop. `expiresAt` is only supplied by the
+  // launch-time restore, which is picking up an arm that's already counting.
+  function armAutoStop(serviceId: string, minutes: number, expiresAt?: number) {
+    clearAutoStop(serviceId, false);
+    const target = expiresAt ?? Date.now() + minutes * 60_000;
+    const timer = setTimeout(
+      () => {
+        // Drop the arm first so stopAllForService's own cleanup is a no-op and
+        // the UI gets one push per side (tasks, then arm).
+        autoStops.delete(serviceId);
+        stopAllForService(serviceId);
+        pushAutoStop(serviceId, true);
+      },
+      Math.max(0, target - Date.now()),
+    );
+    autoStops.set(serviceId, { serviceId, minutes, expiresAt: target, timer });
+    persistAutoStops();
   }
 
   // Returns null when the view is gone — callers stop the task in that case.
@@ -415,23 +460,36 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
     return task;
   }
 
-  function startSendChat(serviceId: string, spec: Extract<TaskSpec, { type: "sendChat" }>) {
-    const hours = parseInt(spec.time.slice(0, 2), 10);
-    const minutes = parseInt(spec.time.slice(2, 4), 10);
-    const target = new Date();
-    target.setHours(hours, minutes, 0, 0);
-    if (target.getTime() <= Date.now()) {
-      target.setDate(target.getDate() + 1);
+  // `fireAt` is only passed by the launch-time restore, which already knows the
+  // moment this task was armed for; a fresh schedule works it out from HHMM.
+  function startSendChat(
+    serviceId: string,
+    spec: Extract<TaskSpec, { type: "sendChat" }>,
+    fireAt?: number,
+  ) {
+    let target = fireAt;
+    if (target === undefined) {
+      const hours = parseInt(spec.time.slice(0, 2), 10);
+      const minutes = parseInt(spec.time.slice(2, 4), 10);
+      const next = new Date();
+      next.setHours(hours, minutes, 0, 0);
+      if (next.getTime() <= Date.now()) {
+        next.setDate(next.getDate() + 1);
+      }
+      target = next.getTime();
     }
 
     const task = createTask(serviceId, spec);
     task.status = "scheduled";
-    task.nextFireAt = target.getTime();
-    task.timer = setTimeout(async () => {
-      await inject(serviceId, buildTypeAndSendScript(spec.message));
-      tasks.delete(task.id);
-      pushUpdate();
-    }, target.getTime() - Date.now());
+    task.nextFireAt = target;
+    task.timer = setTimeout(
+      async () => {
+        await inject(serviceId, buildTypeAndSendScript(spec.message));
+        tasks.delete(task.id);
+        pushUpdate();
+      },
+      Math.max(0, target - Date.now()),
+    );
   }
 
   // Shared loop for the repeating task types: fire, then reschedule with a
@@ -547,6 +605,130 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
     scheduleNext();
   }
 
+  // --- Launch-time restore ---------------------------------------------------
+
+  // Rehydrate tasks stored by the previous run. Called once views exist — a
+  // task needs a live service view to inject into, so restoring before that
+  // would tear everything down again immediately.
+  function restorePersistedTasks() {
+    const stored = restorableTasks(deps.loadPersistedTasks(), deps.getServiceIds());
+    if (stored.length === 0) {
+      // Still write back: this clears tasks whose service has since been removed.
+      deps.savePersistedTasks([]);
+      return;
+    }
+
+    const now = Date.now();
+    const missed: AutomationTask[] = [];
+    for (const task of stored) {
+      const plan = planTaskRestore(task, now);
+      if (plan.action === "drop") {
+        missed.push({ ...task, lastResult: plan.reason });
+        continue;
+      }
+      ensureCleanupHook(task.serviceId);
+      if (plan.action === "fire-now") {
+        // Late is better than never for a one-shot send, but only just — fire
+        // it right away rather than re-arming for tomorrow.
+        launchTask(task.serviceId, task.spec, { fireAt: now });
+      } else {
+        launchTask(
+          task.serviceId,
+          task.spec,
+          plan.delayMs > 0 ? { fireAt: now + plan.delayMs } : undefined,
+        );
+      }
+    }
+
+    pushUpdate();
+    if (missed.length > 0) {
+      // The panel would otherwise just show an empty list with no explanation.
+      const ui = deps.getUiView();
+      if (ui && !ui.webContents.isDestroyed()) {
+        ui.webContents.send("messenger-automation-missed", missed);
+      }
+    }
+  }
+
+  function restorePersistedAutoStops() {
+    const stored = deps.loadPersistedAutoStops();
+    if (!Array.isArray(stored)) return;
+    const now = Date.now();
+    for (const entry of stored) {
+      if (typeof entry?.serviceId !== "string") continue;
+      // An arm that ran out while the app was closed must not clear a fresh
+      // batch of tasks the moment the app opens.
+      if (!isAutoStopStillArmed(entry.expiresAt, now)) continue;
+      armAutoStop(entry.serviceId, entry.minutes, entry.expiresAt);
+    }
+    persistAutoStops();
+  }
+
+  // Long timers don't survive OS sleep accurately — a setTimeout armed for
+  // 21:00 can come back from suspend having lost hours. Re-check the wall clock
+  // periodically and on resume, and fire anything that's overdue.
+  function sweepOverdue() {
+    const now = Date.now();
+    for (const task of [...tasks.values()]) {
+      if (task.nextFireAt === null || task.nextFireAt > now) continue;
+      // More than a slack window late means the timer really did drift.
+      if (now - task.nextFireAt < OVERDUE_SLACK_MS) continue;
+      if (task.spec.type !== "sendChat") continue; // loops self-correct
+      const { serviceId, spec } = task;
+      stopTask(task.id);
+      launchTask(serviceId, spec, { fireAt: now });
+    }
+  }
+
+  // Arm one task's timers. Shared by the start handler and the launch-time
+  // restore, so a rehydrated task behaves exactly like a freshly started one.
+  function launchTask(serviceId: string, taskSpec: TaskSpec, options?: { fireAt?: number }) {
+    switch (taskSpec.type) {
+      case "sendChatMessage":
+        return; // immediate one-off, never a task
+      case "sendChat":
+        startSendChat(serviceId, taskSpec, options?.fireAt);
+        return;
+      case "sendChatInterval":
+        startLoop(
+          serviceId,
+          taskSpec,
+          () => randomDelayMs(taskSpec.fromSec, taskSpec.toSec),
+          () => buildTypeAndSendScript(taskSpec.message),
+        );
+        return;
+      case "sendRandomFromList": {
+        // The picked index is the only state the cycle carries, so the "never
+        // twice in a row" rule survives across fires without touching the spec.
+        let lastIndex: number | null = null;
+        startLoop(
+          serviceId,
+          taskSpec,
+          () => randomDelayMs(taskSpec.fromSec, taskSpec.toSec),
+          () => {
+            lastIndex = pickNextIndex(taskSpec.messages.length, lastIndex);
+            return buildTypeAndSendScript(taskSpec.messages[lastIndex]);
+          },
+        );
+        return;
+      }
+      case "sendEmoji":
+        startLoop(
+          serviceId,
+          taskSpec,
+          () => randomDelayMs(taskSpec.fromSec, taskSpec.toSec),
+          () =>
+            buildTypeAndSendScript(
+              taskSpec.emoji.repeat(1 + Math.floor(Math.random() * taskSpec.maxLength)),
+            ),
+        );
+        return;
+      case "startCallCycle":
+        startCallCycle(serviceId, taskSpec);
+        return;
+    }
+  }
+
   ipcMain.handle(
     "messenger-automation-start",
     async (_event, serviceId: unknown, spec: unknown): Promise<StartResult> => {
@@ -579,69 +761,32 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
 
       ensureCleanupHook(serviceId);
 
-      switch (taskSpec.type) {
-        case "sendChatMessage": {
-          // Immediate one-off — never enters the task list
-          const result = await inject(serviceId, buildTypeAndSendScript(taskSpec.message));
-          if (result !== "sent") {
-            return fail(
-              result === "no-input"
-                ? "Chat input not found — open a conversation first"
-                : result === "no-send-button"
-                  ? "Send button not found"
-                  : "Service is not loaded",
-            );
-          }
-          return { ok: true, tasks: publicTasks() };
+      if (taskSpec.type === "sendChatMessage") {
+        // Immediate one-off — never enters the task list
+        const result = await inject(serviceId, buildTypeAndSendScript(taskSpec.message));
+        if (result !== "sent") {
+          return fail(
+            result === "no-input"
+              ? "Chat input not found — open a conversation first"
+              : result === "no-send-button"
+                ? "Send button not found"
+                : "Service is not loaded",
+          );
         }
-        case "sendChat":
-          startSendChat(serviceId, taskSpec);
-          break;
-        case "sendChatInterval":
-          startLoop(
-            serviceId,
-            taskSpec,
-            () => randomDelayMs(taskSpec.fromSec, taskSpec.toSec),
-            () => buildTypeAndSendScript(taskSpec.message),
-          );
-          break;
-        case "sendRandomFromList": {
-          // The picked index is the only state the cycle carries, so the "never
-          // twice in a row" rule survives across fires without touching the spec.
-          let lastIndex: number | null = null;
-          startLoop(
-            serviceId,
-            taskSpec,
-            () => randomDelayMs(taskSpec.fromSec, taskSpec.toSec),
-            () => {
-              lastIndex = pickNextIndex(taskSpec.messages.length, lastIndex);
-              return buildTypeAndSendScript(taskSpec.messages[lastIndex]);
-            },
-          );
-          break;
-        }
-        case "sendEmoji":
-          // Remember the emoji so the panel can offer it again next time.
-          deps
-            .getUiView()
-            ?.webContents.send(
-              "messenger-automation-recent-emojis",
-              deps.recordRecentEmoji(taskSpec.emoji),
-            );
-          startLoop(
-            serviceId,
-            taskSpec,
-            () => randomDelayMs(taskSpec.fromSec, taskSpec.toSec),
-            () =>
-              buildTypeAndSendScript(
-                taskSpec.emoji.repeat(1 + Math.floor(Math.random() * taskSpec.maxLength)),
-              ),
-          );
-          break;
-        case "startCallCycle":
-          startCallCycle(serviceId, taskSpec);
-          break;
+        return { ok: true, tasks: publicTasks() };
       }
+
+      if (taskSpec.type === "sendEmoji") {
+        // Remember the emoji so the panel can offer it again next time.
+        deps
+          .getUiView()
+          ?.webContents.send(
+            "messenger-automation-recent-emojis",
+            deps.recordRecentEmoji(taskSpec.emoji),
+          );
+      }
+
+      launchTask(serviceId, taskSpec);
 
       pushUpdate();
       return { ok: true, tasks: publicTasks() };
@@ -660,6 +805,21 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
       return publicTasks();
     },
   );
+
+  restoreAll = () => {
+    restorePersistedTasks();
+    restorePersistedAutoStops();
+  };
+
+  // Catch timers that drifted across an OS suspend, plus an explicit check when
+  // the machine wakes.
+  const overdueSweep = setInterval(sweepOverdue, OVERDUE_SWEEP_MS);
+  overdueSweep.unref?.();
+  try {
+    powerMonitor.on("resume", sweepOverdue);
+  } catch {
+    // powerMonitor is unavailable before app-ready on some platforms
+  }
 
   ipcMain.handle("messenger-automation-list", (): AutomationTask[] => publicTasks());
 
@@ -681,21 +841,7 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
       if (validationError) {
         return { ok: false, error: validationError, autoStop: publicAutoStop(serviceId) };
       }
-      const durationMs = (minutes as number) * 60_000;
-      clearAutoStop(serviceId, false);
-      const timer = setTimeout(() => {
-        // Drop the arm first so stopAllForService's own cleanup is a no-op and
-        // the UI gets one push per side (tasks, then arm).
-        autoStops.delete(serviceId);
-        stopAllForService(serviceId);
-        pushAutoStop(serviceId, true);
-      }, durationMs);
-      autoStops.set(serviceId, {
-        serviceId,
-        minutes: minutes as number,
-        expiresAt: Date.now() + durationMs,
-        timer,
-      });
+      armAutoStop(serviceId, minutes as number);
       return { ok: true, autoStop: publicAutoStop(serviceId) };
     },
   );
@@ -705,4 +851,13 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
     (_event, serviceId: unknown): AutoStopState | null =>
       typeof serviceId === "string" ? publicAutoStop(serviceId) : null,
   );
+}
+
+/**
+ * Restore the tasks and auto-stops stored by the previous run. Called from main
+ * once service views exist — a task with nowhere to inject would be torn down
+ * again the moment it fired.
+ */
+export function restoreAutomationState(): void {
+  restoreAll();
 }

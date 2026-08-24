@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Messenger automation now survives closing the app. Tasks and an armed auto-stop are saved and picked back up on launch: repeating ones restart, a scheduled send still in the future is re-armed, one missed by under an hour is sent on opening, and one missed by longer is skipped with a note in the panel rather than firing hours late. Long waits are also re-checked against the clock, so a scheduled send no longer drifts when the machine sleeps.
+
 - A running Pomodoro session survives closing the app. It used to be thrown away entirely — including the focus sessions it had banked toward a task — which made the focus count untrustworthy. On reopening, any phases that finished while you were away are counted and the timer comes back paused where it got to, rather than silently resuming. Focus and break lengths are now settings (Settings → Pomodoro) instead of a fixed 25/5.
 
 - You can now add any web app by address, not just the eleven presets. A **Custom** tile at the end of the add grid opens a name/address/icon form, the name is filled in from the address as you type (`app.slack.com` becomes "Slack"), and a bare address like `mail.proton.me` is accepted. Searching for something with no matching preset now points you at it instead of showing an empty grid.
