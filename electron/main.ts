@@ -31,6 +31,8 @@ import {
   setAutomationSplitOpen,
   repositionActiveView,
   isAnyServiceAudible,
+  setWindowMinimized,
+  watchPowerForPolling,
   pushAutomationWidth,
   handleWindowFocus,
   handleWindowBlur,
@@ -206,6 +208,12 @@ function createWindow() {
     linkPreviewView = null;
     clearAllViewState();
   });
+
+  // Poll rate follows window state and power (issue #80).
+  mainWindow.on("minimize", () => setWindowMinimized(true));
+  mainWindow.on("restore", () => setWindowMinimized(false));
+  mainWindow.on("show", () => setWindowMinimized(false));
+  watchPowerForPolling();
 
   startHibernationSweep();
   // Unfinished work blocks the quit — see idleShutdown.ts (issue #73).

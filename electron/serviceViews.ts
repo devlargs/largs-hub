@@ -1,10 +1,11 @@
-import { BrowserWindow, WebContentsView, Menu } from "electron";
+import { BrowserWindow, WebContentsView, Menu, powerMonitor } from "electron";
 import { shell } from "electron";
 import { store, Service, isSafeServiceUrl, isInternalService } from "./store";
 import { shouldKeepInView } from "./navigationPolicy";
 import { hookDownloadSession, hasActiveDownload } from "./downloads";
 import { hasAutomationForService } from "./messengerAutomation";
 import { shouldHibernate } from "./hibernationPolicy";
+import { pollIntervalChanged, pollIntervalMs } from "./pollPolicy";
 import { findBadgeAdapter, buildPollScript, parseTitleCount } from "./badge-adapters";
 import { messengerAdapter } from "./badge-adapters/messenger";
 import {
@@ -42,6 +43,52 @@ const HIBERNATION_SWEEP_MS = 60_000;
 let hibernationSweepTimer: ReturnType<typeof setInterval> | null = null;
 let activeServiceId: string | null = null;
 let windowFocused = true;
+// Conditions the notification poll rate follows (pollPolicy.ts, issue #80).
+let windowMinimized = false;
+let systemSuspended = false;
+// Each live view registers a callback so a change re-arms every poll at once.
+const pollRateListeners = new Set<() => void>();
+
+function isOnBattery(): boolean {
+  try {
+    return powerMonitor.isOnBatteryPower();
+  } catch {
+    // Not available on every platform/build — assume mains rather than
+    // silently pausing everyone's badges.
+    return false;
+  }
+}
+
+/** Re-arm every view's poll after something that changes the right rate. */
+export function refreshPollRates() {
+  for (const listener of pollRateListeners) listener();
+}
+
+/** Window minimize/restore changes whether polling is worth doing at all. */
+export function setWindowMinimized(minimized: boolean) {
+  if (windowMinimized === minimized) return;
+  windowMinimized = minimized;
+  refreshPollRates();
+}
+
+/** Wire OS suspend/resume and power-source changes to the poll rate. */
+export function watchPowerForPolling() {
+  try {
+    powerMonitor.on("suspend", () => {
+      systemSuspended = true;
+      refreshPollRates();
+    });
+    powerMonitor.on("resume", () => {
+      systemSuspended = false;
+      refreshPollRates();
+    });
+    powerMonitor.on("on-battery", refreshPollRates);
+    powerMonitor.on("on-ac", refreshPollRates);
+  } catch {
+    // powerMonitor is unavailable before app-ready on some platforms; the
+    // focus/active-service triggers still apply.
+  }
+}
 
 // The find bar can't be drawn over a service view (child-view reordering is
 // unreliable on Windows — see the z-order rule in CLAUDE.md), so it takes a
@@ -326,6 +373,7 @@ function isPrivacyMode(serviceId: string): boolean {
 // so keyboard input goes to it (e.g. typing in a Messenger chat)
 export function handleWindowFocus() {
   windowFocused = true;
+  refreshPollRates(); // focus raises the active view's poll rate
   if (activeServiceId) {
     const view = serviceViews.get(activeServiceId);
     if (view && !view.webContents.isDestroyed()) {
@@ -347,6 +395,7 @@ export function handleWindowBlur() {
       }
     }
   }
+  refreshPollRates(); // an unfocused window polls slower
 }
 
 // Z-order rule (see CLAUDE.md): overlays can't reliably stack above service
@@ -908,11 +957,9 @@ function createServiceView(service: Service): WebContentsView {
   // Poll for apps that don't reliably put counts in the title. The script is
   // title check + the adapter's targeted selectors — no broad heuristics.
   const pollScript = buildPollScript(adapter);
-  const pollInterval = setInterval(() => {
-    if (!view.webContents || view.webContents.isDestroyed()) {
-      clearInterval(pollInterval);
-      return;
-    }
+
+  const runPoll = () => {
+    if (!view.webContents || view.webContents.isDestroyed()) return;
     view.webContents
       .executeJavaScript(pollScript, true)
       .then((count: number) => {
@@ -920,7 +967,37 @@ function createServiceView(service: Service): WebContentsView {
         reportNotificationCount(service.id, count);
       })
       .catch(() => {});
-  }, 3000);
+  };
+
+  // The rate follows what the app is actually doing rather than running flat
+  // out for the view's whole life (issue #80). Re-armed whenever the conditions
+  // change — service switch, window focus/minimize, suspend/resume, power.
+  let pollTimer: ReturnType<typeof setInterval> | null = null;
+  let currentPollMs: number | null = null;
+
+  const applyPollRate = () => {
+    if (view.webContents.isDestroyed()) return;
+    const next = pollIntervalMs({
+      isActive: activeServiceId === service.id,
+      windowFocused,
+      windowMinimized,
+      systemSuspended,
+      onBattery: isOnBattery(),
+    });
+    if (!pollIntervalChanged(currentPollMs, next)) return;
+    // Coming back from paused: catch up immediately so a badge that changed
+    // while we weren't looking isn't stale until the next tick.
+    const wasPaused = currentPollMs === null;
+    currentPollMs = next;
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = null;
+    if (next === null) return;
+    if (wasPaused) runPoll();
+    pollTimer = setInterval(runPoll, next);
+  };
+
+  applyPollRate();
+  pollRateListeners.add(applyPollRate);
 
   // Main-process count source (no DOM involved), polled less aggressively
   // since it hits the network rather than the local page.
@@ -944,7 +1021,8 @@ function createServiceView(service: Service): WebContentsView {
   // Clear the polls as soon as the view is torn down instead of waiting for
   // the next tick to notice the destroyed webContents.
   view.webContents.once("destroyed", () => {
-    clearInterval(pollInterval);
+    if (pollTimer) clearInterval(pollTimer);
+    pollRateListeners.delete(applyPollRate);
     if (directFetchInterval) clearInterval(directFetchInterval);
   });
 
@@ -1159,6 +1237,7 @@ export function showService(serviceId: string) {
     else removeBlurFromView(view);
   }
   activeServiceId = serviceId;
+  refreshPollRates(); // the newly active view polls faster, the old one slower
 }
 
 export function hideActiveService() {
@@ -1171,6 +1250,7 @@ export function hideActiveService() {
   // Start the idle clock for the service we're leaving
   serviceLastActive.set(activeServiceId, Date.now());
   activeServiceId = null;
+  refreshPollRates(); // nothing is active now, so every view drops to background
 }
 
 // Pre-load all saved services so they're warm on startup (if enabled)

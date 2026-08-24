@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Services no longer scrape their pages every three seconds around the clock. The service you're looking at still updates that fast; ones in the background drop to every 20 seconds, and polling stops altogether while the window is minimized, the machine is asleep, or you're on battery — with a catch-up check the moment you come back. Unread counts that arrive via the page title are unaffected, so most services still update instantly.
+
 - The app no longer closes itself after an hour without asking. That behaviour was hardcoded, undocumented and had no exemptions — it would quit during a call, mid-focus-session, or while a message was scheduled to send later, taking the unfinished work with it. It is now a setting (Settings → General → Close when idle), **off by default**, and even when switched on it stays open while audio is playing, a focus timer is running, or automation is pending.
 
 - Hibernation no longer silently kills work you left running in a background service. A service with running Messenger automation, playing audio, or a download in progress is now skipped by the idle sweep — it used to be torn down, taking every automation task with it and leaving the panel showing an empty list with no explanation. Once the work finishes the service becomes eligible again straight away.
