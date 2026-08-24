@@ -21,7 +21,7 @@ import {
   closeAllDownloadToasts,
   setDownloadToastsVisible,
 } from "./downloads";
-import { initNotificationCounts } from "./notificationCounts";
+import { initNotificationCounts, refreshTaskbarBadge } from "./notificationCounts";
 import {
   initServiceViews,
   getServiceView,
@@ -55,7 +55,9 @@ import { startIdleShutdown, stopIdleShutdown, trackInputActivity, noteActivity }
 //   idleShutdown.ts       auto-quit after an hour with no user interaction
 
 app.setName("Largs Hub");
-app.setAppUserModelId("com.largs-hub.app");
+// Must match build.appId in package.json — Windows keys taskbar overlays and
+// toast notifications off this ID, and a mismatch breaks both silently (#58).
+app.setAppUserModelId("com.largshub.app");
 
 let mainWindow: BrowserWindow | null = null;
 let uiView: WebContentsView | null = null;
@@ -189,7 +191,12 @@ function createWindow() {
   // Pre-load all saved services so they're warm on startup (if enabled)
   uiView.webContents.on("did-finish-load", () => {
     preloadServices();
+    refreshTaskbarBadge();
   });
+
+  // An overlay set before the window is on screen is discarded by Windows
+  mainWindow.once("show", () => refreshTaskbarBadge());
+  mainWindow.on("restore", () => refreshTaskbarBadge());
 }
 
 // Link preview modal: the page renders in a WebContentsView layered on top,

@@ -1,4 +1,5 @@
 import { BrowserWindow, WebContentsView, nativeImage } from "electron";
+import { badgeLabel, renderBadgePng } from "./badgeImage";
 
 // Notification-count state and badge rendering, separated from count
 // *extraction* (issue #46). Extraction sources — title parsing, DOM poll
@@ -82,31 +83,66 @@ export function resetDecreaseDebounce(serviceId: string) {
   pendingDecrease.delete(serviceId);
 }
 
-// --- Taskbar badge rendering (issue #28) -----------------------------------
+// --- Taskbar badge rendering (issues #28, #58) -----------------------------
 
-function updateTaskbarBadge() {
-  const mainWindow = deps?.getMainWindow();
-  if (!mainWindow) return;
+// Windows drops an overlay icon set before the window has been shown, so the
+// last rendered total is kept and re-applied from refreshTaskbarBadge() once
+// the window is up (see main.ts).
+let lastTotal = 0;
+
+function totalCount(): number {
   let total = 0;
   for (const count of counts.values()) {
     total += count;
   }
-  if (total > 0) {
-    mainWindow.setOverlayIcon(createBadgeIcon(total), `${total} notifications`);
-  } else {
-    mainWindow.setOverlayIcon(null, "");
-  }
+  return total;
 }
 
-function createBadgeIcon(count: number): Electron.NativeImage {
-  const text = count > 99 ? "99+" : String(count);
-  // Rendered as an SVG data URL — small, crisp, and no offscreen window needed
-  const size = 16;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-    <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#ef4444"/>
-    <text x="${size / 2}" y="${size / 2 + 1}" text-anchor="middle" dominant-baseline="central"
-      font-family="Arial" font-size="${text.length > 2 ? 7 : text.length > 1 ? 8 : 10}" font-weight="bold" fill="white">${text}</text>
-  </svg>`;
-  const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
-  return nativeImage.createFromDataURL(dataUrl);
+function updateTaskbarBadge() {
+  lastTotal = totalCount();
+  applyTaskbarBadge();
 }
+
+/** Re-apply the current badge — call after the window is shown or reloaded. */
+export function refreshTaskbarBadge() {
+  applyTaskbarBadge();
+}
+
+function applyTaskbarBadge() {
+  const mainWindow = deps?.getMainWindow();
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+
+  if (lastTotal <= 0) {
+    mainWindow.setOverlayIcon(null, "");
+    return;
+  }
+
+  const icon = createBadgeIcon(lastTotal);
+  if (icon.isEmpty()) {
+    // The old SVG path failed exactly here, silently (issue #58)
+    console.warn("[badge] rendered overlay icon was empty; skipping");
+    return;
+  }
+  const label = lastTotal === 1 ? "1 notification" : `${lastTotal} notifications`;
+  mainWindow.setOverlayIcon(icon, label);
+}
+
+// setOverlayIcon composites at 16x16; the 2x representation keeps the digits
+// legible on HiDPI displays, where Windows asks for 20-32px.
+function createBadgeIcon(count: number): Electron.NativeImage {
+  const icon = nativeImage.createFromBuffer(renderBadgePng(count, 16), {
+    width: 16,
+    height: 16,
+    scaleFactor: 1,
+  });
+  icon.addRepresentation({
+    scaleFactor: 2,
+    width: 32,
+    height: 32,
+    buffer: renderBadgePng(count, 32),
+  });
+  return icon;
+}
+
+// Exported for tests / diagnostics: what the badge would read.
+export { badgeLabel };

@@ -115,6 +115,10 @@ Act as an expert in TypeScript, Electron, and desktop app development.
 4. Maintain clear documentation for long-term maintenance.
 5. Leverage Electron's built-in features and established patterns instead of working around the framework.
 
+## GitHub issues
+
+A bare GitHub issue link from the user is a complete instruction: **fix it, then commit to local `main`.** The issue's title and body are the whole brief — don't ask clarifying questions, don't propose a plan first, don't wait for confirmation. Read the issue (including its comments, which often hold the real detail), implement the fix, update `CHANGELOG.md`, and commit with `Closes #<n>`.
+
 ## Commits
 
 - **Commit to local `main`.** Don't create a branch or open a PR unless asked.
