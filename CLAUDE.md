@@ -117,10 +117,11 @@ Act as an expert in TypeScript, Electron, and desktop app development.
 
 ## Commits
 
-- **Commit and push straight to `main`.** Don't create a branch or open a PR unless asked.
+- **Commit to local `main`.** Don't create a branch or open a PR unless asked.
+- **Never push.** Committing locally is where the work stops. Only run `git push` when the user explicitly asks for it in that message — "commit it", "commit to main", or "push to main" all mean the local commit only. No exceptions, and never `git push origin main` on your own initiative.
 - **No trailers.** Never add `Co-Authored-By`, `Claude-Session`, or any similar footer.
 - **Keep messages short.** A one-line subject is usually enough; add at most a sentence or two of body when the reason isn't obvious from the diff. No multi-paragraph explanations.
-- When the commit fixes a GitHub issue, add `Closes #<n>` so it closes on push.
+- When the commit fixes a GitHub issue, add `Closes #<n>` so it closes once the user pushes.
 
 ## Releases
 
