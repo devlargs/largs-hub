@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- The app no longer closes itself after an hour without asking. That behaviour was hardcoded, undocumented and had no exemptions — it would quit during a call, mid-focus-session, or while a message was scheduled to send later, taking the unfinished work with it. It is now a setting (Settings → General → Close when idle), **off by default**, and even when switched on it stays open while audio is playing, a focus timer is running, or automation is pending.
+
 - Hibernation no longer silently kills work you left running in a background service. A service with running Messenger automation, playing audio, or a download in progress is now skipped by the idle sweep — it used to be torn down, taking every automation task with it and leaving the panel showing an empty list with no explanation. Once the work finishes the service becomes eligible again straight away.
 
 - Messenger automation now survives closing the app. Tasks and an armed auto-stop are saved and picked back up on launch: repeating ones restart, a scheduled send still in the future is re-armed, one missed by under an hour is sent on opening, and one missed by longer is skipped with a note in the panel rather than firing hours late. Long waits are also re-checked against the clock, so a scheduled send no longer drifts when the machine sleeps.

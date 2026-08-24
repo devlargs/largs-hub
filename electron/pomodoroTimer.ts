@@ -197,3 +197,8 @@ export function stopTimerForTask(serviceId: string, taskId: string): void {
     pushState();
   }
 }
+
+/** Whether a focus/break phase is counting down right now (issue #73). */
+export function hasRunningTimer(): boolean {
+  return state?.running === true;
+}

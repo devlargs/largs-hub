@@ -1197,3 +1197,14 @@ export function clearAllViewState() {
   serviceLastActive.clear();
   activeServiceId = null;
 }
+
+/** Whether any service view is currently playing audio (issue #73). */
+export function isAnyServiceAudible(): boolean {
+  for (const view of serviceViews.values()) {
+    if (!view.webContents.isDestroyed() && view.webContents.isCurrentlyAudible()) return true;
+  }
+  for (const callWindow of callWindows.values()) {
+    if (!callWindow.isDestroyed() && callWindow.webContents.isCurrentlyAudible()) return true;
+  }
+  return false;
+}

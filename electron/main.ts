@@ -3,9 +3,13 @@ import path from "path";
 import { pathToFileURL } from "url";
 import { customIconsDir, resolveCustomIconPath, sweepOrphanedIcons } from "./customIcons";
 import { store, StoreSchema } from "./store";
-import { registerMessengerAutomation, restoreAutomationState } from "./messengerAutomation";
+import {
+  registerMessengerAutomation,
+  restoreAutomationState,
+  hasAnyAutomation,
+} from "./messengerAutomation";
 import { registerPomodoro, recordFocusSession } from "./tasks";
-import { registerPomodoroTimer, stopTimerForTask } from "./pomodoroTimer";
+import { registerPomodoroTimer, stopTimerForTask, hasRunningTimer } from "./pomodoroTimer";
 import { registerUpdater } from "./updater";
 import { registerServicesIpc } from "./ipc/services";
 import { sweepOrphanedPartitions } from "./partitions";
@@ -26,6 +30,7 @@ import {
   setActiveViewVisible,
   setAutomationSplitOpen,
   repositionActiveView,
+  isAnyServiceAudible,
   pushAutomationWidth,
   handleWindowFocus,
   handleWindowBlur,
@@ -40,6 +45,7 @@ import {
 import {
   startIdleShutdown,
   stopIdleShutdown,
+  initIdleShutdown,
   trackInputActivity,
   noteActivity,
 } from "./idleShutdown";
@@ -202,6 +208,13 @@ function createWindow() {
   });
 
   startHibernationSweep();
+  // Unfinished work blocks the quit — see idleShutdown.ts (issue #73).
+  initIdleShutdown({
+    getIdleMinutes: () => store.get("idleQuitMinutes"),
+    isAnythingAudible: () => isAnyServiceAudible(),
+    hasRunningTimer,
+    hasPendingAutomation: hasAnyAutomation,
+  });
   startIdleShutdown();
 
   // Pre-load all saved services so they're warm on startup (if enabled)

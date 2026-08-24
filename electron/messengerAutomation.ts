@@ -872,3 +872,8 @@ export function hasAutomationForService(serviceId: string): boolean {
   }
   return false;
 }
+
+/** Whether any service has scheduled or running automation (issue #73). */
+export function hasAnyAutomation(): boolean {
+  return tasks.size > 0;
+}

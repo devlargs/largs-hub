@@ -53,6 +53,9 @@ export interface StoreSchema {
   // Emojis most recently used to start an emoji burst, newest first — the
   // "Recent" pane in the Messenger automation panel.
   recentEmojis: string[];
+  // Minutes of no interaction before the app closes itself (0 = never). Off by
+  // default: it used to be a hardcoded hour with no setting and no warning.
+  idleQuitMinutes: number;
   // Messenger automation tasks and armed auto-stops, so a scheduled send can
   // outlive the process that armed it (issue #75).
   automationTasks: AutomationTask[];
@@ -89,6 +92,7 @@ export const store = new Store<StoreSchema>({
     serviceZoom: {},
     messageListGroups: [],
     recentEmojis: [],
+    idleQuitMinutes: 0,
     automationTasks: [],
     automationAutoStops: [],
     pomodoroFocusMinutes: 25,
