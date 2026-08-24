@@ -1,5 +1,6 @@
 import { ipcMain, WebContentsView } from "electron";
 import { randomUUID } from "crypto";
+import { MAX_MESSAGE_LENGTH, MAX_GROUP_MESSAGES, pickNextIndex } from "./messageLists";
 
 // Messenger automation: scheduling/looping lives here in the main process so
 // tasks survive page reloads and keep running while the view is hidden or
@@ -11,6 +12,11 @@ export type TaskSpec =
   | { type: "sendChatInterval"; message: string; fromSec: number; toSec: number }
   | { type: "sendChatMessage"; message: string }
   | { type: "sendEmoji"; emoji: string; fromSec: number; toSec: number; maxLength: number }
+  // A saved message list, resolved to its messages at start time: the task
+  // carries the copy, so editing or deleting the list later can't disturb a
+  // running cycle. One entry is picked per fire (never the same one twice in
+  // a row) and sent after a random delay, like sendChatInterval.
+  | { type: "sendRandomFromList"; name: string; messages: string[]; fromSec: number; toSec: number }
   // fromSec/toSec = random delay range between call attempts; ringSeconds = how
   // long to let it ring before hanging up an unanswered call and trying again.
   | { type: "startCallCycle"; fromSec: number; toSec: number; ringSeconds: number };
@@ -72,7 +78,6 @@ const hookedServices = new Set<string>();
 // serviceId -> armed auto-stop (state + its timer). At most one per service.
 const autoStops = new Map<string, AutoStopState & { timer: NodeJS.Timeout }>();
 
-const MAX_MESSAGE_LENGTH = 5000;
 // Bounds for the auto-stop duration (1 minute to 24 hours).
 const MIN_AUTO_STOP_MINUTES = 1;
 const MAX_AUTO_STOP_MINUTES = 1440;
@@ -217,6 +222,23 @@ export function validateSpec(spec: TaskSpec): string | null {
     case "sendChatMessage":
       if (!validMessage(spec.message)) return "Message is required";
       return null;
+    case "sendRandomFromList": {
+      if (typeof spec.name !== "string" || spec.name.trim().length === 0) {
+        return "Pick a list first";
+      }
+      if (!Array.isArray(spec.messages) || spec.messages.length === 0) {
+        return "The list has no messages";
+      }
+      if (spec.messages.length > MAX_GROUP_MESSAGES) {
+        return `A list can hold at most ${MAX_GROUP_MESSAGES} messages`;
+      }
+      if (!spec.messages.every(validMessage)) return "The list has a blank or over-long message";
+      if (!validSeconds(spec.fromSec) || !validSeconds(spec.toSec)) {
+        return "Interval seconds must be at least 1";
+      }
+      if (spec.fromSec > spec.toSec) return "Min seconds must not exceed max seconds";
+      return null;
+    }
     case "sendEmoji":
       if (typeof spec.emoji !== "string" || spec.emoji.length === 0 || spec.emoji.length > 100) {
         return "Emoji is required";
@@ -579,6 +601,21 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
             () => buildTypeAndSendScript(taskSpec.message),
           );
           break;
+        case "sendRandomFromList": {
+          // The picked index is the only state the cycle carries, so the "never
+          // twice in a row" rule survives across fires without touching the spec.
+          let lastIndex: number | null = null;
+          startLoop(
+            serviceId,
+            taskSpec,
+            () => randomDelayMs(taskSpec.fromSec, taskSpec.toSec),
+            () => {
+              lastIndex = pickNextIndex(taskSpec.messages.length, lastIndex);
+              return buildTypeAndSendScript(taskSpec.messages[lastIndex]);
+            },
+          );
+          break;
+        }
         case "sendEmoji":
           startLoop(
             serviceId,

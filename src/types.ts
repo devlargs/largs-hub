@@ -109,7 +109,24 @@ export type TaskSpec =
   | { type: "sendChatInterval"; message: string; fromSec: number; toSec: number }
   | { type: "sendChatMessage"; message: string }
   | { type: "sendEmoji"; emoji: string; fromSec: number; toSec: number; maxLength: number }
+  | { type: "sendRandomFromList"; name: string; messages: string[]; fromSec: number; toSec: number }
   | { type: "startCallCycle"; fromSec: number; toSec: number; ringSeconds: number };
+
+// --- Saved message lists (Messenger "Random list" automation) ---------------
+
+export interface MessageListGroup {
+  id: string;
+  name: string;
+  messages: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ListGroupsResult {
+  ok: boolean;
+  error?: string;
+  groups: MessageListGroup[];
+}
 
 export interface AutomationTask {
   id: string;
@@ -185,6 +202,12 @@ export interface ElectronAPI {
   setServiceZoom: (serviceId: string, factor: number) => void;
   stepServiceZoom: (serviceId: string, direction: "in" | "out" | "reset") => void;
   onServiceZoomChanged: (callback: (data: { serviceId: string; factor: number }) => void) => () => void;
+  listGroups: {
+    list: () => Promise<MessageListGroup[]>;
+    add: (group: MessageListGroup) => Promise<ListGroupsResult>;
+    update: (group: MessageListGroup) => Promise<ListGroupsResult>;
+    remove: (groupId: string) => Promise<ListGroupsResult>;
+  };
   closeLinkPreview: () => void;
   openLinkExternal: (url: string) => void;
   onLinkPreviewOpen: (callback: (url: string) => void) => () => void;

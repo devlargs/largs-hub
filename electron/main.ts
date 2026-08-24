@@ -18,6 +18,7 @@ import { registerUpdater } from "./updater";
 import { registerServicesIpc } from "./ipc/services";
 import { sweepOrphanedPartitions } from "./partitions";
 import { registerSettingsIpc } from "./ipc/settings";
+import { registerListGroupsIpc } from "./ipc/listGroups";
 import {
   initDownloads,
   repositionDownloadToasts,
@@ -319,6 +320,8 @@ registerSettingsIpc({
   getMainWindow: () => mainWindow,
   getUiView: () => uiView,
 });
+
+registerListGroupsIpc();
 
 registerUpdater({
   getMainWindow: () => mainWindow,

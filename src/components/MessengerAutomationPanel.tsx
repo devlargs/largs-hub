@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AutoStopState, AutomationTask, NoticeReason, TaskSpec } from "../types";
+import { AutoStopState, AutomationTask, MessageListGroup, NoticeReason, TaskSpec } from "../types";
+import MessageListPicker from "./MessageListPicker";
 import { IoClose, IoStopCircleOutline } from "react-icons/io5";
 
 interface MessengerAutomationPanelProps {
@@ -27,6 +28,7 @@ const FUNCTION_TABS: Array<{ type: TaskType; label: string }> = [
   { type: "sendChatInterval", label: "Interval" },
   { type: "sendEmoji", label: "Emoji" },
   { type: "startCallCycle", label: "Call cycle" },
+  { type: "sendRandomFromList", label: "Random list" },
 ];
 
 const TASK_LABELS: Record<TaskType, string> = {
@@ -35,6 +37,7 @@ const TASK_LABELS: Record<TaskType, string> = {
   sendChatInterval: "Interval messages",
   sendEmoji: "Emoji bursts",
   startCallCycle: "Call cycle",
+  sendRandomFromList: "Random list",
 };
 
 const RESULT_LABELS: Record<string, string> = {
@@ -69,6 +72,8 @@ function taskPreview(spec: TaskSpec): string {
       return `${spec.emoji} ×1-${spec.maxLength}`;
     case "startCallCycle":
       return `every ${spec.fromSec}-${spec.toSec}s · ring ${spec.ringSeconds}s`;
+    case "sendRandomFromList":
+      return `${spec.name} · ${spec.messages.length} messages`;
   }
 }
 
@@ -97,6 +102,8 @@ export default function MessengerAutomationPanel({
   const [emoji, setEmoji] = useState("❤️");
   const [maxLength, setMaxLength] = useState("5");
   const [ringSeconds, setRingSeconds] = useState("30");
+  // The list chosen in the "Random list" tab, resolved to its messages on start.
+  const [listGroup, setListGroup] = useState<MessageListGroup | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -205,6 +212,15 @@ export default function MessengerAutomationPanel({
           toSec: num(toSec),
           ringSeconds: num(ringSeconds),
         };
+      case "sendRandomFromList":
+        if (!listGroup) return null;
+        return {
+          type: "sendRandomFromList",
+          name: listGroup.name,
+          messages: listGroup.messages,
+          fromSec: num(fromSec),
+          toSec: num(toSec),
+        };
     }
   };
 
@@ -258,20 +274,24 @@ export default function MessengerAutomationPanel({
   const needsInterval =
     selectedType === "sendChatInterval" ||
     selectedType === "sendEmoji" ||
-    selectedType === "startCallCycle";
+    selectedType === "startCallCycle" ||
+    selectedType === "sendRandomFromList";
   const intervalMin = selectedType === "startCallCycle" ? 5 : 1;
   const startLabel =
     selectedType === "sendChatMessage" ? "Send" : selectedType === "sendChat" ? "Schedule" : "Start";
   const canStart =
     !busy &&
     (!needsMessage || message.trim().length > 0) &&
-    (selectedType !== "sendEmoji" || emoji.trim().length > 0);
+    (selectedType !== "sendEmoji" || emoji.trim().length > 0) &&
+    (selectedType !== "sendRandomFromList" || listGroup !== null);
 
   const helperText: Partial<Record<TaskType, string>> = {
     sendChatMessage: "Sends into the conversation currently open in Messenger.",
     sendChat: "Fires at the chosen time — if it already passed today, it fires tomorrow.",
     sendChatInterval: "Repeats the message at a random delay between min and max seconds.",
     sendEmoji: "Sends 1 to max-repeat copies of the emoji at a random delay.",
+    sendRandomFromList:
+      "Sends a message picked at random from the chosen list, never the same one twice in a row, at a random delay between min and max seconds.",
     startCallCycle:
       "Calls in an in-app popup at a random delay between min and max seconds. If a call isn't answered within “Wait to ring” seconds, the popup is closed and the cycle restarts. When the call is answered it stops and keeps the call open. It also stops on its own as soon as the conversation shows a reply, a “Seen” receipt, or a typing indicator.",
   };
@@ -431,6 +451,10 @@ export default function MessengerAutomationPanel({
                   />
                 </div>
               </div>
+            )}
+
+            {selectedType === "sendRandomFromList" && (
+              <MessageListPicker selectedId={listGroup?.id ?? null} onSelect={setListGroup} />
             )}
 
             {selectedType === "startCallCycle" && (

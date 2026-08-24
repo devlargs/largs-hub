@@ -73,7 +73,24 @@ export type TaskSpec =
   | { type: "sendChatInterval"; message: string; fromSec: number; toSec: number }
   | { type: "sendChatMessage"; message: string }
   | { type: "sendEmoji"; emoji: string; fromSec: number; toSec: number; maxLength: number }
+  | { type: "sendRandomFromList"; name: string; messages: string[]; fromSec: number; toSec: number }
   | { type: "startCallCycle"; fromSec: number; toSec: number; ringSeconds: number };
+
+// --- Saved message lists (Messenger "Random list" automation) ---------------
+
+export interface MessageListGroup {
+  id: string;
+  name: string;
+  messages: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ListGroupsResult {
+  ok: boolean;
+  error?: string;
+  groups: MessageListGroup[];
+}
 
 export interface AutomationTask {
   id: string;
@@ -209,6 +226,17 @@ const api = {
     ) => callback(data);
     ipcRenderer.on("service-zoom-changed", handler);
     return () => ipcRenderer.removeListener("service-zoom-changed", handler);
+  },
+
+  // Saved message lists (global, shared by every Messenger service)
+  listGroups: {
+    list: (): Promise<MessageListGroup[]> => ipcRenderer.invoke("get-list-groups"),
+    add: (group: MessageListGroup): Promise<ListGroupsResult> =>
+      ipcRenderer.invoke("add-list-group", group),
+    update: (group: MessageListGroup): Promise<ListGroupsResult> =>
+      ipcRenderer.invoke("update-list-group", group),
+    remove: (groupId: string): Promise<ListGroupsResult> =>
+      ipcRenderer.invoke("remove-list-group", groupId),
   },
 
   // Link preview

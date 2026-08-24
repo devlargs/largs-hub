@@ -1,5 +1,6 @@
 import Store from "electron-store";
 import { PomodoroData, PomodoroNotionConfig } from "./tasks";
+import { MessageListGroup } from "./messageLists";
 
 // Persistent app state (electron-store) and the shapes stored in it.
 // The Service interface is intentionally duplicated in preload.ts and
@@ -65,6 +66,11 @@ export interface StoreSchema {
   // Per-service zoom factor, keyed by service id. Re-applied whenever the
   // service view is created so a zoom survives hibernation and restarts.
   serviceZoom: Record<string, number>;
+  // Saved message lists for the Messenger "Random list" automation. Global,
+  // not per-service, so a list can be used with any Messenger account.
+  // sanitizeMessageListGroup lives in messageLists.ts rather than beside
+  // sanitizeService below, so it can be unit-tested without an Electron runtime.
+  messageListGroups: MessageListGroup[];
   // Pomodoro service: local task state (the source of truth for writes) and
   // the optional Notion connection behind it, both keyed by service id
   pomodoroTasks: Record<string, PomodoroData>;
@@ -90,6 +96,7 @@ export const store = new Store<StoreSchema>({
     privacyHorizontalPercent: 0,
     privacyHorizontalOpacity: 100,
     serviceZoom: {},
+    messageListGroups: [],
     pomodoroTasks: {},
     pomodoroNotion: {},
   },
