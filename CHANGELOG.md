@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.39] (2026-08-24)
+
 - New **Pomodoro** service: a daily task list with a 25/5 focus timer. Add tasks with Enter, check them off, edit inline, delete, drag to reorder, and step through days with the arrows (or jump back with "Today"). Unfinished work moves forward with a one-click "Carry over" button, the header tracks your progress for the day, and starting a focus session on a task keeps the timer running even while you're in another service. Everything is animated — ticking a task draws its checkbox, strikes the label through, and sinks it to the bottom — and all of it turns off if your system asks for reduced motion.
 - Pomodoro works with no setup and no account: tasks are stored on your device. Connecting a Notion database is optional — do it and your tasks sync both ways in the background, with a sync indicator in the header, offline edits queued until you're back online, and your API key stored encrypted.
 - The **Notion Note Taker service has been removed** and is replaced by Pomodoro. Existing Note Taker services now show a notice explaining the change with a button to remove them; the notes in your own Notion database are left untouched, and the app's stored copy of that integration key is deleted.
