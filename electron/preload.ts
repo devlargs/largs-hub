@@ -1,135 +1,26 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type {
+  AutoStopResult,
+  AutoStopState,
+  AutoStopUpdate,
+  AutomationTask,
+  ListGroupsResult,
+  PomodoroConnectResult,
+  MessageListGroup,
+  NoticeReason,
+  PomodoroConnectionState,
+  PomodoroListResult,
+  PomodoroSyncState,
+  PomodoroTask,
+  PomodoroTaskResult,
+  PomodoroTimerState,
+  Service,
+  StartResult,
+  TaskSpec,
+} from "./shared/types";
 
-export type InternalServiceType = "pomodoro" | "notion-notes";
-
-export interface Service {
-  id: string;
-  name: string;
-  url: string;
-  icon: string;
-  color: string;
-  notificationCount: number;
-  muted?: boolean;
-  enabled?: boolean;
-  notificationsEnabled?: boolean;
-  blurWhenInactive?: boolean;
-  privacyMode?: boolean;
-  type?: InternalServiceType;
-}
-
-// --- Pomodoro (internal "pomodoro" service) ---------------------------------
-
-export interface PomodoroTask {
-  id: string;
-  text: string;
-  done: boolean;
-  date: string;
-  order: number;
-  pageId?: string;
-  editedAt: string;
-  focusSessions: number;
-}
-
-export type PomodoroConnectionState = "local" | "pending" | "pending-adoptable" | "ready";
-
-export type PomodoroSyncStatus = "local" | "synced" | "syncing" | "offline";
-
-export interface PomodoroSyncState {
-  serviceId: string;
-  status: PomodoroSyncStatus;
-  pending: number;
-  error?: string;
-}
-
-export interface PomodoroListResult {
-  ok: boolean;
-  error?: string;
-  tasks?: PomodoroTask[];
-  pulledAt?: number;
-  sync?: PomodoroSyncState;
-}
-
-export interface PomodoroTaskResult {
-  ok: boolean;
-  error?: string;
-  task?: PomodoroTask;
-  tasks?: PomodoroTask[];
-}
-
-export type PomodoroTimerPhase = "focus" | "break";
-
-export interface PomodoroTimerState {
-  serviceId: string;
-  taskId: string | null;
-  phase: PomodoroTimerPhase;
-  running: boolean;
-  endsAt: number;
-  remainingMs: number;
-  completedFocus: number;
-}
-
-export type TaskSpec =
-  | { type: "sendChat"; message: string; time: string }
-  | { type: "sendChatInterval"; message: string; fromSec: number; toSec: number }
-  | { type: "sendChatMessage"; message: string }
-  | { type: "sendEmoji"; emoji: string; fromSec: number; toSec: number; maxLength: number }
-  | { type: "sendRandomFromList"; name: string; messages: string[]; fromSec: number; toSec: number }
-  | { type: "startCallCycle"; fromSec: number; toSec: number; ringSeconds: number };
-
-// --- Saved message lists (Messenger "Random list" automation) ---------------
-
-export interface MessageListGroup {
-  id: string;
-  name: string;
-  messages: string[];
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface ListGroupsResult {
-  ok: boolean;
-  error?: string;
-  groups: MessageListGroup[];
-}
-
-export interface AutomationTask {
-  id: string;
-  serviceId: string;
-  spec: TaskSpec;
-  status: "scheduled" | "running";
-  nextFireAt: number | null;
-  fireCount: number;
-  lastResult?: string;
-  createdAt: number;
-}
-
-export interface StartResult {
-  ok: boolean;
-  error?: string;
-  tasks: AutomationTask[];
-}
-
-export interface AutoStopState {
-  serviceId: string;
-  minutes: number;
-  expiresAt: number;
-}
-
-export interface AutoStopResult {
-  ok: boolean;
-  error?: string;
-  autoStop: AutoStopState | null;
-}
-
-export interface AutoStopUpdate {
-  serviceId: string;
-  autoStop: AutoStopState | null;
-  // True when this push follows an expired auto-stop clearing the task list.
-  fired: boolean;
-}
-
-// Why a call cycle cancelled itself: the other person reacted in the thread.
-export type NoticeReason = "replied" | "seen" | "typing";
+// The bridge's payload types are the shared declarations the main process and
+// the renderer use — no third copy to keep in step (issue #82).
 
 const api = {
   // Service CRUD
@@ -313,7 +204,7 @@ const api = {
       serviceId: string,
       apiKey: string,
       databaseId: string,
-    ): Promise<{ ok: boolean; error?: string; needsReset?: boolean; adoptable?: boolean }> =>
+    ): Promise<PomodoroConnectResult> =>
       ipcRenderer.invoke("pomodoro-connect", serviceId, apiKey, databaseId),
     resetDatabase: (serviceId: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke("pomodoro-reset-database", serviceId),

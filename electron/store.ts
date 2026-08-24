@@ -1,38 +1,17 @@
 import Store from "electron-store";
 import { PomodoroData, PomodoroNotionConfig } from "./tasks";
 import { MessageListGroup } from "./messageLists";
+import type { InternalServiceType, Service } from "./shared/types";
 
 // Persistent app state (electron-store) and the shapes stored in it.
 // The Service interface is intentionally duplicated in preload.ts and
 // src/types.ts — the three layers must stay in sync (see CLAUDE.md).
 
-// Internal (non-web) service types. Kept in sync with preload.ts and
-// src/types.ts, where the Service interface is duplicated (see CLAUDE.md).
-export type InternalServiceType = "pomodoro" | "notion-notes";
-
-export function isInternalService(service: { type?: string } | undefined | null): boolean {
-  return service?.type === "pomodoro" || service?.type === "notion-notes";
-}
-
-export interface Service {
-  id: string;
-  name: string;
-  url: string;
-  icon: string;
-  color: string;
-  notificationCount: number;
-  muted?: boolean;
-  enabled?: boolean;
-  notificationsEnabled?: boolean;
-  blurWhenInactive?: boolean;
-  // Privacy mode: cover the top half of the service page so only the bottom
-  // 50% is readable to onlookers
-  privacyMode?: boolean;
-  // Internal services render as React pages in the UI view instead of getting
-  // a WebContentsView. "notion-notes" is retired — the Note Taker was replaced
-  // by Pomodoro; services still carrying it render a one-time notice.
-  type?: InternalServiceType;
-}
+// Service and the internal-service predicate are shared with the preload
+// bridge and the renderer (shared/types.ts); re-exported here so the many
+// existing `from "./store"` imports keep working.
+export type { InternalServiceType, Service } from "./shared/types";
+export { isInternalService } from "./shared/types";
 
 export interface StoreSchema {
   services: Service[];

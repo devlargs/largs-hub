@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Internal: the data types passed between the app's window and its background process are now declared once and shared, instead of being written out three times with nothing checking they matched. No visible change — a mismatch that used to surface as a runtime bug is now a compile error.
+
 - Internal: the layout numbers that keep native views lined up with the interface around them (sidebar width, titlebar height, link-preview geometry) now come from one shared module instead of being typed out separately in each layer. No visible change — it removes a class of misalignment bug.
 
 - Documentation and CI-only commits no longer publish a new version, so you stop getting update prompts for changes that don't affect the app. Behind the scenes CI now builds and packages the app on Windows, checks formatting, and pins the same Node version the release uses, so a packaging break is caught before it ships.
