@@ -12,17 +12,19 @@ Largs Hub is an open-source Rambox alternative: an Electron workspace browser th
 npm run dev              # Vite dev server + tsc watch (electron) + Electron with --dev, concurrently
 npm run build            # tsc (renderer typecheck) + vite build → dist/ + tsc electron → dist-electron/
 npm run electron:build   # full build + electron-builder installer → release/
+npm run typecheck        # all three tsconfig projects, no emit
+npm test                 # Vitest, single run (npm run test:watch to watch)
+npm run lint             # ESLint (npm run lint:fix to autofix)
+npm run format           # Prettier write (npm run format:check to verify)
 ```
 
-Typecheck only (no emit): `npx tsc --noEmit && npx tsc -p tsconfig.electron.json --noEmit`
-
-There are no tests and no linter configured.
+CI runs `typecheck`, `lint`, and `test` on every push and PR, so all three must pass before you hand work back.
 
 **Do not run or smoke test the app after making changes** — the user tests manually. Don't launch Electron, don't start the Vite dev server, and don't spin up any dev servers/ports for verification. Verify changes with the typecheck command above only.
 
 **Update `CHANGELOG.md` with every change you make.** Add a short, user-facing bullet under the `## [Unreleased]` section (create it at the top if missing), matching the existing style. When a version is released, the `[Unreleased]` bullets move under a `## [x.y.z] (date)` heading.
 
-Two separate TypeScript projects: `tsconfig.json` covers `src/` (renderer), `tsconfig.electron.json` covers `electron/` (main + preload, CommonJS, emits to `dist-electron/`).
+Three TypeScript projects: `tsconfig.json` covers `src/` (renderer), `tsconfig.electron.json` covers `electron/` (main + preload, CommonJS, emits to `dist-electron/`), and `tsconfig.test.json` covers `test/`. `npm run typecheck` runs all three.
 
 ## Architecture
 
@@ -105,7 +107,8 @@ Act as an expert in TypeScript, Electron, and desktop app development.
 - Use electron-builder (already configured) for packaging and updates; extend it rather than hand-rolling deployment.
 - Implement comprehensive error handling: try-catch around fallible main-process work, proper logging, and error boundaries in React where applicable.
 - Document non-obvious code and architectural decisions to facilitate future development and debugging.
-- There is currently no test infrastructure; don't introduce a test framework unless asked. (And per Commands above: no smoke-testing the app — verify via typecheck.)
+- Tests are Vitest, in `test/`, one suite per module. Add coverage for pure logic you write or change — that is how `tasksLogic`, `badgeAdapters`, `badgeImage`, `taskLinks`, and `customIcons` are covered. When the logic worth testing is buried in a module that imports Electron, extract it to a pure module and test that (the pattern `badgeImage.ts` and `customIcons.ts` follow).
+- Tests are the only way to verify behaviour here, since the app is never launched (see Commands above). A change to pure logic with no test is unverified.
 
 ### Key Conventions
 
