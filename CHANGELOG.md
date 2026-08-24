@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Privacy: removing a service now really forgets the account. Its cookies, site data and cache are deleted instead of being left on disk forever, leftovers from services removed by earlier versions are cleaned up at startup, and a new "Clear data and sign out" item in the service right-click menu resets a stuck login without removing the service.
+
 - Sidebar unread badges no longer sit blank until a count changes — they now load the current counts as soon as the interface starts.
 
 - The updater no longer offers a "update" that would actually downgrade you. It now compares version numbers properly, so an older or unusual release tag is ignored instead of being installed on every check.

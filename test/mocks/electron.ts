@@ -15,3 +15,14 @@ export const safeStorage = {
 // Type-only imports (e.g. Session in badge-adapters) are erased at compile
 // time and need no runtime counterpart.
 export type Session = unknown;
+
+export const app = {
+  getPath: () => "",
+};
+
+export const session = {
+  fromPartition: () => ({
+    clearStorageData: async () => undefined,
+    clearCache: async () => undefined,
+  }),
+};

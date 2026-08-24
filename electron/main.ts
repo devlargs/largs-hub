@@ -16,6 +16,7 @@ import { registerPomodoro, recordFocusSession } from "./tasks";
 import { registerPomodoroTimer, stopTimerForTask } from "./pomodoroTimer";
 import { registerUpdater } from "./updater";
 import { registerServicesIpc } from "./ipc/services";
+import { sweepOrphanedPartitions } from "./partitions";
 import { registerSettingsIpc } from "./ipc/settings";
 import {
   initDownloads,
@@ -413,6 +414,11 @@ app.whenReady().then(() => {
     // Windows separators that would otherwise corrupt the URL.
     return net.fetch(pathToFileURL(filePath).toString());
   });
+
+  // Reclaim session partitions left behind by services removed before removal
+  // wiped them. Runs before any service view opens a session, so nothing being
+  // deleted is in use.
+  sweepOrphanedPartitions(store.get("services").map((s) => s.id));
 
   createWindow();
 });

@@ -6,6 +6,7 @@ import {
   showService,
   hideActiveService,
   isWindowFocused,
+  getActiveServiceId,
   applyBlurToView,
   removeBlurFromView,
   applyPrivacyToView,
@@ -14,6 +15,7 @@ import {
 import { getNotificationCounts } from "../notificationCounts";
 import { forgetPomodoroService } from "../tasks";
 import { stopTimerForService } from "../pomodoroTimer";
+import { clearServiceSessionData } from "../partitions";
 
 // IPC: service CRUD, per-service toggles, view navigation, and the native
 // service context menu.
@@ -38,12 +40,17 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     return services;
   });
 
-  ipcMain.handle("remove-service", (_event, serviceId: string) => {
+  ipcMain.handle("remove-service", async (_event, serviceId: string) => {
     const services = store.get("services").filter((s) => s.id !== serviceId);
     store.set("services", services);
 
     // Clean up the view
     destroyServiceView(serviceId, { clearCounts: true });
+
+    // Wipe the service's session partition. Removing a service means forgetting
+    // the account, and the id is gone from the store, so its cookies, storage
+    // and cache would otherwise be unreachable on disk forever.
+    await clearServiceSessionData(serviceId);
 
     // Drop the Pomodoro service's tasks, queue, and Notion credentials, and
     // stop any focus timer bound to it
@@ -295,6 +302,32 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
         click: () => {
           const view = getServiceView(serviceId);
           if (view) view.webContents.reload();
+        },
+      },
+      {
+        label: "Clear data and sign out",
+        click: async () => {
+          const win = deps.getMainWindow();
+          if (!win) return;
+          const { response } = await dialog.showMessageBox(win, {
+            type: "warning",
+            buttons: ["Clear data", "Cancel"],
+            defaultId: 1,
+            cancelId: 1,
+            title: "Clear data",
+            message: `Clear ${service.name}'s data?`,
+            detail:
+              "This signs the account out and deletes the service's cookies, site data and cache. The service itself is kept.",
+          });
+          if (response !== 0) return;
+          const wasActive = getActiveServiceId() === serviceId;
+          // Tear the view down first so nothing is holding the partition open,
+          // then reopen it (blank) if it was the one on screen.
+          destroyServiceView(serviceId, { clearCounts: true });
+          await clearServiceSessionData(serviceId);
+          if (wasActive) {
+            deps.getUiView()?.webContents.send("context-menu-action", { action: "show-service", serviceId });
+          }
         },
       },
       { type: "separator" },

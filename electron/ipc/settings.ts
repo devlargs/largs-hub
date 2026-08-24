@@ -1,5 +1,4 @@
 import { app, ipcMain, dialog, Menu, BrowserWindow, WebContentsView } from "electron";
-import path from "path";
 import fs from "fs";
 import { store } from "../store";
 import { refreshPrivacyOverlays } from "../serviceViews";
