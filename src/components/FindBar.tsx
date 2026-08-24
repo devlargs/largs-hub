@@ -105,6 +105,8 @@ export default function FindBar({ serviceId, onClose }: FindBarProps) {
         disabled={matches === 0}
         className="w-7 h-7 flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors disabled:opacity-40"
         style={{ color: "var(--text-muted)" }}
+        aria-label="Previous match (Shift+Enter)"
+
         title="Previous match (Shift+Enter)"
       >
         <IoArrowUp size={14} />
@@ -114,6 +116,8 @@ export default function FindBar({ serviceId, onClose }: FindBarProps) {
         disabled={matches === 0}
         className="w-7 h-7 flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors disabled:opacity-40"
         style={{ color: "var(--text-muted)" }}
+        aria-label="Next match (Enter)"
+
         title="Next match (Enter)"
       >
         <IoArrowDown size={14} />
@@ -123,6 +127,8 @@ export default function FindBar({ serviceId, onClose }: FindBarProps) {
         onClick={onClose}
         className="w-7 h-7 flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors"
         style={{ color: "var(--text-muted)" }}
+        aria-label="Close (Esc)"
+
         title="Close (Esc)"
       >
         <IoClose size={16} />

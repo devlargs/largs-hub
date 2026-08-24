@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { IoClose, IoOpenOutline } from "react-icons/io5";
 import { LINK_PREVIEW_HEADER, LINK_PREVIEW_MARGIN, LINK_PREVIEW_MAX_WIDTH } from "@shared/layout";
+import { useModalDismiss } from "../hooks/useModalDismiss";
 
 // The page renders in a native view main positions from these same constants,
 // so the chrome drawn here lines up with it exactly.
@@ -28,13 +29,10 @@ export default function LinkPreviewModal({ url, onClose }: LinkPreviewModalProps
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  useEffect(() => {
-    const handleKeydown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeydown);
-    return () => window.removeEventListener("keydown", handleKeydown);
-  }, [onClose]);
+  // Escape closes. No focus trap here: the page itself renders in a native view
+  // below this chrome, so trapping focus in the React header would take it away
+  // from the page the user is actually reading (issue #88).
+  const modalRef = useModalDismiss<HTMLDivElement>({ onDismiss: onClose, trapFocus: false });
 
   const modalWidth = Math.min(LINK_PREVIEW_MAX_WIDTH, windowWidth - LINK_PREVIEW_MARGIN * 2);
 
@@ -52,6 +50,9 @@ export default function LinkPreviewModal({ url, onClose }: LinkPreviewModalProps
       onClick={onClose}
     >
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-label="Link preview"
         className="bg-sidebar shadow-2xl absolute flex flex-col overflow-hidden"
         style={{
           top: LINK_PREVIEW_MARGIN,
@@ -88,6 +89,8 @@ export default function LinkPreviewModal({ url, onClose }: LinkPreviewModalProps
               window.electronAPI.openLinkExternal(currentUrl);
               onClose();
             }}
+            aria-label="Open in browser"
+
             title="Open in browser"
             className="flex items-center justify-center rounded-lg cursor-pointer transition-colors hover:opacity-80"
             style={{
@@ -102,6 +105,8 @@ export default function LinkPreviewModal({ url, onClose }: LinkPreviewModalProps
           </button>
           <button
             onClick={onClose}
+            aria-label="Close"
+
             title="Close"
             className="flex items-center justify-center rounded-lg cursor-pointer transition-colors hover:opacity-80"
             style={{

@@ -27,8 +27,8 @@ function SessionTally({ count }: { count: number }) {
     <span
       className="shrink-0 flex items-center"
       style={{ gap: 2, marginTop: 5 }}
-      title={`${count} focus session${count === 1 ? "" : "s"}`}
       aria-label={`${count} focus session${count === 1 ? "" : "s"}`}
+      title={`${count} focus session${count === 1 ? "" : "s"}`}
     >
       {Array.from({ length: shown }, (_, i) => (
         <span key={i} className="pom-tally-bar" />
@@ -133,6 +133,7 @@ export default function TaskRow({
       <span
         className="pom-row-action shrink-0 cursor-grab"
         style={{ color: "var(--text-muted)", marginTop: 2 }}
+        aria-label="Drag to reorder"
         title="Drag to reorder"
       >
         <MdDragIndicator size={16} />
@@ -156,6 +157,7 @@ export default function TaskRow({
             task.done ? "var(--accent)" : "color-mix(in srgb, var(--border) 90%, transparent)"
           }`,
         }}
+        aria-label={task.done ? "Mark as not done" : "Mark as done"}
         title={task.done ? "Mark as not done" : "Mark as done"}
         aria-pressed={task.done}
       >
@@ -202,6 +204,7 @@ export default function TaskRow({
             onClick={() => setEditing(true)}
             className={`pom-label cursor-text text-left ${task.done ? "pom-label-done" : ""}`}
             style={labelStyle}
+            aria-label="Click to edit"
             title="Click to edit"
           >
             {task.text}
@@ -219,6 +222,7 @@ export default function TaskRow({
             }}
             className={`pom-label cursor-text ${task.done ? "pom-label-done" : ""}`}
             style={labelStyle}
+            aria-label="Click to edit"
             title="Click to edit"
           >
             {segments.map((segment, i) =>
@@ -227,6 +231,7 @@ export default function TaskRow({
                   key={i}
                   href={segment.href}
                   className="pom-link"
+                  aria-label={`Open ${segment.href}`}
                   title={`Open ${segment.href}`}
                   onClick={(e) => {
                     // Never navigate the app's own view
@@ -254,6 +259,7 @@ export default function TaskRow({
           focused ? "" : "pom-row-action"
         }`}
         style={{ ...actionStyle, color: focused ? "var(--accent)" : "var(--text-muted)" }}
+        aria-label={focused ? "Stop the focus timer" : "Start a focus session on this task"}
         title={focused ? "Stop the focus timer" : "Start a focus session on this task"}
       >
         {focused ? <MdTimerOff size={16} /> : <MdTimer size={16} />}
@@ -263,6 +269,7 @@ export default function TaskRow({
         onClick={onDelete}
         className="pom-row-action shrink-0 flex items-center justify-center rounded-md cursor-pointer hover:bg-sidebar-hover"
         style={{ ...actionStyle, color: "var(--danger)" }}
+        aria-label="Delete task"
         title="Delete task"
       >
         <MdOutlineDeleteOutline size={16} />

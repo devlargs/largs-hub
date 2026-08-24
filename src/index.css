@@ -176,3 +176,22 @@ body,
 .titlebar-no-drag {
   -webkit-app-region: no-drag;
 }
+
+/* Keyboard focus indicator (issue #88).
+   :focus-visible only, so a mouse click never draws a ring, but tabbing through
+   the sidebar, the titlebar controls or a modal always shows where you are.
+   Buttons here mostly carry inline styles with no border, so an outline (which
+   doesn't affect layout) is used rather than a border or ring. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Inputs already have a visible border; a tighter offset keeps the outline from
+   colliding with neighbouring fields. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline-offset: 0;
+}

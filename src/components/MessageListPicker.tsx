@@ -212,6 +212,8 @@ export default function MessageListPicker({ selectedId, onSelect }: MessageListP
           }}
           className="flex items-center justify-center rounded-lg shrink-0 transition-colors"
           style={{ width: 36, backgroundColor: "var(--accent)", color: "#fff" }}
+          aria-label="New list"
+
           title="New list"
         >
           <IoAdd size={18} />
@@ -242,6 +244,8 @@ export default function MessageListPicker({ selectedId, onSelect }: MessageListP
                 <button
                   onClick={() => onSelect(active ? null : group)}
                   className="flex flex-col flex-1 min-w-0 text-left"
+                  aria-label={group.messages.join("\n")}
+
                   title={group.messages.join("\n")}
                 >
                   <span
@@ -261,6 +265,8 @@ export default function MessageListPicker({ selectedId, onSelect }: MessageListP
                   }}
                   className="flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors shrink-0"
                   style={{ width: 24, height: 24, color: "var(--text-muted)" }}
+                  aria-label="Edit list"
+
                   title="Edit list"
                 >
                   <IoPencil size={13} />
@@ -270,6 +276,8 @@ export default function MessageListPicker({ selectedId, onSelect }: MessageListP
                   disabled={busy}
                   className="flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors shrink-0"
                   style={{ width: 24, height: 24, color: "var(--text-muted)" }}
+                  aria-label="Delete list"
+
                   title="Delete list"
                 >
                   <IoTrash size={13} />
@@ -287,6 +295,8 @@ export default function MessageListPicker({ selectedId, onSelect }: MessageListP
             disabled={safePage === 0}
             className="flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors disabled:opacity-40"
             style={{ width: 24, height: 24, color: "var(--text-muted)" }}
+            aria-label="Previous page"
+
             title="Previous page"
           >
             <IoChevronBack size={13} />
@@ -299,6 +309,8 @@ export default function MessageListPicker({ selectedId, onSelect }: MessageListP
             disabled={safePage >= pageCount - 1}
             className="flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors disabled:opacity-40"
             style={{ width: 24, height: 24, color: "var(--text-muted)" }}
+            aria-label="Next page"
+
             title="Next page"
           >
             <IoChevronForward size={13} />

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Accessibility: every icon-only button now has a name a screen reader can read — window controls, the settings gear, back/forward/reload, the sidebar services (which also announce their unread count) and the settings switches, none of which announced anything before. **Escape** closes the add-service, link-preview and automation panels, Tab stays inside a dialog while it's open and returns to where it came from on close, keyboard focus is now visible everywhere, and services can be reordered from the keyboard with **Alt+Up/Down** instead of only by long-press-and-drag.
+
 - Services no longer scrape their pages every three seconds around the clock. The service you're looking at still updates that fast; ones in the background drop to every 20 seconds, and polling stops altogether while the window is minimized, the machine is asleep, or you're on battery — with a catch-up check the moment you come back. Unread counts that arrive via the page title are unaffected, so most services still update instantly.
 
 - The app no longer closes itself after an hour without asking. That behaviour was hardcoded, undocumented and had no exemptions — it would quit during a call, mid-focus-session, or while a message was scheduled to send later, taking the unfinished work with it. It is now a setting (Settings → General → Close when idle), **off by default**, and even when switched on it stays open while audio is playing, a focus timer is running, or automation is pending.

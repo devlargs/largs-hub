@@ -3,6 +3,7 @@ import { AutoStopState, AutomationTask, MessageListGroup, NoticeReason, TaskSpec
 import MessageListPicker from "./MessageListPicker";
 import { IoClose, IoStopCircleOutline } from "react-icons/io5";
 import { TITLEBAR_HEIGHT } from "@shared/layout";
+import { useModalDismiss } from "../hooks/useModalDismiss";
 
 interface MessengerAutomationPanelProps {
   serviceId: string;
@@ -146,13 +147,8 @@ export default function MessengerAutomationPanel({
     setTimeout(onClose, 150);
   }, [onClose]);
 
-  useEffect(() => {
-    const handleKeydown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleClose();
-    };
-    window.addEventListener("keydown", handleKeydown);
-    return () => window.removeEventListener("keydown", handleKeydown);
-  }, [handleClose]);
+  // Escape closes, Tab stays inside, focus returns to the trigger (issue #88).
+  const panelRef = useModalDismiss<HTMLDivElement>({ onDismiss: handleClose });
 
   // The call cycle cancels itself once she reacts; the task is gone from the
   // list by then, so surface the reason here.
@@ -349,6 +345,9 @@ export default function MessengerAutomationPanel({
 
   return (
     <div
+      ref={panelRef}
+      role="dialog"
+      aria-label="Messenger automation"
       className="fixed z-50 transition-opacity duration-150 ease-out flex flex-col"
       style={{
         top: TITLEBAR_HEIGHT,
@@ -372,6 +371,8 @@ export default function MessengerAutomationPanel({
           onClick={handleClose}
           className="flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors"
           style={{ width: 24, height: 24, color: "var(--text-muted)" }}
+          aria-label="Close"
+
           title="Close"
         >
           <IoClose size={16} />
@@ -497,6 +498,7 @@ export default function MessengerAutomationPanel({
                           backgroundColor: active ? "var(--sidebar-active)" : "var(--surface)",
                           border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
                         }}
+                        aria-label={`Burst ${option}`}
                         title={`Burst ${option}`}
                       >
                         {option}
@@ -556,6 +558,8 @@ export default function MessengerAutomationPanel({
                   onChange={(e) => setRingSeconds(e.target.value)}
                   className="text-sm outline-none rounded-lg"
                   style={inputStyle}
+                  aria-label="How long to wait before closing the call popup and restarting the cycle"
+
                   title="How long to wait before closing the call popup and restarting the cycle"
                 />
               </div>
@@ -718,6 +722,8 @@ export default function MessengerAutomationPanel({
                       <span
                         className="text-xs tabular-nums shrink-0"
                         style={{ color: "var(--accent)" }}
+                        aria-label="Next fire"
+
                         title="Next fire"
                       >
                         {formatCountdown(task.nextFireAt - now)}
@@ -727,6 +733,8 @@ export default function MessengerAutomationPanel({
                       onClick={() => window.electronAPI.messengerAutomation.stop(task.id)}
                       className="flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors shrink-0"
                       style={{ width: 24, height: 24, color: "#f38ba8" }}
+                      aria-label="Stop"
+
                       title="Stop"
                     >
                       <IoStopCircleOutline size={16} />

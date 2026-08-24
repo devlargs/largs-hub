@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { InternalServiceType, Service } from "../types";
 import { normalizeServiceUrl, serviceNameFromUrl } from "../lib/serviceUrl";
+import { useModalDismiss } from "../hooks/useModalDismiss";
 import { v4 as uuidv4 } from "uuid";
 import serviceIcons, { resolveIcon } from "../assets/serviceIcons";
 import { IoAdd, IoCloudUploadOutline, IoTrashOutline } from "react-icons/io5";
@@ -92,6 +93,9 @@ export default function AddServiceModal({
     setClosing(true);
     setTimeout(onClose, 200);
   }, [onClose]);
+
+  // Escape closes, Tab stays inside, focus returns to the trigger (issue #88).
+  const dialogRef = useModalDismiss<HTMLDivElement>({ onDismiss: handleClose });
 
   const filtered = POPULAR_SERVICES.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase()),
@@ -215,6 +219,10 @@ export default function AddServiceModal({
       onClick={handleClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={isEditing ? "Edit service" : "Add a service"}
         className="bg-sidebar rounded-3xl shadow-2xl mx-4 transition-all duration-200 ease-out"
         style={{
           width: 600,

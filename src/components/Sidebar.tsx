@@ -4,6 +4,7 @@ import { resolveIcon } from "../assets/serviceIcons";
 import { IoSunny, IoMoon, IoHome } from "react-icons/io5";
 import { useNotificationStore } from "../store/notifications";
 import { SIDEBAR_WIDTH } from "@shared/layout";
+import { serviceLabel } from "../lib/serviceLabel";
 
 interface SidebarProps {
   services: Service[];
@@ -123,6 +124,32 @@ export default function Sidebar({
     window.electronAPI?.setTheme(next);
   };
 
+  // Reordering was pointer-only: a 300ms long-press then a drag, with no
+  // keyboard route at all (issue #88). Alt+Up/Down moves the focused service.
+  const moveService = useCallback(
+    (serviceId: string, direction: -1 | 1) => {
+      const ids = services.map((s) => s.id);
+      const from = ids.indexOf(serviceId);
+      const to = from + direction;
+      if (from === -1 || to < 0 || to >= ids.length) return;
+      const reordered = [...ids];
+      reordered.splice(from, 1);
+      reordered.splice(to, 0, serviceId);
+      onReorderServices(reordered);
+    },
+    [services, onReorderServices],
+  );
+
+  const handleServiceKeyDown = (e: React.KeyboardEvent, serviceId: string) => {
+    if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+    e.preventDefault();
+    moveService(serviceId, e.key === "ArrowUp" ? -1 : 1);
+    // Keep focus on the button that moved, which React has just re-rendered
+    // into a new position.
+    const button = e.currentTarget as HTMLElement;
+    requestAnimationFrame(() => button.focus());
+  };
+
   const handleContextMenu = (e: React.MouseEvent, service: Service) => {
     e.preventDefault();
     window.electronAPI?.showServiceContextMenu(service.id);
@@ -144,6 +171,8 @@ export default function Sidebar({
             transition-all duration-200 cursor-pointer
             ${!activeServiceId ? "bg-accent/20 ring-2 ring-accent" : "hover:bg-sidebar-hover"}
           `}
+          aria-label="Home"
+
           title="Home"
           style={{ color: !activeServiceId ? "var(--accent)" : "var(--text-muted)" }}
         >
@@ -165,6 +194,7 @@ export default function Sidebar({
             onDrop={(e) => handleDrop(e, service.id)}
             onDragEnd={handleDragEnd}
             onContextMenu={(e) => handleContextMenu(e, service)}
+            onKeyDown={(e) => handleServiceKeyDown(e, service.id)}
             className={`
               relative w-12 h-12 rounded-xl flex items-center justify-center
               transition-all duration-200 group cursor-pointer
@@ -177,6 +207,8 @@ export default function Sidebar({
               ${dropTargetId === service.id && draggedId !== service.id ? "ring-2 ring-accent/50" : ""}
               ${service.enabled === false ? "opacity-30 grayscale" : ""}
             `}
+            aria-current={activeServiceId === service.id}
+            aria-label={serviceLabel(service, notificationCounts[service.id] ?? 0)}
             title={service.name}
           >
             {(() => {
@@ -227,6 +259,8 @@ export default function Sidebar({
           onClick={toggleTheme}
           className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer hover:bg-sidebar-hover"
           style={{ color: "var(--text-muted)", marginBottom: 4 }}
+          aria-pressed={theme === "light"}
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
         >
           {theme === "dark" ? <IoSunny size={18} /> : <IoMoon size={18} />}

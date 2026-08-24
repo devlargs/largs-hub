@@ -57,6 +57,8 @@ export default function Titlebar({
                   onClick={onGoBack}
                   className="w-7 h-6 flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors"
                   style={{ color: "var(--text-muted)" }}
+                  aria-label="Go back"
+
                   title="Go back"
                 >
                   <IoArrowBack size={14} />
@@ -65,6 +67,8 @@ export default function Titlebar({
                   onClick={onGoForward}
                   className="w-7 h-6 flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors"
                   style={{ color: "var(--text-muted)" }}
+                  aria-label="Go forward"
+
                   title="Go forward"
                 >
                   <IoArrowForward size={14} />
@@ -73,6 +77,8 @@ export default function Titlebar({
                   onClick={onReload}
                   className="w-7 h-6 flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors"
                   style={{ color: "var(--text-muted)" }}
+                  aria-label="Reload"
+
                   title="Reload"
                 >
                   <IoReload size={14} />
@@ -92,6 +98,8 @@ export default function Titlebar({
                 onClick={onResetZoom}
                 className="text-2xs ml-1.5 px-1.5 py-0.5 rounded hover:bg-sidebar-hover transition-colors tabular-nums"
                 style={{ color: "var(--text-muted)", border: "1px solid var(--border)" }}
+                aria-label="Reset zoom to 100% (Ctrl+0)"
+
                 title="Reset zoom to 100% (Ctrl+0)"
               >
                 {Math.round(zoomFactor * 100)}%
@@ -116,7 +124,9 @@ export default function Titlebar({
           <button
             onClick={onOpenAutomation}
             className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors relative"
-            style={{ height: 46, color: "var(--text-muted)" }}
+            style={{ height: TITLEBAR_HEIGHT, color: "var(--text-muted)" }}
+            aria-label="Messenger automation"
+
             title="Messenger automation"
           >
             <IoFlashOutline size={15} />
@@ -131,29 +141,36 @@ export default function Titlebar({
         <button
           onClick={onOpenSettings}
           className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors"
-          style={{ height: 46, color: "var(--text-muted)" }}
+          style={{ height: TITLEBAR_HEIGHT, color: "var(--text-muted)" }}
+          aria-label="Settings"
           title="Settings"
         >
           <IoSettingsSharp size={15} />
         </button>
         <button
           onClick={() => window.electronAPI?.minimize()}
+          aria-label="Minimize"
+          title="Minimize"
           className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors"
-          style={{ height: 46, color: "var(--text-muted)" }}
+          style={{ height: TITLEBAR_HEIGHT, color: "var(--text-muted)" }}
         >
           <VscChromeMinimize size={16} />
         </button>
         <button
           onClick={() => window.electronAPI?.maximize()}
+          aria-label="Maximize"
+          title="Maximize"
           className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors"
-          style={{ height: 46, color: "var(--text-muted)" }}
+          style={{ height: TITLEBAR_HEIGHT, color: "var(--text-muted)" }}
         >
           <VscChromeMaximize size={16} />
         </button>
         <button
           onClick={() => window.electronAPI?.close()}
+          aria-label="Close"
+          title="Close"
           className="w-12 flex items-center justify-center hover:bg-red-600 hover:text-white transition-colors"
-          style={{ height: 46, color: "var(--text-muted)" }}
+          style={{ height: TITLEBAR_HEIGHT, color: "var(--text-muted)" }}
         >
           <VscChromeClose size={16} />
         </button>

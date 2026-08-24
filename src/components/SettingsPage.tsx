@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AppSettings } from "../types";
 import { IoFolderOpen, IoClose } from "react-icons/io5";
 
@@ -312,6 +312,7 @@ export default function SettingsPage() {
               {settings.downloadFolder && (
                 <button
                   onClick={handleClearFolder}
+                  aria-label="Reset download folder to default"
                   className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer hover:bg-sidebar-hover"
                   style={{ color: "var(--text-muted)" }}
                   title="Reset to default"
@@ -506,7 +507,13 @@ function SettingRow({
           {description}
         </div>
       </div>
-      <div className="flex justify-end @lg:block @lg:shrink-0">{children}</div>
+      <div className="flex justify-end @lg:block @lg:shrink-0">
+        {/* The row's label is the control's accessible name; a bare Toggle has
+            no text of its own. */}
+        {React.isValidElement(children) && children.type === Toggle
+          ? React.cloneElement(children as React.ReactElement<{ label?: string }>, { label })
+          : children}
+      </div>
     </div>
   );
 }
@@ -544,10 +551,23 @@ function Slider({
   );
 }
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  // Supplied by SettingRow: the switch is graphical, so without this a screen
+  // reader announces an unnamed control (issue #88).
+  label?: string;
+}) {
   return (
     <button
       onClick={onChange}
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
       className="relative rounded-full transition-colors cursor-pointer"
       style={{
         width: 44,
