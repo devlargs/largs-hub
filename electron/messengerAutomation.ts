@@ -861,3 +861,14 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
 export function restoreAutomationState(): void {
   restoreAll();
 }
+
+/**
+ * Whether a service has scheduled or running automation. Hibernation asks
+ * before tearing a view down, since destroying it stops every task (issue #76).
+ */
+export function hasAutomationForService(serviceId: string): boolean {
+  for (const task of tasks.values()) {
+    if (task.serviceId === serviceId) return true;
+  }
+  return false;
+}

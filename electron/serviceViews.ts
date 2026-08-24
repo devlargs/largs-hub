@@ -2,7 +2,9 @@ import { BrowserWindow, WebContentsView, Menu } from "electron";
 import { shell } from "electron";
 import { store, Service, isSafeServiceUrl, isInternalService } from "./store";
 import { shouldKeepInView } from "./navigationPolicy";
-import { hookDownloadSession } from "./downloads";
+import { hookDownloadSession, hasActiveDownload } from "./downloads";
+import { hasAutomationForService } from "./messengerAutomation";
+import { shouldHibernate } from "./hibernationPolicy";
 import { findBadgeAdapter, buildPollScript, parseTitleCount } from "./badge-adapters";
 import { messengerAdapter } from "./badge-adapters/messenger";
 import {
@@ -1069,14 +1071,32 @@ function sweepHibernation() {
   if (!minutes || minutes <= 0) return;
   const cutoff = Date.now() - minutes * 60_000;
   for (const serviceId of [...serviceViews.keys()]) {
-    if (serviceId === activeServiceId) continue;
-    const last = serviceLastActive.get(serviceId);
-    // No timestamp yet (just created) — record now and give it a full interval
-    if (last === undefined) {
-      serviceLastActive.set(serviceId, Date.now());
+    const view = serviceViews.get(serviceId);
+    if (!view || view.webContents.isDestroyed()) continue;
+
+    const decision = shouldHibernate(
+      {
+        serviceId,
+        lastActiveAt: serviceLastActive.get(serviceId),
+        // Work the user started and expects to keep running in the background,
+        // which is exactly when the idle timer fires (issue #76).
+        audible: view.webContents.isCurrentlyAudible(),
+        hasAutomation: hasAutomationForService(serviceId),
+        hasDownload: hasActiveDownload(`persist:service-${serviceId}`),
+      },
+      activeServiceId,
+      cutoff,
+    );
+
+    if (decision.hibernate) {
+      hibernateServiceView(serviceId);
       continue;
     }
-    if (last <= cutoff) hibernateServiceView(serviceId);
+    // A brand new view has no timestamp yet — start its clock now so it gets a
+    // full interval rather than being measured from time it didn't exist.
+    if (decision.reason === "no-timestamp") serviceLastActive.set(serviceId, Date.now());
+    // "busy" deliberately doesn't reset the clock: the moment the work finishes
+    // the view is eligible again, instead of earning another full interval.
   }
 }
 
