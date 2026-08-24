@@ -124,8 +124,8 @@ A bare GitHub issue link from the user is a complete instruction: **fix it, then
 - **Commit to local `main`.** Don't create a branch or open a PR unless asked.
 - **Never push.** Committing locally is where the work stops. Only run `git push` when the user explicitly asks for it in that message — "commit it", "commit to main", or "push to main" all mean the local commit only. No exceptions, and never `git push origin main` on your own initiative.
 - **No trailers.** Never add `Co-Authored-By`, `Claude-Session`, or any similar footer.
-- **Keep messages short.** A one-line subject is usually enough; add at most a sentence or two of body when the reason isn't obvious from the diff. No multi-paragraph explanations.
-- When the commit fixes a GitHub issue, add `Closes #<n>` so it closes once the user pushes.
+- **One line, 100 characters max.** The whole message is that single line — no body, no bullets, no explanation of the approach or the cause. The diff carries the detail.
+- When the commit fixes a GitHub issue, end that same line with `(closes #<n>)`.
 
 ## Releases
 
