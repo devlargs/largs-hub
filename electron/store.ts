@@ -71,6 +71,9 @@ export interface StoreSchema {
   // sanitizeMessageListGroup lives in messageLists.ts rather than beside
   // sanitizeService below, so it can be unit-tested without an Electron runtime.
   messageListGroups: MessageListGroup[];
+  // Emojis most recently used to start an emoji burst, newest first — the
+  // "Recent" pane in the Messenger automation panel.
+  recentEmojis: string[];
   // Pomodoro service: local task state (the source of truth for writes) and
   // the optional Notion connection behind it, both keyed by service id
   pomodoroTasks: Record<string, PomodoroData>;
@@ -97,6 +100,7 @@ export const store = new Store<StoreSchema>({
     privacyHorizontalOpacity: 100,
     serviceZoom: {},
     messageListGroups: [],
+    recentEmojis: [],
     pomodoroTasks: {},
     pomodoroNotion: {},
   },

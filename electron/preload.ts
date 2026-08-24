@@ -401,6 +401,13 @@ const api = {
       ipcRenderer.invoke("messenger-automation-get-auto-stop", serviceId),
     setSplitOpen: (open: boolean): void =>
       ipcRenderer.send("set-automation-split", open),
+    getRecentEmojis: (): Promise<string[]> =>
+      ipcRenderer.invoke("messenger-automation-recent-emojis"),
+    onRecentEmojisUpdated: (callback: (emojis: string[]) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, emojis: string[]) => callback(emojis);
+      ipcRenderer.on("messenger-automation-recent-emojis", handler);
+      return () => ipcRenderer.removeListener("messenger-automation-recent-emojis", handler);
+    },
     onUpdated: (callback: (tasks: AutomationTask[]) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, tasks: AutomationTask[]) =>
         callback(tasks);

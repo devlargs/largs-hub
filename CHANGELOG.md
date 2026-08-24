@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- The Emoji tab in the Messenger automation panel now has a **Recent** pane: every emoji you burst is remembered, newest first, so starting the same one again is a single click. Before you have used any, it offers a handful of common suggestions instead. The list is shared across services and survives a restart.
+
 - New **Random list** tab in the Messenger automation panel. Save named lists of messages once and reuse them: each time the automation fires it sends one entry picked at random, never the same one twice in a row, at a random delay between your min and max seconds. Lists are created, renamed, edited and deleted from the panel, survive a restart, and are shared across every Messenger service. The picker has a search box and pages once you have more than ten. Editing or deleting a list never disturbs a task already running from it.
 
 - Service tabs now behave like browser tabs. **Ctrl+F** opens a find bar above the page with a match counter and next/previous (Enter and Shift+Enter step through, Esc closes). **Ctrl+`+`**, **Ctrl+`-`** and **Ctrl+0** zoom a service, each service remembers its own zoom across reloads and restarts, and the titlebar shows the current percentage with one click back to 100%. Right-clicking a misspelled word now offers corrections and "Add to dictionary", and the right-click menu has Cut, Copy, Paste, Paste as plain text and Select all in text boxes.

@@ -70,6 +70,10 @@ interface AutomationDeps {
   // minimized; manual calls stay audible and visible). Called just before the
   // call button is clicked.
   armAutomationCall: (serviceId: string) => void;
+  // Recent emoji pane. Kept in main's store, injected here so this module
+  // stays free of electron-store (and unit-testable without it).
+  getRecentEmojis: () => string[];
+  recordRecentEmoji: (emoji: string) => string[];
 }
 
 const tasks = new Map<string, InternalTask>();
@@ -617,6 +621,13 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
           break;
         }
         case "sendEmoji":
+          // Remember the emoji so the panel can offer it again next time.
+          deps
+            .getUiView()
+            ?.webContents.send(
+              "messenger-automation-recent-emojis",
+              deps.recordRecentEmoji(taskSpec.emoji),
+            );
           startLoop(
             serviceId,
             taskSpec,
@@ -648,6 +659,8 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
   });
 
   ipcMain.handle("messenger-automation-list", (): AutomationTask[] => publicTasks());
+
+  ipcMain.handle("messenger-automation-recent-emojis", (): string[] => deps.getRecentEmojis());
 
   // Arm (or re-arm) an auto-stop for a service: after `minutes`, every task for
   // that service is cleared. Passing null cancels an armed auto-stop.

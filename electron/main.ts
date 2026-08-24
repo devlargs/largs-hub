@@ -19,6 +19,7 @@ import { registerServicesIpc } from "./ipc/services";
 import { sweepOrphanedPartitions } from "./partitions";
 import { registerSettingsIpc } from "./ipc/settings";
 import { registerListGroupsIpc } from "./ipc/listGroups";
+import { addRecentEmoji, sanitizeRecentEmojis } from "./recentEmojis";
 import {
   initDownloads,
   repositionDownloadToasts,
@@ -349,6 +350,12 @@ registerMessengerAutomation({
   monitorCallForAnswer: (serviceId, timeoutMs) => monitorCallForAnswer(serviceId, timeoutMs),
   closeCallWindow: (serviceId) => closeCallWindow(serviceId),
   armAutomationCall: (serviceId) => armAutomationCall(serviceId),
+  getRecentEmojis: () => sanitizeRecentEmojis(store.get("recentEmojis")),
+  recordRecentEmoji: (emoji) => {
+    const updated = addRecentEmoji(store.get("recentEmojis"), emoji);
+    store.set("recentEmojis", updated);
+    return updated;
+  },
 });
 
 // --- UI-layer IPC (z-order, link preview, window controls) -------------------

@@ -281,6 +281,8 @@ export interface ElectronAPI {
     setAutoStop: (serviceId: string, minutes: number | null) => Promise<AutoStopResult>;
     getAutoStop: (serviceId: string) => Promise<AutoStopState | null>;
     setSplitOpen: (open: boolean) => void;
+    getRecentEmojis: () => Promise<string[]>;
+    onRecentEmojisUpdated: (callback: (emojis: string[]) => void) => () => void;
     onUpdated: (callback: (tasks: AutomationTask[]) => void) => () => void;
     onNotice: (
       callback: (data: { serviceId: string; reason: NoticeReason }) => void

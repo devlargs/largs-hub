@@ -77,6 +77,10 @@ function taskPreview(spec: TaskSpec): string {
   }
 }
 
+// Shown in place of the recents pane until the user has started a burst, so
+// the tab is one click away from working on a fresh install.
+const SUGGESTED_EMOJIS = ["❤️", "😂", "🔥", "👍", "🥺", "😭", "✨", "🎉"];
+
 const inputStyle = {
   padding: "8px 12px",
   backgroundColor: "var(--surface)",
@@ -104,6 +108,8 @@ export default function MessengerAutomationPanel({
   const [ringSeconds, setRingSeconds] = useState("30");
   // The list chosen in the "Random list" tab, resolved to its messages on start.
   const [listGroup, setListGroup] = useState<MessageListGroup | null>(null);
+  // Emojis previously used to start a burst, newest first (main process state).
+  const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -178,6 +184,21 @@ export default function MessengerAutomationPanel({
       unsubscribe?.();
     };
   }, [serviceId]);
+
+  // Recent emojis live in the main process so they survive the panel closing
+  // and are shared across services.
+  useEffect(() => {
+    let cancelled = false;
+    window.electronAPI?.messengerAutomation.getRecentEmojis().then((emojis) => {
+      if (!cancelled) setRecentEmojis(emojis);
+    });
+    const unsubscribe =
+      window.electronAPI?.messengerAutomation.onRecentEmojisUpdated(setRecentEmojis);
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, []);
 
   // Tick countdowns locally; main only pushes on task-state changes
   const hasCountdown = serviceTasks.some((t) => t.nextFireAt !== null) || autoStop !== null;
@@ -418,6 +439,35 @@ export default function MessengerAutomationPanel({
                     className="text-sm outline-none rounded-lg"
                     style={inputStyle}
                   />
+                </div>
+              </div>
+            )}
+
+            {selectedType === "sendEmoji" && (
+              <div className="flex flex-col" style={{ gap: 4 }}>
+                <label className="text-xs font-medium" style={labelStyle}>
+                  {recentEmojis.length > 0 ? "Recent" : "Suggestions"}
+                </label>
+                <div className="flex flex-wrap" style={{ gap: 4 }}>
+                  {(recentEmojis.length > 0 ? recentEmojis : SUGGESTED_EMOJIS).map((option) => {
+                    const active = option === emoji;
+                    return (
+                      <button
+                        key={option}
+                        onClick={() => setEmoji(option)}
+                        className="text-sm rounded-lg transition-colors"
+                        style={{
+                          padding: "4px 8px",
+                          lineHeight: 1.2,
+                          backgroundColor: active ? "var(--sidebar-active)" : "var(--surface)",
+                          border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                        }}
+                        title={`Burst ${option}`}
+                      >
+                        {option}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
