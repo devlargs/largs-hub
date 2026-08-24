@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Uploaded service icons are no longer left on disk forever. Replacing an icon, cancelling out of the icon picker, or removing a service now deletes the file it was using, and icons abandoned by earlier versions are cleaned up at startup. An icon shared by two services is only deleted once nothing points at it.
+
 - Downloading a file whose name already exists in your download folder no longer overwrites the old one without asking. It saves alongside it as `report (1).pdf`, the way a browser does. This only affected people with a custom download folder set.
 
 - Internal: added tests for the checks that decide whether a service is valid enough to save and when an unread badge is allowed to drop. Both were untested and both are places where a regression shows up days later as odd behaviour — an edit that silently doesn't save, or a badge that blinks.

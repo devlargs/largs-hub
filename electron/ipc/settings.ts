@@ -5,6 +5,7 @@ import { refreshPrivacyOverlays } from "../serviceViews";
 import {
   customIconsDir as iconsDir,
   resolveCustomIconPath as resolveIconPath,
+  deleteCustomIconFile,
 } from "../customIcons";
 
 // IPC: theme, app settings, download folder picker, custom icon storage, and
@@ -114,11 +115,7 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
   );
 
   ipcMain.handle("delete-custom-icon", async (_event, fileName: string) => {
-    const filePath = resolveCustomIconPath(fileName);
-    if (!filePath) return;
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
+    deleteCustomIconFile(fileName);
   });
 
   // Native settings menu

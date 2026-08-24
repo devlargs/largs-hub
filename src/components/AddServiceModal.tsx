@@ -60,9 +60,25 @@ export default function AddServiceModal({
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Icons uploaded while this modal has been open. Each one is a file on disk
+  // the moment it's picked, but only the last is kept — the rest (and all of
+  // them, if the modal is cancelled) would otherwise be orphaned (issue #70).
+  const sessionUploads = useRef<string[]>([]);
+  const submitted = useRef(false);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
+  }, []);
+
+  // Closing without saving leaves whatever was uploaded unreferenced, so remove
+  // it. Runs on unmount, which covers Cancel, the backdrop and Escape alike.
+  useEffect(() => {
+    return () => {
+      if (submitted.current) return;
+      for (const fileName of sessionUploads.current) {
+        void window.electronAPI?.deleteCustomIcon(fileName);
+      }
+    };
   }, []);
 
   const handleClose = useCallback(() => {
@@ -84,6 +100,12 @@ export default function AddServiceModal({
       const ext = file.name.split(".").pop() || "png";
       const fileName = `${uuidv4()}.${ext}`;
       await window.electronAPI.saveCustomIcon(fileName, dataUrl);
+      // Anything uploaded earlier in this session is now unreachable — the
+      // service's own saved icon is left alone, main handles that on save.
+      for (const stale of sessionUploads.current) {
+        void window.electronAPI.deleteCustomIcon(stale);
+      }
+      sessionUploads.current = [fileName];
       setEditIcon(`custom:${fileName}`);
     };
     reader.readAsDataURL(file);
@@ -95,20 +117,26 @@ export default function AddServiceModal({
     if (editIcon.startsWith("custom:")) {
       const fileName = editIcon.slice(7);
       await window.electronAPI.deleteCustomIcon(fileName);
+      sessionUploads.current = sessionUploads.current.filter((f) => f !== fileName);
     }
     setEditIcon("");
     setIconPreview(null);
   };
 
   const handleConfirm = () => {
+    submitted.current = true;
     if (isEditing) {
-      if (!editName.trim() || !editUrl.trim()) return;
+      if (!editName.trim() || !editUrl.trim()) {
+        submitted.current = false;
+        return;
+      }
       // Internal services (Pomodoro) carry a non-http URL that is never edited
       const url = editingService!.type ? editingService!.url : normalizeServiceUrl(editUrl);
       if (!url) {
         // The main process would reject this and hand back the unchanged list,
         // which the renderer can't tell apart from a successful save (#78)
         setUrlError("Enter a web address like https://example.com");
+        submitted.current = false;
         return;
       }
       setUrlError(null);
@@ -119,9 +147,11 @@ export default function AddServiceModal({
         icon: editIcon || editingService!.icon,
       });
     } else {
-      if (selectedIndex === null) return;
+      if (selectedIndex === null || !filtered[selectedIndex]) {
+        submitted.current = false;
+        return;
+      }
       const preset = filtered[selectedIndex];
-      if (!preset) return;
       onSubmit({
         id: uuidv4(),
         name: preset.name,

@@ -23,6 +23,8 @@ import { getNotificationCounts } from "../notificationCounts";
 import { forgetPomodoroService } from "../tasks";
 import { stopTimerForService } from "../pomodoroTimer";
 import { clearServiceSessionData } from "../partitions";
+import { deleteCustomIconFile } from "../customIcons";
+import { supersededIconFile } from "../iconCleanup";
 import {
   applyServicePatch,
   nextBlurWhenInactive,
@@ -129,8 +131,13 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
   });
 
   ipcMain.handle("remove-service", async (_event, serviceId: string) => {
+    const removed = store.get("services").find((s) => s.id === serviceId);
     const services = store.get("services").filter((s) => s.id !== serviceId);
     store.set("services", services);
+
+    // Take the uploaded icon with it, unless another service shares the file.
+    const orphanedIcon = supersededIconFile(removed?.icon, null, services);
+    if (orphanedIcon) deleteCustomIconFile(orphanedIcon);
 
     // Clean up the view
     destroyServiceView(serviceId, { clearCounts: true });
@@ -159,6 +166,14 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     if (old && old.url !== updated.url) {
       destroyServiceView(updated.id);
     }
+
+    // An icon that was replaced leaves its file behind otherwise (issue #70).
+    const replacedIcon = supersededIconFile(
+      old?.icon,
+      updated.icon,
+      services.filter((s) => s.id !== updated.id),
+    );
+    if (replacedIcon) deleteCustomIconFile(replacedIcon);
 
     return services;
   });

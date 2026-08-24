@@ -1,5 +1,7 @@
 import { app } from "electron";
 import path from "path";
+import fs from "fs";
+import { orphanedIconFiles } from "./iconCleanup";
 
 // Where uploaded service icons live, and the one function allowed to turn a
 // caller-supplied name into a path inside it.
@@ -30,4 +32,40 @@ export function resolveCustomIconPath(fileName: unknown, dir: string): string | 
   const filePath = path.resolve(resolvedDir, safeName);
   if (!filePath.startsWith(resolvedDir + path.sep)) return null;
   return filePath;
+}
+
+/**
+ * Delete an uploaded icon by filename. Best-effort and containment-checked —
+ * a name that resolves outside the icon directory is refused, and a missing
+ * file is not an error.
+ */
+export function deleteCustomIconFile(fileName: unknown): void {
+  const filePath = resolveCustomIconPath(fileName, customIconsDir());
+  if (!filePath) return;
+  try {
+    fs.rmSync(filePath, { force: true });
+  } catch (err) {
+    console.error(`Failed to delete custom icon ${String(fileName)}:`, err);
+  }
+}
+
+/**
+ * Delete every uploaded icon no service points at any more. Runs at startup so
+ * files orphaned by earlier versions (which never cleaned up on replace or
+ * remove) are reclaimed too. Returns what was removed.
+ */
+export function sweepOrphanedIcons(services: Array<{ icon?: unknown }>): string[] {
+  const dir = customIconsDir();
+  let fileNames: string[];
+  try {
+    fileNames = fs.readdirSync(dir);
+  } catch {
+    return []; // no icons uploaded yet
+  }
+  const removed: string[] = [];
+  for (const name of orphanedIconFiles(fileNames, services)) {
+    deleteCustomIconFile(name);
+    removed.push(name);
+  }
+  return removed;
 }

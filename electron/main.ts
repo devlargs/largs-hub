@@ -1,7 +1,7 @@
 import { app, BrowserWindow, WebContentsView, ipcMain, net, session, shell } from "electron";
 import path from "path";
 import { pathToFileURL } from "url";
-import { customIconsDir, resolveCustomIconPath } from "./customIcons";
+import { customIconsDir, resolveCustomIconPath, sweepOrphanedIcons } from "./customIcons";
 import { store, StoreSchema } from "./store";
 import { registerMessengerAutomation } from "./messengerAutomation";
 import { registerPomodoro, recordFocusSession } from "./tasks";
@@ -417,6 +417,10 @@ app.whenReady().then(() => {
   // wiped them. Runs before any service view opens a session, so nothing being
   // deleted is in use.
   sweepOrphanedPartitions(store.get("services").map((s) => s.id));
+
+  // Reclaim uploaded icons no service points at any more, including ones left
+  // behind by versions that never cleaned up on replace or remove (issue #70).
+  sweepOrphanedIcons(store.get("services"));
 
   createWindow();
 });
