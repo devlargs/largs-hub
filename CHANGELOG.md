@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- The installer downloaded by an in-app update is now deleted on the next launch instead of being left in your temp folder for good.
+
 ## [0.1.42] (2026-08-24)
 
 - Marking a Messenger conversation as unread now raises the badge count. Only genuinely new messages were being noticed before, because Messenger doesn't change the tab title when you mark a thread unread by hand. Facebook's notification count is still kept out of the Messenger badge.

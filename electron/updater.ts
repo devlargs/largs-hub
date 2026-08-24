@@ -17,6 +17,40 @@ interface UpdaterDeps {
 
 let pendingUpdate: { url: string; sha256: string | null } | null = null;
 
+// The downloaded installer goes to a fixed filename, so successive updates
+// overwrite it instead of piling up. It still can't be deleted on the success
+// path — the app force-exits seconds after spawning the detached NSIS process,
+// which is still reading the file — so it's cleaned up on the next launch
+// instead (issue #65).
+export const UPDATE_INSTALLER_NAME = "largs-hub-update.exe";
+
+export function updateInstallerPath(): string {
+  return path.join(app.getPath("temp"), UPDATE_INSTALLER_NAME);
+}
+
+export interface InstallerCleanupFs {
+  unlink(filePath: string, callback: (err: NodeJS.ErrnoException | null) => void): void;
+}
+
+/**
+ * Deletes the installer a previous update left in %TEMP%. Resolves false when
+ * there was nothing to remove, or when the file is still locked — after
+ * `--force-run` relaunches us, NSIS may not have exited yet, and on Windows
+ * unlinking a file it still holds fails with EBUSY/EPERM. Either way the next
+ * launch tries again, so failures are not worth surfacing.
+ */
+export function removeStaleInstaller(
+  filePath: string,
+  fsLike: InstallerCleanupFs = fs,
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    fsLike.unlink(filePath, (err) => resolve(!err));
+  });
+}
+
+// Long enough that the installer which relaunched us has exited.
+const STALE_INSTALLER_DELAY_MS = 15_000;
+
 const UPDATE_HOST_ALLOWLIST = new Set([
   "github.com",
   "objects.githubusercontent.com",
@@ -33,6 +67,14 @@ function isAllowedUpdateUrl(rawUrl: string): boolean {
 }
 
 export function registerUpdater(deps: UpdaterDeps) {
+  // Clear last update's installer out of %TEMP%. Deferred rather than done at
+  // startup so it doesn't race the installer that just relaunched the app, and
+  // unref'd so a pending timer can never hold the process open.
+  const cleanupTimer = setTimeout(() => {
+    void removeStaleInstaller(updateInstallerPath());
+  }, STALE_INSTALLER_DELAY_MS);
+  cleanupTimer.unref?.();
+
   ipcMain.handle("check-for-updates", async () => {
     pendingUpdate = null;
     try {
@@ -75,7 +117,7 @@ export function registerUpdater(deps: UpdaterDeps) {
     if (!pendingUpdate) throw new Error("No update available. Run a check first.");
     const { url: updateUrl, sha256: expectedSha256 } = pendingUpdate;
 
-    const tmpPath = path.join(app.getPath("temp"), "largs-hub-update.exe");
+    const tmpPath = updateInstallerPath();
 
     return new Promise<void>((resolve, reject) => {
       const MAX_REDIRECTS = 5;
