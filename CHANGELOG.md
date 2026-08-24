@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Links inside a Pomodoro task are now detected automatically. They appear underlined in the accent colour, and clicking one opens it in your default browser instead of dropping the task into edit mode — clicking the text around a link still edits it as before. Both `https://…` links and bare `www.` addresses are picked up, and trailing punctuation stays out of the link.
+
 ## [0.1.40] (2026-08-24)
 
 - The Pomodoro view has been redesigned around the timer. The focus session is now the largest thing on the page — a full-size ring with the clock inside it — and it stays on screen even when nothing is running, with a Start focus button that picks up your next unfinished task in one click. The day is a proper header with the date beneath it, progress reads as a real count, and the day's completed sessions are tallied under the timer.

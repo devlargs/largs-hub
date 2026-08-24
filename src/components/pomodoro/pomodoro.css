@@ -221,6 +221,42 @@
   transform: scaleX(1);
 }
 
+/* --- Links inside a task (issue #66) ------------------------------------- */
+
+/* A link run is styled as a link and opens in the default browser; the text
+   runs around it still open the inline editor. Underline is 1px at a 2px
+   offset — a thick, tight underline reads as a highlight, not a link. */
+.pom-link {
+  color: var(--accent);
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  transition: text-decoration-thickness var(--dur-micro) var(--ease-out);
+}
+
+.pom-link:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Text runs beside a link — same look as the plain label, no underline. */
+.pom-label-text {
+  color: inherit;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+}
+
+/* A completed task's link recedes with the rest of the row rather than
+   staying the one bright thing left on it. */
+.pom-label-done .pom-link {
+  color: color-mix(in srgb, var(--accent) 55%, var(--text-muted));
+}
+
 /* --- Session tally ------------------------------------------------------- */
 
 /* Drawn bars, one per completed focus session — replaces the tomato emoji,
@@ -328,6 +364,7 @@
   .pom-label,
   .pom-label::after,
   .pom-daynav,
+  .pom-link,
   .pom-row-action,
   .pom-ring-progress,
   .pom-progress-fill {

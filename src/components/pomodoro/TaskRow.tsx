@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MdDragIndicator, MdOutlineDeleteOutline, MdTimer, MdTimerOff } from "react-icons/md";
 import { PomodoroTask } from "../../types";
+import { parseTaskSegments } from "./links";
 
 interface TaskRowProps {
   task: PomodoroTask;
@@ -89,6 +90,18 @@ export default function TaskRow({
     background: "transparent",
     border: "none",
   } as const;
+
+  const labelStyle = {
+    fontSize: "var(--text-md)",
+    lineHeight: 1.45,
+    color: task.done ? "var(--text-muted)" : "var(--text-primary)",
+    background: "transparent",
+    border: "none",
+    padding: 0,
+  } as const;
+
+  // Recomputed only when the text changes — every row renders on any list update
+  const segments = useMemo(() => parseTaskSegments(task.text), [task.text]);
 
   return (
     <div
@@ -180,22 +193,44 @@ export default function TaskRow({
               border: "1px solid var(--accent)",
             }}
           />
-        ) : (
+        ) : segments.length === 1 && segments[0].type === "text" ? (
+          // No links — one button for the whole label keeps this the simple,
+          // single-tab-stop case that most tasks are.
           <button
             onClick={() => setEditing(true)}
             className={`pom-label cursor-text text-left ${task.done ? "pom-label-done" : ""}`}
-            style={{
-              fontSize: "var(--text-md)",
-              lineHeight: 1.45,
-              color: task.done ? "var(--text-muted)" : "var(--text-primary)",
-              background: "transparent",
-              border: "none",
-              padding: 0,
-            }}
+            style={labelStyle}
             title="Click to edit"
           >
             {task.text}
           </button>
+        ) : (
+          // The label carries a link. Each run becomes its own button — text
+          // runs open the editor, links open the browser — so a link is never
+          // nested inside another interactive element (issue #66).
+          <span className={`pom-label ${task.done ? "pom-label-done" : ""}`} style={labelStyle}>
+            {segments.map((segment, i) =>
+              segment.type === "link" ? (
+                <button
+                  key={i}
+                  onClick={() => window.electronAPI.openLinkExternal(segment.href)}
+                  className="pom-link cursor-pointer"
+                  title={`Open ${segment.href}`}
+                >
+                  {segment.value}
+                </button>
+              ) : (
+                <button
+                  key={i}
+                  onClick={() => setEditing(true)}
+                  className="pom-label-text cursor-text text-left"
+                  title="Click to edit"
+                >
+                  {segment.value}
+                </button>
+              ),
+            )}
+          </span>
         )}
       </div>
 
