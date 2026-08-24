@@ -15,8 +15,7 @@ function fakeFs(err: NodeJS.ErrnoException | null, seen: string[] = []): Install
   };
 }
 
-const errno = (code: string): NodeJS.ErrnoException =>
-  Object.assign(new Error(code), { code });
+const errno = (code: string): NodeJS.ErrnoException => Object.assign(new Error(code), { code });
 
 describe("removeStaleInstaller", () => {
   it("reports the installer was removed", async () => {

@@ -200,7 +200,9 @@ export default function NotionTaskSetup({
             </div>
 
             {error && (
-              <div style={{ fontSize: 13, color: "var(--danger)", marginBottom: 14, lineHeight: 1.5 }}>
+              <div
+                style={{ fontSize: 13, color: "var(--danger)", marginBottom: 14, lineHeight: 1.5 }}
+              >
                 {error}
               </div>
             )}
@@ -267,22 +269,24 @@ export default function NotionTaskSetup({
               {adoptable ? (
                 <>
                   This looks like a Largs Hub task database — perhaps from a previous connection or
-                  install. You can <strong>keep the existing tasks and pick up where you left
-                  off</strong>, or empty the database and start fresh.
+                  install. You can{" "}
+                  <strong>keep the existing tasks and pick up where you left off</strong>, or empty
+                  the database and start fresh.
                 </>
               ) : (
                 <>
                   Pomodoro needs full control of the database you connect. To keep using this one,
-                  Largs Hub will{" "}
-                  <strong>move all of its existing pages to Notion's trash</strong> and repurpose
-                  its fields for tasks. If that data matters to you, connect a different, freshly
-                  created database instead.
+                  Largs Hub will <strong>move all of its existing pages to Notion's trash</strong>{" "}
+                  and repurpose its fields for tasks. If that data matters to you, connect a
+                  different, freshly created database instead.
                 </>
               )}
             </p>
 
             {error && (
-              <div style={{ fontSize: 13, color: "var(--danger)", marginBottom: 14, lineHeight: 1.5 }}>
+              <div
+                style={{ fontSize: 13, color: "var(--danger)", marginBottom: 14, lineHeight: 1.5 }}
+              >
                 {error}
               </div>
             )}

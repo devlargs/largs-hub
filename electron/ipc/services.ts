@@ -70,9 +70,7 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     const updated = sanitizeService(rawUpdated);
     if (!updated) return store.get("services");
     const old = store.get("services").find((s) => s.id === updated.id);
-    const services = store
-      .get("services")
-      .map((s) => (s.id === updated.id ? updated : s));
+    const services = store.get("services").map((s) => (s.id === updated.id ? updated : s));
     store.set("services", services);
 
     // If the URL changed, destroy the old view so it gets recreated with the new URL
@@ -149,9 +147,7 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
 
   // The service to reopen on launch. Resolved here rather than in the renderer
   // so a stale id (service removed or disabled since) never reaches the UI.
-  ipcMain.handle("get-notification-counts", (): Record<string, number> =>
-    getNotificationCounts(),
-  );
+  ipcMain.handle("get-notification-counts", (): Record<string, number> => getNotificationCounts());
 
   ipcMain.handle("get-last-active-service", (): string | null => {
     const serviceId = store.get("lastActiveServiceId");
@@ -181,7 +177,10 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
 
   ipcMain.on(
     "find-in-page",
-    (_event, payload: { serviceId?: unknown; text?: unknown; forward?: unknown; findNext?: unknown }) => {
+    (
+      _event,
+      payload: { serviceId?: unknown; text?: unknown; forward?: unknown; findNext?: unknown },
+    ) => {
       if (typeof payload?.serviceId !== "string" || typeof payload?.text !== "string") return;
       findInService(
         payload.serviceId,
@@ -207,12 +206,15 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     setServiceZoom(payload.serviceId, payload.factor);
   });
 
-  ipcMain.on("step-service-zoom", (_event, payload: { serviceId?: unknown; direction?: unknown }) => {
-    if (typeof payload?.serviceId !== "string") return;
-    const { direction } = payload;
-    if (direction !== "in" && direction !== "out" && direction !== "reset") return;
-    stepServiceZoom(payload.serviceId, direction);
-  });
+  ipcMain.on(
+    "step-service-zoom",
+    (_event, payload: { serviceId?: unknown; direction?: unknown }) => {
+      if (typeof payload?.serviceId !== "string") return;
+      const { direction } = payload;
+      if (direction !== "in" && direction !== "out" && direction !== "reset") return;
+      stepServiceZoom(payload.serviceId, direction);
+    },
+  );
 
   ipcMain.on("go-back", (_event, serviceId: string) => {
     const view = getServiceView(serviceId);
@@ -255,14 +257,16 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
           if (!enabled) {
             destroyServiceView(serviceId, { clearCounts: true });
           }
-          const updated = store.get("services").map((s) =>
-            s.id === serviceId ? { ...s, enabled } : s,
-          );
+          const updated = store
+            .get("services")
+            .map((s) => (s.id === serviceId ? { ...s, enabled } : s));
           store.set("services", updated);
           deps.getUiView()?.webContents.send("services-updated", updated);
           // If re-enabling the active service, show it
           if (enabled) {
-            deps.getUiView()?.webContents.send("context-menu-action", { action: "show-service", serviceId });
+            deps
+              .getUiView()
+              ?.webContents.send("context-menu-action", { action: "show-service", serviceId });
           }
         },
       },
@@ -274,9 +278,9 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
           const muted = !service.muted;
           const view = getServiceView(serviceId);
           if (view) view.webContents.setAudioMuted(muted);
-          const updated = store.get("services").map((s) =>
-            s.id === serviceId ? { ...s, muted } : s,
-          );
+          const updated = store
+            .get("services")
+            .map((s) => (s.id === serviceId ? { ...s, muted } : s));
           store.set("services", updated);
           sendUpdated();
         },
@@ -286,11 +290,13 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
         type: "checkbox",
         checked: service.notificationsEnabled !== false,
         click: () => {
-          const updated = store.get("services").map((s) =>
-            s.id === serviceId
-              ? { ...s, notificationsEnabled: s.notificationsEnabled === false }
-              : s,
-          );
+          const updated = store
+            .get("services")
+            .map((s) =>
+              s.id === serviceId
+                ? { ...s, notificationsEnabled: s.notificationsEnabled === false }
+                : s,
+            );
           store.set("services", updated);
           sendUpdated();
         },
@@ -303,9 +309,9 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
           const svc = store.get("services").find((s) => s.id === serviceId);
           if (!svc) return;
           const blurWhenInactive = !svc.blurWhenInactive;
-          const updated = store.get("services").map((s) =>
-            s.id === serviceId ? { ...s, blurWhenInactive } : s,
-          );
+          const updated = store
+            .get("services")
+            .map((s) => (s.id === serviceId ? { ...s, blurWhenInactive } : s));
           store.set("services", updated);
           sendUpdated();
           // Apply/remove blur immediately if the window is already unfocused
@@ -326,9 +332,9 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
           const svc = store.get("services").find((s) => s.id === serviceId);
           if (!svc) return;
           const privacyMode = !svc.privacyMode;
-          const updated = store.get("services").map((s) =>
-            s.id === serviceId ? { ...s, privacyMode } : s,
-          );
+          const updated = store
+            .get("services")
+            .map((s) => (s.id === serviceId ? { ...s, privacyMode } : s));
           store.set("services", updated);
           sendUpdated();
           // Apply/remove the cover on the live view immediately
@@ -343,7 +349,9 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
       {
         label: "Edit service",
         click: () => {
-          deps.getUiView()?.webContents.send("context-menu-action", { action: "edit-service", serviceId });
+          deps
+            .getUiView()
+            ?.webContents.send("context-menu-action", { action: "edit-service", serviceId });
         },
       },
       {
@@ -375,7 +383,9 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
           destroyServiceView(serviceId, { clearCounts: true });
           await clearServiceSessionData(serviceId);
           if (wasActive) {
-            deps.getUiView()?.webContents.send("context-menu-action", { action: "show-service", serviceId });
+            deps
+              .getUiView()
+              ?.webContents.send("context-menu-action", { action: "show-service", serviceId });
           }
         },
       },
@@ -395,7 +405,9 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
             detail: "This will permanently remove the service from Largs Hub.",
           });
           if (response === 0) {
-            deps.getUiView()?.webContents.send("context-menu-action", { action: "remove-service", serviceId });
+            deps
+              .getUiView()
+              ?.webContents.send("context-menu-action", { action: "remove-service", serviceId });
           }
         },
       },

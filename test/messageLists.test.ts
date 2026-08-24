@@ -39,10 +39,7 @@ describe("sanitizeMessageListGroup", () => {
   });
 
   it("stamps missing timestamps with the supplied clock", () => {
-    const result = sanitizeMessageListGroup(
-      { id: "g1", name: "n", messages: ["a"] },
-      1234,
-    );
+    const result = sanitizeMessageListGroup({ id: "g1", name: "n", messages: ["a"] }, 1234);
     expect(result.ok && result.group.createdAt).toBe(1234);
     expect(result.ok && result.group.updatedAt).toBe(1234);
   });
@@ -61,7 +58,9 @@ describe("sanitizeMessageListGroup", () => {
       ok: false,
       error: "Name is required",
     });
-    const long = sanitizeMessageListGroup(validGroup({ name: "x".repeat(MAX_GROUP_NAME_LENGTH + 1) }));
+    const long = sanitizeMessageListGroup(
+      validGroup({ name: "x".repeat(MAX_GROUP_NAME_LENGTH + 1) }),
+    );
     expect(long.ok).toBe(false);
   });
 

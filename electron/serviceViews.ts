@@ -102,12 +102,19 @@ export function setFindBarOpen(open: boolean) {
 
 // --- Find in page ------------------------------------------------------------
 
-export function findInService(serviceId: string, text: string, forward: boolean, findNext: boolean) {
+export function findInService(
+  serviceId: string,
+  text: string,
+  forward: boolean,
+  findNext: boolean,
+) {
   const view = serviceViews.get(serviceId);
   if (!view || view.webContents.isDestroyed()) return;
   if (!text) {
     view.webContents.stopFindInPage("clearSelection");
-    deps?.getUiView()?.webContents.send("find-results", { serviceId, matches: 0, activeMatchOrdinal: 0 });
+    deps
+      ?.getUiView()
+      ?.webContents.send("find-results", { serviceId, matches: 0, activeMatchOrdinal: 0 });
     return;
   }
   view.webContents.findInPage(text, { forward, findNext });
@@ -188,7 +195,9 @@ export function repositionActiveView() {
 
 export function applyBlurToView(view: WebContentsView) {
   if (view.webContents.isDestroyed()) return;
-  view.webContents.executeJavaScript(`
+  view.webContents
+    .executeJavaScript(
+      `
     (function() {
       if (document.getElementById('__largs_blur_overlay__')) return;
       const el = document.createElement('div');
@@ -196,17 +205,23 @@ export function applyBlurToView(view: WebContentsView) {
       el.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);z-index:2147483647;pointer-events:none;transition:opacity 0.15s ease;';
       document.documentElement.appendChild(el);
     })()
-  `).catch(() => {});
+  `,
+    )
+    .catch(() => {});
 }
 
 export function removeBlurFromView(view: WebContentsView) {
   if (view.webContents.isDestroyed()) return;
-  view.webContents.executeJavaScript(`
+  view.webContents
+    .executeJavaScript(
+      `
     (function() {
       const el = document.getElementById('__largs_blur_overlay__');
       if (el) el.remove();
     })()
-  `).catch(() => {});
+  `,
+    )
+    .catch(() => {});
 }
 
 // Privacy mode: two panels injected over the page, so a glance at the screen
@@ -225,7 +240,8 @@ export function applyPrivacyToView(view: WebContentsView) {
   const verticalOpacity = clampPercent(store.get("privacyOpacity"), 100) / 100;
   const horizontalPercent = clampPercent(store.get("privacyHorizontalPercent"), 0);
   const horizontalOpacity = clampPercent(store.get("privacyHorizontalOpacity"), 100) / 100;
-  const base = "position:fixed;top:0;left:0;background:#181825;z-index:2147483647;pointer-events:none;";
+  const base =
+    "position:fixed;top:0;left:0;background:#181825;z-index:2147483647;pointer-events:none;";
   const verticalCss =
     verticalPercent > 0
       ? `${base}width:100vw;height:${verticalPercent}vh;opacity:${verticalOpacity};`
@@ -234,7 +250,9 @@ export function applyPrivacyToView(view: WebContentsView) {
     horizontalPercent > 0
       ? `${base}width:${horizontalPercent}vw;height:100vh;opacity:${horizontalOpacity};`
       : "";
-  view.webContents.executeJavaScript(`
+  view.webContents
+    .executeJavaScript(
+      `
     (function() {
       const panels = [
         ['${PRIVACY_VERTICAL_ID}', '${verticalCss}'],
@@ -250,7 +268,9 @@ export function applyPrivacyToView(view: WebContentsView) {
         document.documentElement.appendChild(el);
       }
     })()
-  `).catch(() => {});
+  `,
+    )
+    .catch(() => {});
 }
 
 function clampPercent(value: unknown, fallback: number): number {
@@ -268,14 +288,18 @@ export function refreshPrivacyOverlays() {
 
 export function removePrivacyFromView(view: WebContentsView) {
   if (view.webContents.isDestroyed()) return;
-  view.webContents.executeJavaScript(`
+  view.webContents
+    .executeJavaScript(
+      `
     (function() {
       for (const id of ['${PRIVACY_VERTICAL_ID}', '${PRIVACY_HORIZONTAL_ID}']) {
         const el = document.getElementById(id);
         if (el) el.remove();
       }
     })()
-  `).catch(() => {});
+  `,
+    )
+    .catch(() => {});
 }
 
 function isPrivacyMode(serviceId: string): boolean {
@@ -559,7 +583,9 @@ export function monitorCallForAnswer(serviceId: string, timeoutMs: number): Prom
             // Answered — drop the countdown pill and keep the call open. The
             // popup opened minimized for the cycle, so surface it now that
             // there's someone on the other end.
-            await win.webContents.executeJavaScript(REMOVE_CALL_OVERLAY_SCRIPT, true).catch(() => {});
+            await win.webContents
+              .executeJavaScript(REMOVE_CALL_OVERLAY_SCRIPT, true)
+              .catch(() => {});
             if (!win.isDestroyed()) {
               if (win.isMinimized()) win.restore();
               win.show();
@@ -646,7 +672,11 @@ function createServiceView(service: Service): WebContentsView {
   // whatever the page asks for (camera, mic, geolocation, clipboard, ...).
   // Setting the handler is idempotent per session, so calling it again on
   // view recreation is safe.
-  const allowedPermissions = new Set<string>(["notifications", "fullscreen", "clipboard-sanitized-write"]);
+  const allowedPermissions = new Set<string>([
+    "notifications",
+    "fullscreen",
+    "clipboard-sanitized-write",
+  ]);
   try {
     const host = new URL(service.url).hostname;
     // Messenger / WhatsApp need camera+mic for calls
@@ -867,7 +897,8 @@ function createServiceView(service: Service): WebContentsView {
       clearInterval(pollInterval);
       return;
     }
-    view.webContents.executeJavaScript(pollScript, true)
+    view.webContents
+      .executeJavaScript(pollScript, true)
       .then((count: number) => {
         if (directFetchIsFresh()) return;
         reportNotificationCount(service.id, count);
@@ -922,13 +953,7 @@ function createServiceView(service: Service): WebContentsView {
       stepServiceZoom(service.id, ZOOM_KEYS[input.key]);
       return;
     }
-    if (
-      input.type === "keyDown" &&
-      input.control &&
-      !input.shift &&
-      !input.alt &&
-      !input.meta
-    ) {
+    if (input.type === "keyDown" && input.control && !input.shift && !input.alt && !input.meta) {
       if (input.key.toLowerCase() === "f") {
         event.preventDefault();
         openFindBarFor(service.id);
@@ -951,8 +976,7 @@ function createServiceView(service: Service): WebContentsView {
   // guard below. A URL "stays in view" only if it's the service's own domain or
   // an allowlisted auth provider; everything else is treated as an external
   // link and opened in the in-app preview popup.
-  const keepInView = (targetUrl: string): boolean =>
-    shouldKeepInView(targetUrl, serviceHost);
+  const keepInView = (targetUrl: string): boolean => shouldKeepInView(targetUrl, serviceHost);
 
   // Popups: keep same-domain/auth popups in the view. External http(s) links are
   // ignored on click — they neither redirect the service nor open the system

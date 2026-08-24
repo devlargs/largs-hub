@@ -1,12 +1,4 @@
-import {
-  app,
-  BrowserWindow,
-  WebContentsView,
-  ipcMain,
-  net,
-  session,
-  shell,
-} from "electron";
+import { app, BrowserWindow, WebContentsView, ipcMain, net, session, shell } from "electron";
 import path from "path";
 import { pathToFileURL } from "url";
 import { customIconsDir, resolveCustomIconPath } from "./customIcons";
@@ -43,7 +35,12 @@ import {
   closeCallWindow,
   armAutomationCall,
 } from "./serviceViews";
-import { startIdleShutdown, stopIdleShutdown, trackInputActivity, noteActivity } from "./idleShutdown";
+import {
+  startIdleShutdown,
+  stopIdleShutdown,
+  trackInputActivity,
+  noteActivity,
+} from "./idleShutdown";
 
 // Entry point: owns the frameless window and the React UI layer (uiView), the
 // link-preview overlay, and z-order IPC. Everything else lives in modules:
@@ -138,10 +135,7 @@ function createWindow() {
   };
   resizeUiView();
 
-  if (
-    process.env.NODE_ENV === "development" ||
-    process.argv.includes("--dev")
-  ) {
+  if (process.env.NODE_ENV === "development" || process.argv.includes("--dev")) {
     uiView.webContents.loadURL("http://localhost:5173");
   } else {
     uiView.webContents.loadFile(path.join(__dirname, "../dist/index.html"));

@@ -185,7 +185,9 @@ export interface ElectronAPI {
   showServiceContextMenu: (serviceId: string) => void;
   showSettingsMenu: () => void;
   onServicesUpdated: (callback: (services: Service[]) => void) => () => void;
-  onContextMenuAction: (callback: (data: { action: string; serviceId: string }) => void) => () => void;
+  onContextMenuAction: (
+    callback: (data: { action: string; serviceId: string }) => void,
+  ) => () => void;
   onServiceSwitched: (callback: (serviceId: string) => void) => () => void;
   reloadService: (serviceId: string) => void;
   goBack: (serviceId: string) => void;
@@ -194,14 +196,16 @@ export interface ElectronAPI {
   findInPage: (serviceId: string, text: string, forward: boolean, findNext: boolean) => void;
   stopFindInPage: (serviceId: string) => void;
   onFindResults: (
-    callback: (data: { serviceId: string; matches: number; activeMatchOrdinal: number }) => void
+    callback: (data: { serviceId: string; matches: number; activeMatchOrdinal: number }) => void,
   ) => () => void;
   onOpenFindBar: (callback: (serviceId: string) => void) => () => void;
   onCloseFindBar: (callback: () => void) => () => void;
   getServiceZoom: (serviceId: string) => Promise<number>;
   setServiceZoom: (serviceId: string, factor: number) => void;
   stepServiceZoom: (serviceId: string, direction: "in" | "out" | "reset") => void;
-  onServiceZoomChanged: (callback: (data: { serviceId: string; factor: number }) => void) => () => void;
+  onServiceZoomChanged: (
+    callback: (data: { serviceId: string; factor: number }) => void,
+  ) => () => void;
   listGroups: {
     list: () => Promise<MessageListGroup[]>;
     add: (group: MessageListGroup) => Promise<ListGroupsResult>;
@@ -217,7 +221,7 @@ export interface ElectronAPI {
   maximize: () => void;
   close: () => void;
   onNotificationUpdate: (
-    callback: (data: { serviceId: string; count: number }) => void
+    callback: (data: { serviceId: string; count: number }) => void,
   ) => () => void;
   getTheme: () => Promise<"dark" | "light">;
   setTheme: (theme: "dark" | "light") => Promise<void>;
@@ -226,7 +230,11 @@ export interface ElectronAPI {
   selectDownloadFolder: () => Promise<string | null>;
   saveCustomIcon: (fileName: string, dataUrl: string) => Promise<string>;
   deleteCustomIcon: (fileName: string) => Promise<void>;
-  checkForUpdates: () => Promise<{ updateAvailable: boolean; version?: string; downloadUrl?: string }>;
+  checkForUpdates: () => Promise<{
+    updateAvailable: boolean;
+    version?: string;
+    downloadUrl?: string;
+  }>;
   getAppVersion: () => Promise<string>;
   downloadAndInstallUpdate: () => Promise<void>;
   onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
@@ -236,7 +244,7 @@ export interface ElectronAPI {
     connect: (
       serviceId: string,
       apiKey: string,
-      databaseId: string
+      databaseId: string,
     ) => Promise<PomodoroConnectResult>;
     resetDatabase: (serviceId: string) => Promise<{ ok: boolean; error?: string }>;
     adoptDatabase: (serviceId: string) => Promise<{ ok: boolean; error?: string }>;
@@ -247,21 +255,21 @@ export interface ElectronAPI {
     update: (
       serviceId: string,
       taskId: string,
-      patch: { text?: string; done?: boolean }
+      patch: { text?: string; done?: boolean },
     ) => Promise<PomodoroTaskResult>;
     remove: (serviceId: string, taskId: string) => Promise<PomodoroTaskResult>;
     reorder: (serviceId: string, date: string, taskIds: string[]) => Promise<PomodoroTaskResult>;
     carryOver: (
       serviceId: string,
       fromDate: string,
-      toDate: string
+      toDate: string,
     ) => Promise<PomodoroTaskResult & { moved?: number }>;
     pendingCount: (serviceId: string, date: string) => Promise<number>;
     syncState: (serviceId: string) => Promise<PomodoroSyncState | null>;
     retrySync: (serviceId: string) => Promise<PomodoroSyncState | null>;
     onSyncUpdated: (callback: (state: PomodoroSyncState) => void) => () => void;
     onTasksUpdated: (
-      callback: (data: { serviceId: string; tasks: PomodoroTask[] }) => void
+      callback: (data: { serviceId: string; tasks: PomodoroTask[] }) => void,
     ) => () => void;
     timer: {
       get: () => Promise<PomodoroTimerState | null>;
@@ -284,9 +292,7 @@ export interface ElectronAPI {
     getRecentEmojis: () => Promise<string[]>;
     onRecentEmojisUpdated: (callback: (emojis: string[]) => void) => () => void;
     onUpdated: (callback: (tasks: AutomationTask[]) => void) => () => void;
-    onNotice: (
-      callback: (data: { serviceId: string; reason: NoticeReason }) => void
-    ) => () => void;
+    onNotice: (callback: (data: { serviceId: string; reason: NoticeReason }) => void) => () => void;
     onAutoStopUpdated: (callback: (data: AutoStopUpdate) => void) => () => void;
   };
 }

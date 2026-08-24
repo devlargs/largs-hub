@@ -202,8 +202,7 @@ export function detectNotice(base: NoticeSignals, now: NoticeSignals): NoticeRea
 export function validateSpec(spec: TaskSpec): string | null {
   const validMessage = (msg: unknown) =>
     typeof msg === "string" && msg.length > 0 && msg.length <= MAX_MESSAGE_LENGTH;
-  const validSeconds = (n: unknown) =>
-    typeof n === "number" && Number.isFinite(n) && n >= 1;
+  const validSeconds = (n: unknown) => typeof n === "number" && Number.isFinite(n) && n >= 1;
 
   switch (spec.type) {
     case "sendChat": {
@@ -474,10 +473,7 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
   // inner ring→answer phase: click "Start a voice call" (which opens the in-app
   // call popup and auto-starts it), ring for ringSeconds, then either stop
   // because she answered or hang up and wait for the next attempt.
-  function startCallCycle(
-    serviceId: string,
-    spec: Extract<TaskSpec, { type: "startCallCycle" }>,
-  ) {
+  function startCallCycle(serviceId: string, spec: Extract<TaskSpec, { type: "startCallCycle" }>) {
     const task = createTask(serviceId, spec);
 
     // Watch the conversation for any sign the cycle worked (a reply, a "Seen"
@@ -570,7 +566,11 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
       if (!view || view.webContents.isDestroyed()) {
         return fail("Service is not loaded");
       }
-      if (typeof spec !== "object" || spec === null || typeof (spec as TaskSpec).type !== "string") {
+      if (
+        typeof spec !== "object" ||
+        spec === null ||
+        typeof (spec as TaskSpec).type !== "string"
+      ) {
         return fail("Invalid task");
       }
       const taskSpec = spec as TaskSpec;
@@ -653,10 +653,13 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
     return publicTasks();
   });
 
-  ipcMain.handle("messenger-automation-stop-all", (_event, serviceId: unknown): AutomationTask[] => {
-    if (typeof serviceId === "string") stopAllForService(serviceId);
-    return publicTasks();
-  });
+  ipcMain.handle(
+    "messenger-automation-stop-all",
+    (_event, serviceId: unknown): AutomationTask[] => {
+      if (typeof serviceId === "string") stopAllForService(serviceId);
+      return publicTasks();
+    },
+  );
 
   ipcMain.handle("messenger-automation-list", (): AutomationTask[] => publicTasks());
 

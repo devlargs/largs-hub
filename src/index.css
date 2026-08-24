@@ -48,16 +48,16 @@
    theme-independent. */
 :root {
   /* Type — major third (1.25), anchored on a 13px UI base */
-  --text-3xs: 0.625rem;    /* 10 */
-  --text-2xs: 0.6875rem;   /* 11 */
-  --text-xs: 0.75rem;      /* 12 */
-  --text-sm: 0.8125rem;    /* 13 */
-  --text-md: 0.875rem;     /* 14 */
-  --text-lg: 1.0625rem;    /* 17 */
-  --text-xl: 1.3125rem;    /* 21 */
-  --text-2xl: 1.625rem;    /* 26 */
+  --text-3xs: 0.625rem; /* 10 */
+  --text-2xs: 0.6875rem; /* 11 */
+  --text-xs: 0.75rem; /* 12 */
+  --text-sm: 0.8125rem; /* 13 */
+  --text-md: 0.875rem; /* 14 */
+  --text-lg: 1.0625rem; /* 17 */
+  --text-xl: 1.3125rem; /* 21 */
+  --text-2xl: 1.625rem; /* 26 */
   --text-display-s: 2.125rem; /* 34 */
-  --text-display: 3.25rem;    /* 52 */
+  --text-display: 3.25rem; /* 52 */
 
   /* Space — 4pt base, named by role */
   --space-3xs: 0.125rem;
@@ -79,8 +79,8 @@
 
   /* The one font pairing: system sans for text, system mono for figures */
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-figure: ui-monospace, "Cascadia Mono", "Segoe UI Mono", "SF Mono", Menlo,
-    Consolas, monospace;
+  --font-figure:
+    ui-monospace, "Cascadia Mono", "Segoe UI Mono", "SF Mono", Menlo, Consolas, monospace;
 }
 
 @theme {
@@ -92,8 +92,8 @@
 }
 
 /* Layered so Tailwind's utilities still win: an unlayered rule beats every
-   layered one, so a bare `*` reset here silently killed every p-*/m-* class. */
-@layer base {
+   layered one, so a bare `*` reset here silently killed every p-*/
+m-* class. */ @layer base {
   * {
     margin: 0;
     padding: 0;
@@ -128,20 +128,45 @@ body,
 
 /* Star twinkle */
 @keyframes twinkle {
-  0%, 100% { opacity: 0.08; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 0.08;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 /* Welcome screen – compact layout for short viewports */
 @media (max-height: 640px) {
-  .welcome-globe { margin-bottom: 16px !important; }
-  .welcome-globe svg { width: 96px !important; height: 96px !important; }
-  .welcome-title { font-size: 32px !important; margin-bottom: 10px !important; }
-  .welcome-subtitle { font-size: 15px !important; margin-bottom: 20px !important; }
-  .welcome-cta { padding: 10px 28px !important; margin-bottom: 12px !important; }
-  .welcome-connector-line { height: 24px !important; }
-  .welcome-connector-svg { height: 28px !important; }
-  .welcome-feature-section { display: none !important; }
+  .welcome-globe {
+    margin-bottom: 16px !important;
+  }
+  .welcome-globe svg {
+    width: 96px !important;
+    height: 96px !important;
+  }
+  .welcome-title {
+    font-size: 32px !important;
+    margin-bottom: 10px !important;
+  }
+  .welcome-subtitle {
+    font-size: 15px !important;
+    margin-bottom: 20px !important;
+  }
+  .welcome-cta {
+    padding: 10px 28px !important;
+    margin-bottom: 12px !important;
+  }
+  .welcome-connector-line {
+    height: 24px !important;
+  }
+  .welcome-connector-svg {
+    height: 28px !important;
+  }
+  .welcome-feature-section {
+    display: none !important;
+  }
 }
 
 /* Titlebar drag region */

@@ -30,8 +30,7 @@ interface PomodoroPageProps {
 const pullCache = new Map<string, number>();
 const CACHE_TTL_MS = 30_000;
 
-const prefersReducedMotion = () =>
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Unfinished first (in manual order), finished sinking to the bottom — the
 // reflow between the two groups is what the FLIP animation below smooths over.
@@ -281,7 +280,11 @@ export default function PomodoroPage({ service }: PomodoroPageProps) {
 
   const handleCarryOver = useCallback(async () => {
     const before = new Set(tasks.map((t) => t.id));
-    const res = await window.electronAPI.pomodoro.carryOver(serviceId, shiftDateKey(date, -1), date);
+    const res = await window.electronAPI.pomodoro.carryOver(
+      serviceId,
+      shiftDateKey(date, -1),
+      date,
+    );
     applyResult(res);
     if (res.ok) {
       // Only the tasks that actually arrived get the grow-in animation
@@ -510,7 +513,10 @@ export default function PomodoroPage({ service }: PomodoroPageProps) {
         </header>
 
         {/* --- Progress. The count is a figure, set in mono. --- */}
-        <div className={celebrating ? "pom-celebrating" : ""} style={{ marginBottom: "var(--space-lg)" }}>
+        <div
+          className={celebrating ? "pom-celebrating" : ""}
+          style={{ marginBottom: "var(--space-lg)" }}
+        >
           <div
             className="flex items-baseline justify-between"
             style={{ gap: "var(--space-sm)", marginBottom: "var(--space-xs)" }}
@@ -528,7 +534,10 @@ export default function PomodoroPage({ service }: PomodoroPageProps) {
               </span>
             </span>
             {celebrating && (
-              <span className="pom-glow" style={{ fontSize: "var(--text-xs)", color: "var(--success)" }}>
+              <span
+                className="pom-glow"
+                style={{ fontSize: "var(--text-xs)", color: "var(--success)" }}
+              >
                 Everything's done.
               </span>
             )}
@@ -571,8 +580,7 @@ export default function PomodoroPage({ service }: PomodoroPageProps) {
           >
             <MdSubdirectoryArrowRight size={15} className="shrink-0" />
             <span className="truncate">
-              Carry over {carryCount} from{" "}
-              {formatDayLabel(shiftDateKey(date, -1)).toLowerCase()}
+              Carry over {carryCount} from {formatDayLabel(shiftDateKey(date, -1)).toLowerCase()}
             </span>
           </button>
         )}
@@ -635,9 +643,7 @@ export default function PomodoroPage({ service }: PomodoroPageProps) {
                   if (timer?.taskId === task.id) {
                     void window.electronAPI.pomodoro.timer.stop().then(() => setTimer(null));
                   } else {
-                    void window.electronAPI.pomodoro.timer
-                      .start(serviceId, task.id)
-                      .then(setTimer);
+                    void window.electronAPI.pomodoro.timer.start(serviceId, task.id).then(setTimer);
                   }
                 }}
                 onDragStart={() => setDraggingId(task.id)}

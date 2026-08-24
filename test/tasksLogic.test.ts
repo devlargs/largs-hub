@@ -170,7 +170,9 @@ describe("mergeRemoteTasks", () => {
   });
 
   it("takes the newer remote copy", () => {
-    const local = [task({ id: "a", pageId: "p1", text: "old", editedAt: "2026-08-24T08:00:00.000Z" })];
+    const local = [
+      task({ id: "a", pageId: "p1", text: "old", editedAt: "2026-08-24T08:00:00.000Z" }),
+    ];
     const merged = mergeRemoteTasks(
       local,
       [{ pageId: "p1", text: "new", done: false, date, order: 0, editedAt: NOW }],
@@ -182,7 +184,9 @@ describe("mergeRemoteTasks", () => {
   });
 
   it("keeps a local task that still has an unpushed edit", () => {
-    const local = [task({ id: "a", pageId: "p1", text: "mine", editedAt: "2026-08-24T08:00:00.000Z" })];
+    const local = [
+      task({ id: "a", pageId: "p1", text: "mine", editedAt: "2026-08-24T08:00:00.000Z" }),
+    ];
     const merged = mergeRemoteTasks(
       local,
       [{ pageId: "p1", text: "theirs", done: false, date, order: 0, editedAt: NOW }],

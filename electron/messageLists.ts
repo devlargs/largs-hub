@@ -18,9 +18,7 @@ export const MAX_MESSAGE_LENGTH = 5000;
 export const MAX_GROUP_NAME_LENGTH = 80;
 export const MAX_GROUP_MESSAGES = 200;
 
-export type ListGroupResult =
-  | { ok: true; group: MessageListGroup }
-  | { ok: false; error: string };
+export type ListGroupResult = { ok: true; group: MessageListGroup } | { ok: false; error: string };
 
 // Unlike sanitizeService (which returns null), this reports *why* a group was
 // rejected — the panel shows the reason next to the editor.
@@ -55,8 +53,10 @@ export function sanitizeMessageListGroup(raw: unknown, now = 0): ListGroupResult
     messages.push(entry);
   }
 
-  const createdAt = typeof g.createdAt === "number" && Number.isFinite(g.createdAt) ? g.createdAt : now;
-  const updatedAt = typeof g.updatedAt === "number" && Number.isFinite(g.updatedAt) ? g.updatedAt : now;
+  const createdAt =
+    typeof g.createdAt === "number" && Number.isFinite(g.createdAt) ? g.createdAt : now;
+  const updatedAt =
+    typeof g.updatedAt === "number" && Number.isFinite(g.updatedAt) ? g.updatedAt : now;
 
   return { ok: true, group: { id: g.id, name, messages, createdAt, updatedAt } };
 }

@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  hasLink,
-  parseTaskSegments,
-  toHref,
-} from "../src/components/pomodoro/links";
+import { hasLink, parseTaskSegments, toHref } from "../src/components/pomodoro/links";
 
 const values = (text: string) => parseTaskSegments(text).map((s) => s.value);
 const links = (text: string) =>

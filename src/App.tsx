@@ -73,11 +73,9 @@ function App() {
     // pushed when they change, so a UI reload would otherwise show no badges.
     window.electronAPI.getNotificationCounts().then(setNotificationCounts);
 
-    const unsub = window.electronAPI.onNotificationUpdate(
-      ({ serviceId, count }) => {
-        updateNotificationCount(serviceId, count);
-      },
-    );
+    const unsub = window.electronAPI.onNotificationUpdate(({ serviceId, count }) => {
+      updateNotificationCount(serviceId, count);
+    });
 
     // Listen for services updated from native context menu actions
     const unsubServices = window.electronAPI.onServicesUpdated((updated) => {
@@ -148,8 +146,7 @@ function App() {
 
     // Messenger automation task state pushed from the main process
     window.electronAPI.messengerAutomation.list().then(setAutomationTasks);
-    const unsubAutomation =
-      window.electronAPI.messengerAutomation.onUpdated(setAutomationTasks);
+    const unsubAutomation = window.electronAPI.messengerAutomation.onUpdated(setAutomationTasks);
 
     return () => {
       unsub();
@@ -230,16 +227,13 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeydown);
   }, [handleSelectService]);
 
-  const handleAddService = useCallback(
-    async (service: Service) => {
-      const updated = await window.electronAPI.addService(service);
-      setServices(updated);
-      setShowAddModal(false);
-      setActiveServiceId(null);
-      await window.electronAPI?.hideService();
-    },
-    [],
-  );
+  const handleAddService = useCallback(async (service: Service) => {
+    const updated = await window.electronAPI.addService(service);
+    setServices(updated);
+    setShowAddModal(false);
+    setActiveServiceId(null);
+    await window.electronAPI?.hideService();
+  }, []);
 
   const handleUpdateService = useCallback(async (service: Service) => {
     const updated = await window.electronAPI.updateService(service);
@@ -373,7 +367,10 @@ function App() {
         {/* BrowserView renders natively on top of this area */}
         <div className="flex-1 relative">
           {!activeServiceId && !showSettingsPage && (
-            <WelcomeScreen onAddService={() => setShowAddModal(true)} hasServices={services.length > 0} />
+            <WelcomeScreen
+              onAddService={() => setShowAddModal(true)}
+              hasServices={services.length > 0}
+            />
           )}
           {showSettingsPage && !activeServiceId && <SettingsPage />}
           {activeService?.type === "pomodoro" && activeService.enabled !== false && (
@@ -385,19 +382,20 @@ function App() {
               onRemove={() => handleRemoveService(activeService.id)}
             />
           )}
-          {activeServiceId && (() => {
-            const svc = services.find((s) => s.id === activeServiceId);
-            return svc?.enabled === false ? (
-              <DisabledServiceScreen
-                serviceName={svc.name}
-                onEnable={async () => {
-                  const updated = await window.electronAPI.toggleServiceEnabled(svc.id);
-                  setServices(updated);
-                  window.electronAPI?.showService(svc.id);
-                }}
-              />
-            ) : null;
-          })()}
+          {activeServiceId &&
+            (() => {
+              const svc = services.find((s) => s.id === activeServiceId);
+              return svc?.enabled === false ? (
+                <DisabledServiceScreen
+                  serviceName={svc.name}
+                  onEnable={async () => {
+                    const updated = await window.electronAPI.toggleServiceEnabled(svc.id);
+                    setServices(updated);
+                    window.electronAPI?.showService(svc.id);
+                  }}
+                />
+              ) : null;
+            })()}
         </div>
       </div>
       {findServiceId && (

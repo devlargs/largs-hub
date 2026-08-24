@@ -66,11 +66,7 @@ export function repositionDownloadToasts() {
     if (toast.isDestroyed()) return;
     toast.setPosition(
       bounds.x + bounds.width - TOAST_WIDTH - TOAST_MARGIN,
-      bounds.y +
-        bounds.height -
-        TOAST_MARGIN -
-        (index + 1) * TOAST_HEIGHT -
-        index * TOAST_GAP,
+      bounds.y + bounds.height - TOAST_MARGIN - (index + 1) * TOAST_HEIGHT - index * TOAST_GAP,
     );
   });
 }
@@ -122,10 +118,7 @@ function showDownloadToast(fileName: string) {
   });
   // Escape HTML metacharacters, then URL-encode the whole document: a raw
   // "#" or "%" in a filename would otherwise truncate/corrupt the data: URL.
-  const escaped = fileName
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  const escaped = fileName.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const html = `<html><body style="margin:0;font-family:Segoe UI,sans-serif;background:transparent;overflow:hidden;">
       <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(30,30,46,0.95);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#cdd6f4;font-size:13px;backdrop-filter:blur(12px);">
         <span style="color:#89b4fa;font-weight:600;white-space:nowrap;">Download complete</span>

@@ -60,7 +60,10 @@ const STALE_INSTALLER_DELAY_MS = 15_000;
 /** Parses "1.2.3" or "v1.2.3" into [major, minor, patch]; null if it isn't one. */
 export function parseVersion(raw: unknown): [number, number, number] | null {
   if (typeof raw !== "string") return null;
-  const match = raw.trim().replace(/^v/i, "").match(/^(\d+)\.(\d+)\.(\d+)$/);
+  const match = raw
+    .trim()
+    .replace(/^v/i, "")
+    .match(/^(\d+)\.(\d+)\.(\d+)$/);
   if (!match) return null;
   return [Number(match[1]), Number(match[2]), Number(match[3])];
 }
@@ -159,78 +162,80 @@ export function registerUpdater(deps: UpdaterDeps) {
           reject(new Error("Update download blocked: untrusted or non-https URL"));
           return;
         }
-        https.get(url, { headers: { "User-Agent": "Largs-Hub-Updater" } }, (res) => {
-          // Follow redirects (GitHub uses 302)
-          if (res.statusCode === 301 || res.statusCode === 302) {
-            if (redirectsLeft <= 0 || !res.headers.location) {
-              reject(new Error("Update download failed: too many redirects"));
-              return;
-            }
-            return follow(res.headers.location, redirectsLeft - 1);
-          }
-          if (res.statusCode !== 200) {
-            reject(new Error(`Download failed: ${res.statusCode}`));
-            return;
-          }
-
-          const totalBytes = parseInt(res.headers["content-length"] || "0", 10);
-          let downloaded = 0;
-          const hash = crypto.createHash("sha256");
-          const file = fs.createWriteStream(tmpPath);
-
-          res.on("data", (chunk: Buffer) => {
-            downloaded += chunk.length;
-            hash.update(chunk);
-            if (totalBytes > 0 && deps.getMainWindow()) {
-              deps.getUiView()?.webContents.send("update-download-progress", {
-                percent: Math.round((downloaded / totalBytes) * 100),
-              });
-            }
-          });
-
-          res.pipe(file);
-
-          file.on("finish", () => {
-            file.close(() => {
-              // Verify the download against the sha256 digest GitHub publishes
-              // for the release asset before executing anything.
-              const actualSha256 = hash.digest("hex");
-              if (expectedSha256 && actualSha256 !== expectedSha256) {
-                fs.unlink(tmpPath, () => {});
-                reject(new Error("Update rejected: checksum mismatch"));
+        https
+          .get(url, { headers: { "User-Agent": "Largs-Hub-Updater" } }, (res) => {
+            // Follow redirects (GitHub uses 302)
+            if (res.statusCode === 301 || res.statusCode === 302) {
+              if (redirectsLeft <= 0 || !res.headers.location) {
+                reject(new Error("Update download failed: too many redirects"));
                 return;
               }
-              // Launch the NSIS installer silently in a fully detached process.
-              // Args match what electron-updater uses: `--updated` marks this as
-              // an update rather than a fresh install, and `--force-run` is what
-              // makes a *silent* installer relaunch the app when it finishes —
-              // without it the installer exits quietly and the app never
-              // reopens.
-              const child = spawn(tmpPath, ["--updated", "/S", "--force-run"], {
-                detached: true,
-                stdio: "ignore",
-                windowsHide: true,
-              });
-              child.on("error", (err) => {
-                reject(err);
-              });
-              child.unref();
-              // Give the spawned process a moment to start before quitting.
-              // Force-exit so nothing (a stray window handler, a pending IPC)
-              // can keep the old instance alive and block the installer.
-              setTimeout(() => {
-                resolve();
-                app.quit();
-                setTimeout(() => app.exit(0), 2000);
-              }, 1000);
-            });
-          });
+              return follow(res.headers.location, redirectsLeft - 1);
+            }
+            if (res.statusCode !== 200) {
+              reject(new Error(`Download failed: ${res.statusCode}`));
+              return;
+            }
 
-          file.on("error", (err: Error) => {
-            fs.unlink(tmpPath, () => {});
-            reject(err);
-          });
-        }).on("error", reject);
+            const totalBytes = parseInt(res.headers["content-length"] || "0", 10);
+            let downloaded = 0;
+            const hash = crypto.createHash("sha256");
+            const file = fs.createWriteStream(tmpPath);
+
+            res.on("data", (chunk: Buffer) => {
+              downloaded += chunk.length;
+              hash.update(chunk);
+              if (totalBytes > 0 && deps.getMainWindow()) {
+                deps.getUiView()?.webContents.send("update-download-progress", {
+                  percent: Math.round((downloaded / totalBytes) * 100),
+                });
+              }
+            });
+
+            res.pipe(file);
+
+            file.on("finish", () => {
+              file.close(() => {
+                // Verify the download against the sha256 digest GitHub publishes
+                // for the release asset before executing anything.
+                const actualSha256 = hash.digest("hex");
+                if (expectedSha256 && actualSha256 !== expectedSha256) {
+                  fs.unlink(tmpPath, () => {});
+                  reject(new Error("Update rejected: checksum mismatch"));
+                  return;
+                }
+                // Launch the NSIS installer silently in a fully detached process.
+                // Args match what electron-updater uses: `--updated` marks this as
+                // an update rather than a fresh install, and `--force-run` is what
+                // makes a *silent* installer relaunch the app when it finishes —
+                // without it the installer exits quietly and the app never
+                // reopens.
+                const child = spawn(tmpPath, ["--updated", "/S", "--force-run"], {
+                  detached: true,
+                  stdio: "ignore",
+                  windowsHide: true,
+                });
+                child.on("error", (err) => {
+                  reject(err);
+                });
+                child.unref();
+                // Give the spawned process a moment to start before quitting.
+                // Force-exit so nothing (a stray window handler, a pending IPC)
+                // can keep the old instance alive and block the installer.
+                setTimeout(() => {
+                  resolve();
+                  app.quit();
+                  setTimeout(() => app.exit(0), 2000);
+                }, 1000);
+              });
+            });
+
+            file.on("error", (err: Error) => {
+              fs.unlink(tmpPath, () => {});
+              reject(err);
+            });
+          })
+          .on("error", reject);
       };
 
       follow(updateUrl, MAX_REDIRECTS);

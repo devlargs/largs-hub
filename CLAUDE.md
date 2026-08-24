@@ -36,7 +36,7 @@ Everything hangs off one frameless `BrowserWindow`:
 2. **Service views** — one `WebContentsView` per enabled service, each with its own session partition (`persist:service-<id>`) so logins are isolated. Positioned to the right of the sidebar and below the titlebar via the `SIDEBAR_WIDTH` / `TITLEBAR_HEIGHT` constants; only the active one is visible.
 3. **Overlay views** (e.g. the link preview) — added last so they render on top.
 
-**Z-order rule:** child-view reordering is unreliable on Windows, so overlays don't get stacked above service views — instead the active service view is *hidden*. React modals do this by calling `bringUiToFront()` in a mount effect and `sendUiToBack()` on cleanup; main ref-counts these (`uiLayerRefCount`) so nested overlays work. Any new React modal that must appear over a service view needs this effect.
+**Z-order rule:** child-view reordering is unreliable on Windows, so overlays don't get stacked above service views — instead the active service view is _hidden_. React modals do this by calling `bringUiToFront()` in a mount effect and `sendUiToBack()` on cleanup; main ref-counts these (`uiLayerRefCount`) so nested overlays work. Any new React modal that must appear over a service view needs this effect.
 
 **Native menus:** HTML menus/tooltips can't render above WebContentsViews, so all context menus are native `Menu.buildFromTemplate` in the main process. Results flow back to React via the `"context-menu-action"` IPC event, handled in `App.tsx`.
 

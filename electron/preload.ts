@@ -134,12 +134,10 @@ export type NoticeReason = "replied" | "seen" | "typing";
 const api = {
   // Service CRUD
   getServices: (): Promise<Service[]> => ipcRenderer.invoke("get-services"),
-  getLastActiveService: (): Promise<string | null> =>
-    ipcRenderer.invoke("get-last-active-service"),
+  getLastActiveService: (): Promise<string | null> => ipcRenderer.invoke("get-last-active-service"),
   getNotificationCounts: (): Promise<Record<string, number>> =>
     ipcRenderer.invoke("get-notification-counts"),
-  addService: (service: Service): Promise<Service[]> =>
-    ipcRenderer.invoke("add-service", service),
+  addService: (service: Service): Promise<Service[]> => ipcRenderer.invoke("add-service", service),
   removeService: (serviceId: string): Promise<Service[]> =>
     ipcRenderer.invoke("remove-service", serviceId),
   updateService: (service: Service): Promise<Service[]> =>
@@ -154,8 +152,7 @@ const api = {
     ipcRenderer.invoke("toggle-service-notifications", serviceId),
 
   // View management
-  showService: (serviceId: string): void =>
-    ipcRenderer.send("show-service", serviceId),
+  showService: (serviceId: string): void => ipcRenderer.send("show-service", serviceId),
   hideService: (): Promise<void> => ipcRenderer.invoke("hide-service"),
   bringUiToFront: (): void => ipcRenderer.send("bring-ui-to-front"),
   sendUiToBack: (): void => ipcRenderer.send("send-ui-to-back"),
@@ -168,7 +165,10 @@ const api = {
     return () => ipcRenderer.removeListener("services-updated", handler);
   },
   onContextMenuAction: (callback: (data: { action: string; serviceId: string }) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, data: { action: string; serviceId: string }) => callback(data);
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { action: string; serviceId: string },
+    ) => callback(data);
     ipcRenderer.on("context-menu-action", handler);
     return () => ipcRenderer.removeListener("context-menu-action", handler);
   },
@@ -177,22 +177,17 @@ const api = {
     ipcRenderer.on("service-switched", handler);
     return () => ipcRenderer.removeListener("service-switched", handler);
   },
-  reloadService: (serviceId: string): void =>
-    ipcRenderer.send("reload-service", serviceId),
-  goBack: (serviceId: string): void =>
-    ipcRenderer.send("go-back", serviceId),
-  goForward: (serviceId: string): void =>
-    ipcRenderer.send("go-forward", serviceId),
+  reloadService: (serviceId: string): void => ipcRenderer.send("reload-service", serviceId),
+  goBack: (serviceId: string): void => ipcRenderer.send("go-back", serviceId),
+  goForward: (serviceId: string): void => ipcRenderer.send("go-forward", serviceId),
 
   // Find in page (service views)
-  setFindBarOpen: (open: boolean): void =>
-    ipcRenderer.send("set-find-bar-open", open),
+  setFindBarOpen: (open: boolean): void => ipcRenderer.send("set-find-bar-open", open),
   findInPage: (serviceId: string, text: string, forward: boolean, findNext: boolean): void =>
     ipcRenderer.send("find-in-page", { serviceId, text, forward, findNext }),
-  stopFindInPage: (serviceId: string): void =>
-    ipcRenderer.send("stop-find-in-page", serviceId),
+  stopFindInPage: (serviceId: string): void => ipcRenderer.send("stop-find-in-page", serviceId),
   onFindResults: (
-    callback: (data: { serviceId: string; matches: number; activeMatchOrdinal: number }) => void
+    callback: (data: { serviceId: string; matches: number; activeMatchOrdinal: number }) => void,
   ) => {
     const handler = (
       _event: Electron.IpcRendererEvent,
@@ -241,8 +236,7 @@ const api = {
 
   // Link preview
   closeLinkPreview: (): void => ipcRenderer.send("close-link-preview"),
-  openLinkExternal: (url: string): void =>
-    ipcRenderer.send("open-link-external", url),
+  openLinkExternal: (url: string): void => ipcRenderer.send("open-link-external", url),
   onLinkPreviewOpen: (callback: (url: string) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, url: string) => callback(url);
     ipcRenderer.on("link-preview-open", handler);
@@ -265,11 +259,11 @@ const api = {
   close: (): void => ipcRenderer.send("window-close"),
 
   // Events
-  onNotificationUpdate: (
-    callback: (data: { serviceId: string; count: number }) => void
-  ) => {
-    const handler = (_event: Electron.IpcRendererEvent, data: { serviceId: string; count: number }) =>
-      callback(data);
+  onNotificationUpdate: (callback: (data: { serviceId: string; count: number }) => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { serviceId: string; count: number },
+    ) => callback(data);
     ipcRenderer.on("notification-update", handler);
     return () => ipcRenderer.removeListener("notification-update", handler);
   },
@@ -283,8 +277,7 @@ const api = {
     ipcRenderer.invoke("get-settings"),
   updateSetting: (key: string, value: unknown): Promise<void> =>
     ipcRenderer.invoke("update-setting", key, value),
-  selectDownloadFolder: (): Promise<string | null> =>
-    ipcRenderer.invoke("select-download-folder"),
+  selectDownloadFolder: (): Promise<string | null> => ipcRenderer.invoke("select-download-folder"),
 
   // Custom icons
   saveCustomIcon: (fileName: string, dataUrl: string): Promise<string> =>
@@ -293,11 +286,16 @@ const api = {
     ipcRenderer.invoke("delete-custom-icon", fileName),
 
   // Updates
-  checkForUpdates: (): Promise<{ updateAvailable: boolean; version?: string; downloadUrl?: string }> => ipcRenderer.invoke("check-for-updates"),
+  checkForUpdates: (): Promise<{
+    updateAvailable: boolean;
+    version?: string;
+    downloadUrl?: string;
+  }> => ipcRenderer.invoke("check-for-updates"),
   getAppVersion: (): Promise<string> => ipcRenderer.invoke("get-app-version"),
   downloadAndInstallUpdate: (): Promise<void> => ipcRenderer.invoke("download-and-install-update"),
   onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, info: { percent: number }) => callback(info);
+    const handler = (_event: Electron.IpcRendererEvent, info: { percent: number }) =>
+      callback(info);
     ipcRenderer.on("update-download-progress", handler);
     return () => ipcRenderer.removeListener("update-download-progress", handler);
   },
@@ -357,9 +355,7 @@ const api = {
       ipcRenderer.on("pomodoro-sync-updated", handler);
       return () => ipcRenderer.removeListener("pomodoro-sync-updated", handler);
     },
-    onTasksUpdated: (
-      callback: (data: { serviceId: string; tasks: PomodoroTask[] }) => void,
-    ) => {
+    onTasksUpdated: (callback: (data: { serviceId: string; tasks: PomodoroTask[] }) => void) => {
       const handler = (
         _event: Electron.IpcRendererEvent,
         data: { serviceId: string; tasks: PomodoroTask[] },
@@ -376,10 +372,8 @@ const api = {
       skip: (): Promise<PomodoroTimerState | null> => ipcRenderer.invoke("pomodoro-timer-skip"),
       stop: (): Promise<null> => ipcRenderer.invoke("pomodoro-timer-stop"),
       onUpdated: (callback: (state: PomodoroTimerState | null) => void) => {
-        const handler = (
-          _event: Electron.IpcRendererEvent,
-          state: PomodoroTimerState | null,
-        ) => callback(state);
+        const handler = (_event: Electron.IpcRendererEvent, state: PomodoroTimerState | null) =>
+          callback(state);
         ipcRenderer.on("pomodoro-timer-updated", handler);
         return () => ipcRenderer.removeListener("pomodoro-timer-updated", handler);
       },
@@ -393,14 +387,12 @@ const api = {
       ipcRenderer.invoke("messenger-automation-stop", taskId),
     stopAll: (serviceId: string): Promise<AutomationTask[]> =>
       ipcRenderer.invoke("messenger-automation-stop-all", serviceId),
-    list: (): Promise<AutomationTask[]> =>
-      ipcRenderer.invoke("messenger-automation-list"),
+    list: (): Promise<AutomationTask[]> => ipcRenderer.invoke("messenger-automation-list"),
     setAutoStop: (serviceId: string, minutes: number | null): Promise<AutoStopResult> =>
       ipcRenderer.invoke("messenger-automation-set-auto-stop", serviceId, minutes),
     getAutoStop: (serviceId: string): Promise<AutoStopState | null> =>
       ipcRenderer.invoke("messenger-automation-get-auto-stop", serviceId),
-    setSplitOpen: (open: boolean): void =>
-      ipcRenderer.send("set-automation-split", open),
+    setSplitOpen: (open: boolean): void => ipcRenderer.send("set-automation-split", open),
     getRecentEmojis: (): Promise<string[]> =>
       ipcRenderer.invoke("messenger-automation-recent-emojis"),
     onRecentEmojisUpdated: (callback: (emojis: string[]) => void) => {

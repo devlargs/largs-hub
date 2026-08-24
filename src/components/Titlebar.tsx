@@ -1,7 +1,13 @@
 import { isInternalService, Service } from "../types";
 import appIcon from "../../assets/ico/icon.png";
 import { VscChromeMinimize, VscChromeMaximize, VscChromeClose } from "react-icons/vsc";
-import { IoArrowBack, IoArrowForward, IoReload, IoSettingsSharp, IoFlashOutline } from "react-icons/io5";
+import {
+  IoArrowBack,
+  IoArrowForward,
+  IoReload,
+  IoSettingsSharp,
+  IoFlashOutline,
+} from "react-icons/io5";
 
 interface TitlebarProps {
   activeService: Service | null;
@@ -30,7 +36,15 @@ export default function Titlebar({
   onOpenAutomation,
 }: TitlebarProps) {
   return (
-    <div className="titlebar-drag flex items-center bg-sidebar select-none shrink-0" style={{ height: 46, paddingLeft: 24, paddingRight: 8, borderBottom: "1px solid var(--border)" }}>
+    <div
+      className="titlebar-drag flex items-center bg-sidebar select-none shrink-0"
+      style={{
+        height: 46,
+        paddingLeft: 24,
+        paddingRight: 8,
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
       {/* Navigation controls */}
       <div className="titlebar-no-drag flex items-center gap-1">
         {activeService ? (
@@ -64,7 +78,10 @@ export default function Titlebar({
                 </button>
               </>
             )}
-            <span className="text-xs ml-2 truncate max-w-[300px]" style={{ color: "var(--text-muted)" }}>
+            <span
+              className="text-xs ml-2 truncate max-w-[300px]"
+              style={{ color: "var(--text-muted)" }}
+            >
               {activeService.name}
             </span>
             {/* A zoomed service is easy to forget about — show the factor and
@@ -83,7 +100,9 @@ export default function Titlebar({
         ) : (
           <div className="flex items-center gap-2.5">
             <img src={appIcon} alt="Largs Hub" className="w-5 h-5" />
-            <span className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>Largs Hub</span>
+            <span className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
+              Largs Hub
+            </span>
           </div>
         )}
       </div>
@@ -118,19 +137,22 @@ export default function Titlebar({
         </button>
         <button
           onClick={() => window.electronAPI?.minimize()}
-          className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors" style={{ height: 46, color: "var(--text-muted)" }}
+          className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors"
+          style={{ height: 46, color: "var(--text-muted)" }}
         >
           <VscChromeMinimize size={16} />
         </button>
         <button
           onClick={() => window.electronAPI?.maximize()}
-          className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors" style={{ height: 46, color: "var(--text-muted)" }}
+          className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors"
+          style={{ height: 46, color: "var(--text-muted)" }}
         >
           <VscChromeMaximize size={16} />
         </button>
         <button
           onClick={() => window.electronAPI?.close()}
-          className="w-12 flex items-center justify-center hover:bg-red-600 hover:text-white transition-colors" style={{ height: 46, color: "var(--text-muted)" }}
+          className="w-12 flex items-center justify-center hover:bg-red-600 hover:text-white transition-colors"
+          style={{ height: 46, color: "var(--text-muted)" }}
         >
           <VscChromeClose size={16} />
         </button>

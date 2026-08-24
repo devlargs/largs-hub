@@ -14,7 +14,7 @@ A free, privacy-friendly alternative to [Rambox](https://rambox.app/). Keep Gmai
 
 ### 👉 [Download Largs Hub for Windows](https://github.com/devlargs/largs-hub/releases/latest/download/Largs%20Hub%20Setup.exe)
 
-*Click the link above to download the installer, run it, and you're done — no setup required.*
+_Click the link above to download the installer, run it, and you're done — no setup required._
 
 </div>
 
@@ -37,21 +37,21 @@ Juggling a dozen browser tabs for the apps you use all day is noisy and easy to 
 
 ## Features
 
-| | |
-|---|---|
-| 🗂️ **Unified workspace** | Add any web app by URL and switch between them from a clean sidebar. Reorder services by drag-and-drop. |
-| 🔒 **Isolated sessions** | Every service runs in its own Chromium session partition, so logins and cookies never mix — sign in to two accounts of the same app without conflict. |
-| 🔔 **Real unread badges** | Per-service notification detection (Gmail's feed, Messenger/WhatsApp DOM, and window-title counts) surfaces accurate unread counts on the sidebar and taskbar. |
-| 💤 **Service hibernation** | Optionally unload idle services to reclaim RAM; they reload on next click and stay logged in. Great for lower-memory machines. |
-| 🔎 **In-app link preview** | Open links in a lightweight in-app popup via the "View Link" context action instead of losing your place or leaving the app. |
-| 🖥️ **Native desktop feel** | Frameless custom titlebar with back/forward/reload, persistent window size & position, native context menus, and light/dark themes. |
-| ⌨️ **Keyboard shortcuts** | Jump between services with `Ctrl`+`1`–`9`, even while a web app has focus. |
-| 📥 **Download handling** | Configurable download location and completion notifications. |
-| 🔕 **Focus options** | Per-service mute and optional blur-when-inactive for privacy. |
-| 🍅 **Pomodoro** | Built-in daily task list with a 25/5 focus timer. Works offline, and can optionally sync to a Notion database you own. |
-| 🤖 **Messenger automation** | Optional automation panel for Messenger: scheduled and interval messages, emoji bursts, and automated in-app call cycles. |
-| ⬆️ **Auto-updates** *(Windows)* | Checks GitHub Releases and installs the latest version in-app. |
-| 🕵️ **Private by design** | No account, no tracking, no cloud. All data lives in a local `electron-store` file on your machine. |
+|                                 |                                                                                                                                                                |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🗂️ **Unified workspace**        | Add any web app by URL and switch between them from a clean sidebar. Reorder services by drag-and-drop.                                                        |
+| 🔒 **Isolated sessions**        | Every service runs in its own Chromium session partition, so logins and cookies never mix — sign in to two accounts of the same app without conflict.          |
+| 🔔 **Real unread badges**       | Per-service notification detection (Gmail's feed, Messenger/WhatsApp DOM, and window-title counts) surfaces accurate unread counts on the sidebar and taskbar. |
+| 💤 **Service hibernation**      | Optionally unload idle services to reclaim RAM; they reload on next click and stay logged in. Great for lower-memory machines.                                 |
+| 🔎 **In-app link preview**      | Open links in a lightweight in-app popup via the "View Link" context action instead of losing your place or leaving the app.                                   |
+| 🖥️ **Native desktop feel**      | Frameless custom titlebar with back/forward/reload, persistent window size & position, native context menus, and light/dark themes.                            |
+| ⌨️ **Keyboard shortcuts**       | Jump between services with `Ctrl`+`1`–`9`, even while a web app has focus.                                                                                     |
+| 📥 **Download handling**        | Configurable download location and completion notifications.                                                                                                   |
+| 🔕 **Focus options**            | Per-service mute and optional blur-when-inactive for privacy.                                                                                                  |
+| 🍅 **Pomodoro**                 | Built-in daily task list with a 25/5 focus timer. Works offline, and can optionally sync to a Notion database you own.                                         |
+| 🤖 **Messenger automation**     | Optional automation panel for Messenger: scheduled and interval messages, emoji bursts, and automated in-app call cycles.                                      |
+| ⬆️ **Auto-updates** _(Windows)_ | Checks GitHub Releases and installs the latest version in-app.                                                                                                 |
+| 🕵️ **Private by design**        | No account, no tracking, no cloud. All data lives in a local `electron-store` file on your machine.                                                            |
 
 ## Installation
 
@@ -105,17 +105,17 @@ Starts the Vite dev server, the Electron TypeScript watcher, and Electron itself
 
 ### Common scripts
 
-| Script | Description |
-|---|---|
-| `npm run dev` | Run the app in development with hot reload |
-| `npm run build` | Type-check and build the renderer + Electron bundles |
-| `npm run electron:build` | Build and package a platform installer into `release/` |
-| `npm run typecheck` | Type-check the renderer, Electron, and test projects |
-| `npm run lint` / `npm run lint:fix` | Lint with ESLint |
-| `npm run format` / `npm run format:check` | Format with Prettier |
-| `npm test` | Run the Vitest unit suite |
+| Script                                    | Description                                            |
+| ----------------------------------------- | ------------------------------------------------------ |
+| `npm run dev`                             | Run the app in development with hot reload             |
+| `npm run build`                           | Type-check and build the renderer + Electron bundles   |
+| `npm run electron:build`                  | Build and package a platform installer into `release/` |
+| `npm run typecheck`                       | Type-check the renderer, Electron, and test projects   |
+| `npm run lint` / `npm run lint:fix`       | Lint with ESLint                                       |
+| `npm run format` / `npm run format:check` | Format with Prettier                                   |
+| `npm test`                                | Run the Vitest unit suite                              |
 
-> **Windows packaging note:** If you hit symlink errors during `electron:build`, enable **Developer Mode** in *Settings → System → For developers*.
+> **Windows packaging note:** If you hit symlink errors during `electron:build`, enable **Developer Mode** in _Settings → System → For developers_.
 
 ## Tech Stack
 

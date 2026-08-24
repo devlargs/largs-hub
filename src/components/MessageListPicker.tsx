@@ -52,9 +52,7 @@ export default function MessageListPicker({ selectedId, onSelect }: MessageListP
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const matching = needle
-      ? groups.filter((g) => g.name.toLowerCase().includes(needle))
-      : groups;
+    const matching = needle ? groups.filter((g) => g.name.toLowerCase().includes(needle)) : groups;
     return [...matching].sort((a, b) => b.updatedAt - a.updatedAt);
   }, [groups, query]);
 

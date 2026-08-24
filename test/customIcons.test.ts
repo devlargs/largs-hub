@@ -10,17 +10,13 @@ describe("resolveCustomIconPath", () => {
   });
 
   it("keeps names with spaces and dots", () => {
-    expect(resolveCustomIconPath("My Icon v1.2.png", DIR)).toBe(
-      path.join(DIR, "My Icon v1.2.png"),
-    );
+    expect(resolveCustomIconPath("My Icon v1.2.png", DIR)).toBe(path.join(DIR, "My Icon v1.2.png"));
   });
 
   describe("traversal", () => {
     it("refuses relative escapes", () => {
       // These are what custom-icon://..%2F..%2F..%2Fsomething decodes to
-      expect(resolveCustomIconPath("../../../etc/passwd", DIR)).toBe(
-        path.join(DIR, "passwd"),
-      );
+      expect(resolveCustomIconPath("../../../etc/passwd", DIR)).toBe(path.join(DIR, "passwd"));
       expect(resolveCustomIconPath("..", DIR)).toBeNull();
       expect(resolveCustomIconPath(".", DIR)).toBeNull();
     });

@@ -5,7 +5,10 @@ interface DisabledServiceScreenProps {
   onEnable: () => void;
 }
 
-export default function DisabledServiceScreen({ serviceName, onEnable }: DisabledServiceScreenProps) {
+export default function DisabledServiceScreen({
+  serviceName,
+  onEnable,
+}: DisabledServiceScreenProps) {
   // Generate the decorative dots once so they don't reshuffle on re-render
   const dots = useMemo(
     () =>
@@ -45,7 +48,10 @@ export default function DisabledServiceScreen({ serviceName, onEnable }: Disable
         ))}
       </div>
 
-      <div className="relative flex flex-col items-center text-center" style={{ maxWidth: 400, padding: 40 }}>
+      <div
+        className="relative flex flex-col items-center text-center"
+        style={{ maxWidth: 400, padding: 40 }}
+      >
         {/* Sleeping/paused icon */}
         <div
           className="flex items-center justify-center rounded-full"

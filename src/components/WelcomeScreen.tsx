@@ -56,8 +56,7 @@ export default function WelcomeScreen({ onAddService, hasServices }: WelcomeScre
         <div
           className="absolute inset-0 rounded-full"
           style={{
-            background:
-              "radial-gradient(circle, rgba(137,180,250,0.45) 0%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(137,180,250,0.45) 0%, transparent 70%)",
             transform: "scale(2.2)",
             filter: "blur(24px)",
           }}
@@ -102,8 +101,8 @@ export default function WelcomeScreen({ onAddService, hasServices }: WelcomeScre
           marginBottom: 40,
         }}
       >
-        Your open-source workspace browser. Add your favorite web
-        apps and manage them all one place with isolated sessions.
+        Your open-source workspace browser. Add your favorite web apps and manage them all one place
+        with isolated sessions.
       </p>
 
       {/* CTA Button */}

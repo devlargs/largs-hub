@@ -48,19 +48,22 @@ export default function Sidebar({
     clearLongPress();
   }, [clearLongPress]);
 
-  const handleDragStart = useCallback((e: React.DragEvent, serviceId: string) => {
-    if (!dragEnabled) {
-      e.preventDefault();
-      return;
-    }
-    didDrag.current = true;
-    e.dataTransfer.effectAllowed = "move";
-    // Use a transparent image as drag ghost (we show our own indicator)
-    const img = new Image();
-    img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-    e.dataTransfer.setDragImage(img, 0, 0);
-    setDraggedId(serviceId);
-  }, [dragEnabled]);
+  const handleDragStart = useCallback(
+    (e: React.DragEvent, serviceId: string) => {
+      if (!dragEnabled) {
+        e.preventDefault();
+        return;
+      }
+      didDrag.current = true;
+      e.dataTransfer.effectAllowed = "move";
+      // Use a transparent image as drag ghost (we show our own indicator)
+      const img = new Image();
+      img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+      e.dataTransfer.setDragImage(img, 0, 0);
+      setDraggedId(serviceId);
+    },
+    [dragEnabled],
+  );
 
   const handleDragOver = useCallback((e: React.DragEvent, serviceId: string) => {
     e.preventDefault();
@@ -68,29 +71,32 @@ export default function Sidebar({
     setDropTargetId(serviceId);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent, targetId: string) => {
-    e.preventDefault();
-    if (!draggedId || draggedId === targetId) {
+  const handleDrop = useCallback(
+    (e: React.DragEvent, targetId: string) => {
+      e.preventDefault();
+      if (!draggedId || draggedId === targetId) {
+        setDraggedId(null);
+        setDropTargetId(null);
+        setDragEnabled(false);
+        return;
+      }
+
+      const oldIds = services.map((s) => s.id);
+      const fromIndex = oldIds.indexOf(draggedId);
+      const toIndex = oldIds.indexOf(targetId);
+      if (fromIndex === -1 || toIndex === -1) return;
+
+      const newIds = [...oldIds];
+      newIds.splice(fromIndex, 1);
+      newIds.splice(toIndex, 0, draggedId);
+      onReorderServices(newIds);
+
       setDraggedId(null);
       setDropTargetId(null);
       setDragEnabled(false);
-      return;
-    }
-
-    const oldIds = services.map((s) => s.id);
-    const fromIndex = oldIds.indexOf(draggedId);
-    const toIndex = oldIds.indexOf(targetId);
-    if (fromIndex === -1 || toIndex === -1) return;
-
-    const newIds = [...oldIds];
-    newIds.splice(fromIndex, 1);
-    newIds.splice(toIndex, 0, draggedId);
-    onReorderServices(newIds);
-
-    setDraggedId(null);
-    setDropTargetId(null);
-    setDragEnabled(false);
-  }, [draggedId, services, onReorderServices]);
+    },
+    [draggedId, services, onReorderServices],
+  );
 
   const handleDragEnd = useCallback(() => {
     setDraggedId(null);

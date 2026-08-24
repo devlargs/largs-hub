@@ -29,8 +29,7 @@ interface TimerDeps {
   onFocusSessionComplete: (serviceId: string, taskId: string) => void;
 }
 
-const phaseMs = (phase: TimerPhase) =>
-  (phase === "focus" ? FOCUS_MINUTES : BREAK_MINUTES) * 60_000;
+const phaseMs = (phase: TimerPhase) => (phase === "focus" ? FOCUS_MINUTES : BREAK_MINUTES) * 60_000;
 
 let state: TimerState | null = null;
 let timer: NodeJS.Timeout | null = null;

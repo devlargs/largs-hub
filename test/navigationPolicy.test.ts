@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  isSameDomain,
-  normalizeHost,
-  shouldKeepInView,
-} from "../electron/navigationPolicy";
+import { isSameDomain, normalizeHost, shouldKeepInView } from "../electron/navigationPolicy";
 
 describe("isSameDomain", () => {
   it("matches the domain itself and its subdomains", () => {

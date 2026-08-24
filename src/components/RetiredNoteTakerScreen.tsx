@@ -9,10 +9,7 @@ interface RetiredNoteTakerScreenProps {
 // The Notion Note Taker was replaced by the Pomodoro service; this explains
 // where it went and offers to clean the entry up. The user's Notion database
 // is untouched either way — only the app-side link is gone.
-export default function RetiredNoteTakerScreen({
-  service,
-  onRemove,
-}: RetiredNoteTakerScreenProps) {
+export default function RetiredNoteTakerScreen({ service, onRemove }: RetiredNoteTakerScreenProps) {
   return (
     <div
       className="h-full overflow-y-auto flex items-center justify-center"

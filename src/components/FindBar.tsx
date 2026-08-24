@@ -96,7 +96,10 @@ export default function FindBar({ serviceId, onClose }: FindBarProps) {
       />
       <span
         className="text-xs tabular-nums"
-        style={{ color: query && matches === 0 ? "var(--danger)" : "var(--text-muted)", minWidth: 44 }}
+        style={{
+          color: query && matches === 0 ? "var(--danger)" : "var(--text-muted)",
+          minWidth: 44,
+        }}
       >
         {counter}
       </span>

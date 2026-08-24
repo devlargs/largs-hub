@@ -203,9 +203,15 @@
 }
 
 @keyframes pom-spring {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.012); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.012);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .pom-row-springing {
@@ -278,8 +284,16 @@
 /* --- Add: the new row grows in from nothing ------------------------------ */
 
 @keyframes pom-row-in {
-  0% { opacity: 0; transform: translateY(5px); max-height: 0; }
-  100% { opacity: 1; transform: translateY(0); max-height: 72px; }
+  0% {
+    opacity: 0;
+    transform: translateY(5px);
+    max-height: 0;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 72px;
+  }
 }
 
 .pom-row-entering {
@@ -301,43 +315,82 @@
 /* --- Day switch: the list slides in from the direction of travel --------- */
 
 @keyframes pom-day-in-next {
-  from { opacity: 0; transform: translateX(14px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes pom-day-in-prev {
-  from { opacity: 0; transform: translateX(-14px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-.pom-day-next { animation: pom-day-in-next var(--dur-short) var(--ease-out); }
-.pom-day-prev { animation: pom-day-in-prev var(--dur-short) var(--ease-out); }
+.pom-day-next {
+  animation: pom-day-in-next var(--dur-short) var(--ease-out);
+}
+.pom-day-prev {
+  animation: pom-day-in-prev var(--dur-short) var(--ease-out);
+}
 
 /* --- All done: a short flourish, not a confetti cannon ------------------- */
 
 @keyframes pom-celebrate {
-  0% { transform: scale(1); }
-  35% { transform: scale(1.03); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 @keyframes pom-glow {
-  0% { opacity: 0; }
-  30% { opacity: 1; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
-.pom-celebrating { animation: pom-celebrate 620ms var(--ease-out); }
-.pom-glow { animation: pom-glow 900ms var(--ease-out); }
+.pom-celebrating {
+  animation: pom-celebrate 620ms var(--ease-out);
+}
+.pom-glow {
+  animation: pom-glow 900ms var(--ease-out);
+}
 
 /* --- Sync pill ----------------------------------------------------------- */
 
 @keyframes pom-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
-.pom-pill-syncing { animation: pom-pulse 1.4s var(--ease-in-out) infinite; }
+.pom-pill-syncing {
+  animation: pom-pulse 1.4s var(--ease-in-out) infinite;
+}
 
 /* --- Button states ------------------------------------------------------- */
 

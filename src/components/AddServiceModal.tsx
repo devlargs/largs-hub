@@ -104,9 +104,7 @@ export default function AddServiceModal({
     if (isEditing) {
       if (!editName.trim() || !editUrl.trim()) return;
       // Internal services (Pomodoro) carry a non-http URL that is never edited
-      const url = editingService!.type
-        ? editingService!.url
-        : normalizeServiceUrl(editUrl);
+      const url = editingService!.type ? editingService!.url : normalizeServiceUrl(editUrl);
       if (!url) {
         // The main process would reject this and hand back the unchanged list,
         // which the renderer can't tell apart from a successful save (#78)
@@ -158,7 +156,8 @@ export default function AddServiceModal({
           display: "flex",
           flexDirection: "column" as const,
           opacity: visible && !closing ? 1 : 0,
-          transform: visible && !closing ? "scale(1) translateY(0)" : "scale(0.95) translateY(12px)",
+          transform:
+            visible && !closing ? "scale(1) translateY(0)" : "scale(0.95) translateY(12px)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -175,7 +174,12 @@ export default function AddServiceModal({
           <div className="flex flex-col" style={{ gap: 16, marginBottom: 28 }}>
             {/* Icon upload */}
             <div className="flex flex-col items-center" style={{ gap: 8 }}>
-              <label className="text-xs font-medium self-start" style={{ color: "var(--text-muted)" }}>Icon</label>
+              <label
+                className="text-xs font-medium self-start"
+                style={{ color: "var(--text-muted)" }}
+              >
+                Icon
+              </label>
               <div className="flex items-center" style={{ gap: 12 }}>
                 <div
                   className="flex items-center justify-center rounded-2xl"
@@ -188,11 +192,20 @@ export default function AddServiceModal({
                   }}
                 >
                   {iconPreview ? (
-                    <img src={iconPreview} alt="Icon" style={{ width: 40, height: 40, objectFit: "contain" }} />
+                    <img
+                      src={iconPreview}
+                      alt="Icon"
+                      style={{ width: 40, height: 40, objectFit: "contain" }}
+                    />
                   ) : (
                     <span
                       className="flex items-center justify-center text-white font-bold text-lg"
-                      style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: editingService?.color || "#6c7086" }}
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 8,
+                        backgroundColor: editingService?.color || "#6c7086",
+                      }}
                     >
                       {editName.charAt(0).toUpperCase() || "?"}
                     </span>
@@ -202,7 +215,13 @@ export default function AddServiceModal({
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="flex items-center text-xs font-medium cursor-pointer rounded-lg transition-colors hover:opacity-80"
-                    style={{ gap: 6, padding: "6px 12px", backgroundColor: "var(--panel)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+                    style={{
+                      gap: 6,
+                      padding: "6px 12px",
+                      backgroundColor: "var(--panel)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border)",
+                    }}
                   >
                     <IoCloudUploadOutline size={14} />
                     Upload
@@ -211,7 +230,13 @@ export default function AddServiceModal({
                     <button
                       onClick={handleDeleteIcon}
                       className="flex items-center text-xs font-medium cursor-pointer rounded-lg transition-colors hover:opacity-80"
-                      style={{ gap: 6, padding: "6px 12px", color: "#f38ba8", backgroundColor: "transparent", border: "1px solid var(--border)" }}
+                      style={{
+                        gap: 6,
+                        padding: "6px 12px",
+                        color: "#f38ba8",
+                        backgroundColor: "transparent",
+                        border: "1px solid var(--border)",
+                      }}
                     >
                       <IoTrashOutline size={14} />
                       Remove
@@ -229,7 +254,9 @@ export default function AddServiceModal({
             </div>
 
             <div className="flex flex-col" style={{ gap: 6 }}>
-              <label className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Name</label>
+              <label className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+                Name
+              </label>
               <input
                 type="text"
                 value={editName}
@@ -244,7 +271,9 @@ export default function AddServiceModal({
               />
             </div>
             <div className="flex flex-col" style={{ gap: 6 }}>
-              <label className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>URL</label>
+              <label className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+                URL
+              </label>
               <input
                 type="text"
                 value={editUrl}
@@ -275,7 +304,12 @@ export default function AddServiceModal({
             {/* Search bar */}
             <div
               className="flex items-center rounded-xl"
-              style={{ padding: "10px 16px", marginBottom: 28, gap: 10, backgroundColor: "var(--panel)" }}
+              style={{
+                padding: "10px 16px",
+                marginBottom: 28,
+                gap: 10,
+                backgroundColor: "var(--panel)",
+              }}
             >
               <svg
                 width="18"
@@ -299,7 +333,12 @@ export default function AddServiceModal({
                   setSelectedIndex(null);
                 }}
                 className="bg-transparent text-sm outline-none flex-1"
-                style={{ color: "var(--text-primary)", "--tw-placeholder-color": "var(--text-muted)" } as React.CSSProperties}
+                style={
+                  {
+                    color: "var(--text-primary)",
+                    "--tw-placeholder-color": "var(--text-muted)",
+                  } as React.CSSProperties
+                }
               />
             </div>
 
@@ -321,11 +360,11 @@ export default function AddServiceModal({
                       width: 72,
                       height: 72,
                       background:
-                        selectedIndex === i ? "color-mix(in srgb, var(--accent) 20%, transparent)" : "var(--panel)",
-                      border:
                         selectedIndex === i
-                          ? "2px solid var(--accent)"
-                          : "2px solid transparent",
+                          ? "color-mix(in srgb, var(--accent) 20%, transparent)"
+                          : "var(--panel)",
+                      border:
+                        selectedIndex === i ? "2px solid var(--accent)" : "2px solid transparent",
                     }}
                   >
                     <img
@@ -371,8 +410,9 @@ export default function AddServiceModal({
             style={{
               padding: "10px 24px",
               borderRadius: 12,
-              background:
-                canConfirm ? "var(--accent)" : "color-mix(in srgb, var(--accent) 30%, transparent)",
+              background: canConfirm
+                ? "var(--accent)"
+                : "color-mix(in srgb, var(--accent) 30%, transparent)",
               border: "none",
               color: canConfirm ? "var(--surface)" : "var(--text-secondary)",
               opacity: canConfirm ? 1 : 0.5,

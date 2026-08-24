@@ -96,9 +96,7 @@ export default function FocusTimer({
   const accent = timer?.phase === "break" ? "var(--success)" : "var(--accent)";
 
   return (
-    <section
-      className="pom-stage pom-hero rounded-2xl flex flex-col items-center"
-    >
+    <section className="pom-stage pom-hero rounded-2xl flex flex-col items-center">
       {/* The figure. Stat-Led: the number is the largest thing on the page. */}
       <div className="pom-ring-box relative">
         <svg
@@ -178,7 +176,10 @@ export default function FocusTimer({
       >
         {timer ? (
           <>
-            <ControlButton onClick={running ? onPause : onResume} label={running ? "Pause" : "Resume"}>
+            <ControlButton
+              onClick={running ? onPause : onResume}
+              label={running ? "Pause" : "Resume"}
+            >
               {running ? <MdPause size={20} /> : <MdPlayArrow size={20} />}
             </ControlButton>
             <ControlButton

@@ -85,18 +85,17 @@ function fakeDocument(opts: {
     querySelectorAll: () => [],
   });
   // `unreadRows: n` is shorthand for n rows marked unread by a descendant
-  const rows: FakeRow[] =
-    opts.rows ?? new Array(opts.unreadRows ?? 0).fill({ unreadMarker: true });
+  const rows: FakeRow[] = opts.rows ?? new Array(opts.unreadRows ?? 0).fill({ unreadMarker: true });
 
   return {
     title: opts.title ?? "Messenger",
     querySelector: (selector: string) =>
       selector.includes("icon") && opts.faviconHref ? { href: opts.faviconHref } : null,
     querySelectorAll: (selector: string) => {
-      if (selector.includes("aria-label*=\"unread message\"")) {
+      if (selector.includes('aria-label*="unread message"')) {
         return (opts.whatsappBadges ?? []).map((text) => ({ textContent: text }));
       }
-      if (selector.includes("role=\"row\"")) {
+      if (selector.includes('role="row"')) {
         return rows.map(toRow);
       }
       if (selector.includes("aria-label")) {
@@ -121,7 +120,9 @@ describe("messenger poll script (executed)", () => {
 
   it("reads a numeric leaf badge span on the Chats nav item", () => {
     const doc = fakeDocument({
-      navLinks: [{ ariaLabel: "Chats", spans: [{ text: "Chats3", hasChildren: true }, { text: "5" }] }],
+      navLinks: [
+        { ariaLabel: "Chats", spans: [{ text: "Chats3", hasChildren: true }, { text: "5" }] },
+      ],
     });
     expect(runPollScript(script, doc)).toBe(5);
   });
@@ -139,7 +140,10 @@ describe("messenger poll script (executed)", () => {
   // these rows are the only signal when the rail carries no count.
   it("counts a thread marked unread by hand from the row's own label", () => {
     const doc = fakeDocument({
-      rows: [{ ariaLabel: "Ada Lovelace, sent a photo, 2h ago, Unread" }, { ariaLabel: "Alan, ok" }],
+      rows: [
+        { ariaLabel: "Ada Lovelace, sent a photo, 2h ago, Unread" },
+        { ariaLabel: "Alan, ok" },
+      ],
     });
     expect(runPollScript(script, doc)).toBe(1);
   });

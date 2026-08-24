@@ -4,8 +4,7 @@
 // can be unit-tested (see test/taskLinks.test.ts).
 
 export type TaskSegment =
-  | { type: "text"; value: string }
-  | { type: "link"; value: string; href: string };
+  { type: "text"; value: string } | { type: "link"; value: string; href: string };
 
 // Matches an explicit http(s) URL or a bare www. host. Deliberately narrow:
 // bare domains like "largs.dev" are left alone, because a task reading
@@ -15,8 +14,7 @@ const URL_PATTERN = /(?:https?:\/\/|www\.)[^\s]+/gi;
 // Punctuation that almost always belongs to the sentence, not the URL.
 const TRAILING = new Set([".", ",", ";", ":", "!", "?", "'", '"', ")", "]", "}", "»", "…"]);
 
-const count = (text: string, char: string) =>
-  text.split(char).length - 1;
+const count = (text: string, char: string) => text.split(char).length - 1;
 
 // "…see https://example.com/a_(b)." → "https://example.com/a_(b)"
 // A closing bracket is kept when it balances an opening one inside the URL,

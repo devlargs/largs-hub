@@ -141,10 +141,7 @@ export default function SettingsPage() {
             label="Wake services automatically"
             description="Load all enabled services when the app starts"
           >
-            <Toggle
-              checked={settings.wakeServicesAutomatically}
-              onChange={handleToggleWake}
-            />
+            <Toggle checked={settings.wakeServicesAutomatically} onChange={handleToggleWake} />
           </SettingRow>
 
           <SettingRow
@@ -322,10 +319,7 @@ export default function SettingsPage() {
                     }}
                   />
                 </div>
-                <span
-                  className="text-xs tabular-nums"
-                  style={{ color: "var(--text-muted)" }}
-                >
+                <span className="text-xs tabular-nums" style={{ color: "var(--text-muted)" }}>
                   {percent}%
                 </span>
               </div>
@@ -378,13 +372,7 @@ export default function SettingsPage() {
   );
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 32 }}>
       <h2
@@ -418,14 +406,9 @@ function SettingRow({
   return (
     // Narrow windows stack the control under its label; from `sm` up the row
     // goes back to label-left / control-right.
-    <div
-      className="flex flex-col items-stretch gap-2 rounded-lg py-1 @lg:flex-row @lg:items-center @lg:justify-between @lg:gap-4 @lg:px-3.5 @lg:py-3"
-    >
+    <div className="flex flex-col items-stretch gap-2 rounded-lg py-1 @lg:flex-row @lg:items-center @lg:justify-between @lg:gap-4 @lg:px-3.5 @lg:py-3">
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div
-          className="text-sm font-medium"
-          style={{ color: "var(--text-primary)" }}
-        >
+        <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
           {label}
         </div>
         <div
@@ -473,13 +456,7 @@ function Slider({
   );
 }
 
-function Toggle({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: () => void;
-}) {
+function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   return (
     <button
       onClick={onChange}

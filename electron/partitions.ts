@@ -48,7 +48,10 @@ export function orphanedPartitionDirs(dirNames: string[], serviceIds: string[]):
 }
 
 export interface PartitionSweepFs {
-  readdirSync(dir: string, options: { withFileTypes: true }): { name: string; isDirectory(): boolean }[];
+  readdirSync(
+    dir: string,
+    options: { withFileTypes: true },
+  ): { name: string; isDirectory(): boolean }[];
   rmSync(target: string, options: { recursive: true; force: true }): void;
 }
 

@@ -2,7 +2,10 @@ import { app, ipcMain, dialog, Menu, BrowserWindow, WebContentsView } from "elec
 import fs from "fs";
 import { store } from "../store";
 import { refreshPrivacyOverlays } from "../serviceViews";
-import { customIconsDir as iconsDir, resolveCustomIconPath as resolveIconPath } from "../customIcons";
+import {
+  customIconsDir as iconsDir,
+  resolveCustomIconPath as resolveIconPath,
+} from "../customIcons";
 
 // IPC: theme, app settings, download folder picker, custom icon storage, and
 // the native settings menu.
@@ -90,21 +93,25 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
   // customIconsDir. Returns null if the name would escape the directory.
   const resolveCustomIconPath = (fileName: unknown) => resolveIconPath(fileName, customIconsDir);
 
-  const ICON_DATA_URL_RE = /^data:image\/(png|jpeg|gif|webp|svg\+xml|x-icon|vnd\.microsoft\.icon);base64,/;
+  const ICON_DATA_URL_RE =
+    /^data:image\/(png|jpeg|gif|webp|svg\+xml|x-icon|vnd\.microsoft\.icon);base64,/;
 
-  ipcMain.handle("save-custom-icon", async (_event, { fileName, dataUrl }: { fileName: string; dataUrl: string }) => {
-    const filePath = resolveCustomIconPath(fileName);
-    if (!filePath) throw new Error("Invalid icon file name");
-    if (typeof dataUrl !== "string" || !ICON_DATA_URL_RE.test(dataUrl)) {
-      throw new Error("Invalid icon data");
-    }
-    if (!fs.existsSync(customIconsDir)) {
-      fs.mkdirSync(customIconsDir, { recursive: true });
-    }
-    const base64 = dataUrl.replace(ICON_DATA_URL_RE, "");
-    fs.writeFileSync(filePath, Buffer.from(base64, "base64"));
-    return filePath;
-  });
+  ipcMain.handle(
+    "save-custom-icon",
+    async (_event, { fileName, dataUrl }: { fileName: string; dataUrl: string }) => {
+      const filePath = resolveCustomIconPath(fileName);
+      if (!filePath) throw new Error("Invalid icon file name");
+      if (typeof dataUrl !== "string" || !ICON_DATA_URL_RE.test(dataUrl)) {
+        throw new Error("Invalid icon data");
+      }
+      if (!fs.existsSync(customIconsDir)) {
+        fs.mkdirSync(customIconsDir, { recursive: true });
+      }
+      const base64 = dataUrl.replace(ICON_DATA_URL_RE, "");
+      fs.writeFileSync(filePath, Buffer.from(base64, "base64"));
+      return filePath;
+    },
+  );
 
   ipcMain.handle("delete-custom-icon", async (_event, fileName: string) => {
     const filePath = resolveCustomIconPath(fileName);
@@ -123,7 +130,12 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
       {
         label: "Check for Updates",
         click: () => {
-          deps.getUiView()?.webContents.send("context-menu-action", { action: "show-update-page", serviceId: "" });
+          deps
+            .getUiView()
+            ?.webContents.send("context-menu-action", {
+              action: "show-update-page",
+              serviceId: "",
+            });
         },
       },
     ]);

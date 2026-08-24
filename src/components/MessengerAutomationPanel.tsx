@@ -77,10 +77,6 @@ function taskPreview(spec: TaskSpec): string {
   }
 }
 
-// Shown in place of the recents pane until the user has started a burst, so
-// the tab is one click away from working on a fresh install.
-const SUGGESTED_EMOJIS = ["❤️", "😂", "🔥", "👍", "🥺", "😭", "✨", "🎉"];
-
 const inputStyle = {
   padding: "8px 12px",
   backgroundColor: "var(--surface)",
@@ -299,7 +295,11 @@ export default function MessengerAutomationPanel({
     selectedType === "sendRandomFromList";
   const intervalMin = selectedType === "startCallCycle" ? 5 : 1;
   const startLabel =
-    selectedType === "sendChatMessage" ? "Send" : selectedType === "sendChat" ? "Schedule" : "Start";
+    selectedType === "sendChatMessage"
+      ? "Send"
+      : selectedType === "sendChat"
+        ? "Schedule"
+        : "Start";
   const canStart =
     !busy &&
     (!needsMessage || message.trim().length > 0) &&
@@ -331,125 +331,130 @@ export default function MessengerAutomationPanel({
       }}
     >
       {/* Header */}
-        <div
-          className="flex items-center justify-between shrink-0"
-          style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)" }}
+      <div
+        className="flex items-center justify-between shrink-0"
+        style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)" }}
+      >
+        <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+          Messenger automation
+        </span>
+        <button
+          onClick={handleClose}
+          className="flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors"
+          style={{ width: 24, height: 24, color: "var(--text-muted)" }}
+          title="Close"
         >
-          <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-            Messenger automation
-          </span>
-          <button
-            onClick={handleClose}
-            className="flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors"
-            style={{ width: 24, height: 24, color: "var(--text-muted)" }}
-            title="Close"
-          >
-            <IoClose size={16} />
-          </button>
+          <IoClose size={16} />
+        </button>
+      </div>
+
+      <div className="overflow-y-auto flex-1" style={{ padding: 16 }}>
+        {/* Function picker */}
+        <div className="flex flex-wrap" style={{ gap: 6, marginBottom: 14 }}>
+          {FUNCTION_TABS.map((tab) => {
+            const active = tab.type === selectedType;
+            return (
+              <button
+                key={tab.type}
+                onClick={() => {
+                  setSelectedType(tab.type);
+                  setError(null);
+                  setFeedback(null);
+                }}
+                className="text-xs rounded-full transition-colors"
+                style={{
+                  padding: "5px 12px",
+                  backgroundColor: active ? "var(--accent)" : "var(--surface)",
+                  color: active ? "#fff" : "var(--text-muted)",
+                  border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="overflow-y-auto flex-1" style={{ padding: 16 }}>
-          {/* Function picker */}
-          <div className="flex flex-wrap" style={{ gap: 6, marginBottom: 14 }}>
-            {FUNCTION_TABS.map((tab) => {
-              const active = tab.type === selectedType;
-              return (
-                <button
-                  key={tab.type}
-                  onClick={() => {
-                    setSelectedType(tab.type);
-                    setError(null);
-                    setFeedback(null);
-                  }}
-                  className="text-xs rounded-full transition-colors"
-                  style={{
-                    padding: "5px 12px",
-                    backgroundColor: active ? "var(--accent)" : "var(--surface)",
-                    color: active ? "#fff" : "var(--text-muted)",
-                    border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
-                  }}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
+        {/* Parameter form */}
+        <div className="flex flex-col" style={{ gap: 10 }}>
+          <p className="text-xs" style={labelStyle}>
+            {helperText[selectedType]}
+          </p>
 
-          {/* Parameter form */}
-          <div className="flex flex-col" style={{ gap: 10 }}>
-            <p className="text-xs" style={labelStyle}>
-              {helperText[selectedType]}
-            </p>
+          {needsMessage && (
+            <div className="flex flex-col" style={{ gap: 4 }}>
+              <label className="text-xs font-medium" style={labelStyle}>
+                Message
+              </label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={2}
+                placeholder="Type your message…"
+                className="text-sm outline-none rounded-lg resize-none"
+                style={inputStyle}
+              />
+            </div>
+          )}
 
-            {needsMessage && (
-              <div className="flex flex-col" style={{ gap: 4 }}>
+          {selectedType === "sendChat" && (
+            <div className="flex flex-col" style={{ gap: 4 }}>
+              <label className="text-xs font-medium" style={labelStyle}>
+                Send at
+              </label>
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="text-sm outline-none rounded-lg"
+                style={inputStyle}
+              />
+            </div>
+          )}
+
+          {selectedType === "sendEmoji" && (
+            <div className="flex" style={{ gap: 8 }}>
+              <div className="flex flex-col flex-1" style={{ gap: 4 }}>
                 <label className="text-xs font-medium" style={labelStyle}>
-                  Message
-                </label>
-                <textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  rows={2}
-                  placeholder="Type your message…"
-                  className="text-sm outline-none rounded-lg resize-none"
-                  style={inputStyle}
-                />
-              </div>
-            )}
-
-            {selectedType === "sendChat" && (
-              <div className="flex flex-col" style={{ gap: 4 }}>
-                <label className="text-xs font-medium" style={labelStyle}>
-                  Send at
+                  Emoji
                 </label>
                 <input
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
+                  type="text"
+                  value={emoji}
+                  onChange={(e) => setEmoji(e.target.value)}
                   className="text-sm outline-none rounded-lg"
                   style={inputStyle}
                 />
               </div>
-            )}
-
-            {selectedType === "sendEmoji" && (
-              <div className="flex" style={{ gap: 8 }}>
-                <div className="flex flex-col flex-1" style={{ gap: 4 }}>
-                  <label className="text-xs font-medium" style={labelStyle}>
-                    Emoji
-                  </label>
-                  <input
-                    type="text"
-                    value={emoji}
-                    onChange={(e) => setEmoji(e.target.value)}
-                    className="text-sm outline-none rounded-lg"
-                    style={inputStyle}
-                  />
-                </div>
-                <div className="flex flex-col" style={{ gap: 4, width: 100 }}>
-                  <label className="text-xs font-medium" style={labelStyle}>
-                    Max repeat
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={maxLength}
-                    onChange={(e) => setMaxLength(e.target.value)}
-                    className="text-sm outline-none rounded-lg"
-                    style={inputStyle}
-                  />
-                </div>
-              </div>
-            )}
-
-            {selectedType === "sendEmoji" && (
-              <div className="flex flex-col" style={{ gap: 4 }}>
+              <div className="flex flex-col" style={{ gap: 4, width: 100 }}>
                 <label className="text-xs font-medium" style={labelStyle}>
-                  {recentEmojis.length > 0 ? "Recent" : "Suggestions"}
+                  Max repeat
                 </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={maxLength}
+                  onChange={(e) => setMaxLength(e.target.value)}
+                  className="text-sm outline-none rounded-lg"
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+          )}
+
+          {selectedType === "sendEmoji" && (
+            <div className="flex flex-col" style={{ gap: 4 }}>
+              <label className="text-xs font-medium" style={labelStyle}>
+                Recent
+              </label>
+              {recentEmojis.length === 0 ? (
+                <p className="text-2xs" style={labelStyle}>
+                  Emojis you burst show up here, ready to pick again.
+                </p>
+              ) : (
                 <div className="flex flex-wrap" style={{ gap: 4 }}>
-                  {(recentEmojis.length > 0 ? recentEmojis : SUGGESTED_EMOJIS).map((option) => {
+                  {recentEmojis.map((option) => {
                     const active = option === emoji;
                     return (
                       <button
@@ -469,238 +474,239 @@ export default function MessengerAutomationPanel({
                     );
                   })}
                 </div>
+              )}
+            </div>
+          )}
+
+          {needsInterval && (
+            <div className="flex" style={{ gap: 8 }}>
+              <div className="flex flex-col flex-1" style={{ gap: 4 }}>
+                <label className="text-xs font-medium" style={labelStyle}>
+                  Min seconds
+                </label>
+                <input
+                  type="number"
+                  min={intervalMin}
+                  value={fromSec}
+                  onChange={(e) => setFromSec(e.target.value)}
+                  className="text-sm outline-none rounded-lg"
+                  style={inputStyle}
+                />
               </div>
-            )}
-
-            {needsInterval && (
-              <div className="flex" style={{ gap: 8 }}>
-                <div className="flex flex-col flex-1" style={{ gap: 4 }}>
-                  <label className="text-xs font-medium" style={labelStyle}>
-                    Min seconds
-                  </label>
-                  <input
-                    type="number"
-                    min={intervalMin}
-                    value={fromSec}
-                    onChange={(e) => setFromSec(e.target.value)}
-                    className="text-sm outline-none rounded-lg"
-                    style={inputStyle}
-                  />
-                </div>
-                <div className="flex flex-col flex-1" style={{ gap: 4 }}>
-                  <label className="text-xs font-medium" style={labelStyle}>
-                    Max seconds
-                  </label>
-                  <input
-                    type="number"
-                    min={intervalMin}
-                    value={toSec}
-                    onChange={(e) => setToSec(e.target.value)}
-                    className="text-sm outline-none rounded-lg"
-                    style={inputStyle}
-                  />
-                </div>
-              </div>
-            )}
-
-            {selectedType === "sendRandomFromList" && (
-              <MessageListPicker selectedId={listGroup?.id ?? null} onSelect={setListGroup} />
-            )}
-
-            {selectedType === "startCallCycle" && (
-              <div className="flex" style={{ gap: 8 }}>
-                <div className="flex flex-col flex-1" style={{ gap: 4 }}>
-                  <label className="text-xs font-medium" style={labelStyle}>
-                    Wait to ring (s)
-                  </label>
-                  <input
-                    type="number"
-                    min={5}
-                    value={ringSeconds}
-                    onChange={(e) => setRingSeconds(e.target.value)}
-                    className="text-sm outline-none rounded-lg"
-                    style={inputStyle}
-                    title="How long to wait before closing the call popup and restarting the cycle"
-                  />
-                </div>
-              </div>
-            )}
-
-            {error && (
-              <p className="text-xs" style={{ color: "#f38ba8" }}>
-                {error}
-              </p>
-            )}
-            {feedback && !error && (
-              <p className="text-xs" style={{ color: "#a6e3a1" }}>
-                {feedback}
-              </p>
-            )}
-
-            <button
-              onClick={handleStart}
-              disabled={!canStart}
-              className="text-sm font-medium rounded-lg transition-colors"
-              style={{
-                padding: "8px 0",
-                backgroundColor: "var(--accent)",
-                color: "#fff",
-                opacity: canStart ? 1 : 0.5,
-                cursor: canStart ? "pointer" : "default",
-              }}
-            >
-              {startLabel}
-            </button>
-          </div>
-
-          {/* Auto-stop — clears every task for this service after a delay */}
-          <div
-            style={{
-              marginTop: 16,
-              paddingTop: 12,
-              borderTop: "1px solid var(--border)",
-            }}
-          >
-            <span className="text-xs font-semibold" style={labelStyle}>
-              Auto-stop
-            </span>
-            <p className="text-xs" style={{ ...labelStyle, marginTop: 4 }}>
-              Clears every automation for this service once the timer runs out. It keeps counting
-              while this panel is closed.
-            </p>
-            {autoStop ? (
-              <div className="flex items-center" style={{ gap: 8, marginTop: 8 }}>
-                <span className="text-xs flex-1" style={labelStyle}>
-                  Clearing in{" "}
-                  <span className="tabular-nums" style={{ color: "var(--accent)" }}>
-                    {formatCountdown(autoStop.expiresAt - now)}
-                  </span>
-                </span>
-                <button
-                  onClick={handleCancelAutoStop}
-                  className="text-xs rounded hover:bg-sidebar-hover transition-colors"
-                  style={{ padding: "4px 10px", color: "#f38ba8" }}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-end" style={{ gap: 8, marginTop: 8 }}>
-                <div className="flex flex-col flex-1" style={{ gap: 4 }}>
-                  <label className="text-xs font-medium" style={labelStyle}>
-                    Clear after (minutes)
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={1440}
-                    value={autoStopMinutes}
-                    onChange={(e) => setAutoStopMinutes(e.target.value)}
-                    className="text-sm outline-none rounded-lg w-full"
-                    style={inputStyle}
-                  />
-                </div>
-                <button
-                  onClick={handleArmAutoStop}
-                  className="text-sm font-medium rounded-lg transition-colors shrink-0"
-                  style={{
-                    padding: "8px 14px",
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  Set
-                </button>
-              </div>
-            )}
-            {autoStopError && (
-              <p className="text-xs" style={{ color: "#f38ba8", marginTop: 6 }}>
-                {autoStopError}
-              </p>
-            )}
-          </div>
-
-          {/* Running tasks */}
-          {serviceTasks.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
-                <span className="text-xs font-semibold" style={labelStyle}>
-                  Running tasks
-                </span>
-                {serviceTasks.length >= 2 && (
-                  <button
-                    onClick={() => window.electronAPI.messengerAutomation.stopAll(serviceId)}
-                    className="text-xs rounded hover:bg-sidebar-hover transition-colors"
-                    style={{ padding: "2px 8px", color: "#f38ba8" }}
-                  >
-                    Stop all
-                  </button>
-                )}
-              </div>
-              <div className="flex flex-col" style={{ gap: 6 }}>
-                {serviceTasks.map((task) => {
-                  const resultLabel =
-                    task.lastResult && RESULT_LABELS[task.lastResult]
-                      ? RESULT_LABELS[task.lastResult]
-                      : null;
-                  return (
-                    <div
-                      key={task.id}
-                      className="flex items-center rounded-lg"
-                      style={{
-                        gap: 8,
-                        padding: "8px 10px",
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
-                    >
-                      <div className="flex flex-col flex-1 min-w-0" style={{ gap: 2 }}>
-                        <div className="flex items-center" style={{ gap: 6 }}>
-                          <span
-                            className="text-xs font-medium"
-                            style={{ color: "var(--text-primary)" }}
-                          >
-                            {TASK_LABELS[task.spec.type]}
-                          </span>
-                          {task.fireCount > 0 && (
-                            <span className="text-xs" style={labelStyle}>
-                              ×{task.fireCount}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-xs truncate" style={labelStyle}>
-                          {taskPreview(task.spec)}
-                        </span>
-                        {resultLabel && (
-                          <span className="text-xs" style={{ color: "#f9e2af" }}>
-                            {resultLabel}
-                          </span>
-                        )}
-                      </div>
-                      {task.nextFireAt !== null && (
-                        <span
-                          className="text-xs tabular-nums shrink-0"
-                          style={{ color: "var(--accent)" }}
-                          title="Next fire"
-                        >
-                          {formatCountdown(task.nextFireAt - now)}
-                        </span>
-                      )}
-                      <button
-                        onClick={() => window.electronAPI.messengerAutomation.stop(task.id)}
-                        className="flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors shrink-0"
-                        style={{ width: 24, height: 24, color: "#f38ba8" }}
-                        title="Stop"
-                      >
-                        <IoStopCircleOutline size={16} />
-                      </button>
-                    </div>
-                  );
-                })}
+              <div className="flex flex-col flex-1" style={{ gap: 4 }}>
+                <label className="text-xs font-medium" style={labelStyle}>
+                  Max seconds
+                </label>
+                <input
+                  type="number"
+                  min={intervalMin}
+                  value={toSec}
+                  onChange={(e) => setToSec(e.target.value)}
+                  className="text-sm outline-none rounded-lg"
+                  style={inputStyle}
+                />
               </div>
             </div>
           )}
+
+          {selectedType === "sendRandomFromList" && (
+            <MessageListPicker selectedId={listGroup?.id ?? null} onSelect={setListGroup} />
+          )}
+
+          {selectedType === "startCallCycle" && (
+            <div className="flex" style={{ gap: 8 }}>
+              <div className="flex flex-col flex-1" style={{ gap: 4 }}>
+                <label className="text-xs font-medium" style={labelStyle}>
+                  Wait to ring (s)
+                </label>
+                <input
+                  type="number"
+                  min={5}
+                  value={ringSeconds}
+                  onChange={(e) => setRingSeconds(e.target.value)}
+                  className="text-sm outline-none rounded-lg"
+                  style={inputStyle}
+                  title="How long to wait before closing the call popup and restarting the cycle"
+                />
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <p className="text-xs" style={{ color: "#f38ba8" }}>
+              {error}
+            </p>
+          )}
+          {feedback && !error && (
+            <p className="text-xs" style={{ color: "#a6e3a1" }}>
+              {feedback}
+            </p>
+          )}
+
+          <button
+            onClick={handleStart}
+            disabled={!canStart}
+            className="text-sm font-medium rounded-lg transition-colors"
+            style={{
+              padding: "8px 0",
+              backgroundColor: "var(--accent)",
+              color: "#fff",
+              opacity: canStart ? 1 : 0.5,
+              cursor: canStart ? "pointer" : "default",
+            }}
+          >
+            {startLabel}
+          </button>
+        </div>
+
+        {/* Auto-stop — clears every task for this service after a delay */}
+        <div
+          style={{
+            marginTop: 16,
+            paddingTop: 12,
+            borderTop: "1px solid var(--border)",
+          }}
+        >
+          <span className="text-xs font-semibold" style={labelStyle}>
+            Auto-stop
+          </span>
+          <p className="text-xs" style={{ ...labelStyle, marginTop: 4 }}>
+            Clears every automation for this service once the timer runs out. It keeps counting
+            while this panel is closed.
+          </p>
+          {autoStop ? (
+            <div className="flex items-center" style={{ gap: 8, marginTop: 8 }}>
+              <span className="text-xs flex-1" style={labelStyle}>
+                Clearing in{" "}
+                <span className="tabular-nums" style={{ color: "var(--accent)" }}>
+                  {formatCountdown(autoStop.expiresAt - now)}
+                </span>
+              </span>
+              <button
+                onClick={handleCancelAutoStop}
+                className="text-xs rounded hover:bg-sidebar-hover transition-colors"
+                style={{ padding: "4px 10px", color: "#f38ba8" }}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-end" style={{ gap: 8, marginTop: 8 }}>
+              <div className="flex flex-col flex-1" style={{ gap: 4 }}>
+                <label className="text-xs font-medium" style={labelStyle}>
+                  Clear after (minutes)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={1440}
+                  value={autoStopMinutes}
+                  onChange={(e) => setAutoStopMinutes(e.target.value)}
+                  className="text-sm outline-none rounded-lg w-full"
+                  style={inputStyle}
+                />
+              </div>
+              <button
+                onClick={handleArmAutoStop}
+                className="text-sm font-medium rounded-lg transition-colors shrink-0"
+                style={{
+                  padding: "8px 14px",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                Set
+              </button>
+            </div>
+          )}
+          {autoStopError && (
+            <p className="text-xs" style={{ color: "#f38ba8", marginTop: 6 }}>
+              {autoStopError}
+            </p>
+          )}
+        </div>
+
+        {/* Running tasks */}
+        {serviceTasks.length > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+              <span className="text-xs font-semibold" style={labelStyle}>
+                Running tasks
+              </span>
+              {serviceTasks.length >= 2 && (
+                <button
+                  onClick={() => window.electronAPI.messengerAutomation.stopAll(serviceId)}
+                  className="text-xs rounded hover:bg-sidebar-hover transition-colors"
+                  style={{ padding: "2px 8px", color: "#f38ba8" }}
+                >
+                  Stop all
+                </button>
+              )}
+            </div>
+            <div className="flex flex-col" style={{ gap: 6 }}>
+              {serviceTasks.map((task) => {
+                const resultLabel =
+                  task.lastResult && RESULT_LABELS[task.lastResult]
+                    ? RESULT_LABELS[task.lastResult]
+                    : null;
+                return (
+                  <div
+                    key={task.id}
+                    className="flex items-center rounded-lg"
+                    style={{
+                      gap: 8,
+                      padding: "8px 10px",
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    <div className="flex flex-col flex-1 min-w-0" style={{ gap: 2 }}>
+                      <div className="flex items-center" style={{ gap: 6 }}>
+                        <span
+                          className="text-xs font-medium"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          {TASK_LABELS[task.spec.type]}
+                        </span>
+                        {task.fireCount > 0 && (
+                          <span className="text-xs" style={labelStyle}>
+                            ×{task.fireCount}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs truncate" style={labelStyle}>
+                        {taskPreview(task.spec)}
+                      </span>
+                      {resultLabel && (
+                        <span className="text-xs" style={{ color: "#f9e2af" }}>
+                          {resultLabel}
+                        </span>
+                      )}
+                    </div>
+                    {task.nextFireAt !== null && (
+                      <span
+                        className="text-xs tabular-nums shrink-0"
+                        style={{ color: "var(--accent)" }}
+                        title="Next fire"
+                      >
+                        {formatCountdown(task.nextFireAt - now)}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => window.electronAPI.messengerAutomation.stop(task.id)}
+                      className="flex items-center justify-center rounded hover:bg-sidebar-hover transition-colors shrink-0"
+                      style={{ width: 24, height: 24, color: "#f38ba8" }}
+                      title="Stop"
+                    >
+                      <IoStopCircleOutline size={16} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

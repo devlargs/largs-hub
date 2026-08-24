@@ -532,7 +532,11 @@ export function registerPomodoro(deps: PomodoroDeps): void {
           data.tasks.map((t) => (t.id === updated.id ? updated : t)),
           [updated.id],
         );
-        return { ok: true, task: updated, tasks: tasksForDate(getData(serviceId).tasks, updated.date) };
+        return {
+          ok: true,
+          task: updated,
+          tasks: tasksForDate(getData(serviceId).tasks, updated.date),
+        };
       } catch (err) {
         return { ok: false, error: errorMessage(err) };
       }
@@ -806,11 +810,7 @@ export function forgetPomodoroService(store: PomodoroStore, serviceId: string): 
 }
 
 // Records a completed focus session against a task (called by the timer).
-export function recordFocusSession(
-  store: PomodoroStore,
-  serviceId: string,
-  taskId: string,
-): void {
+export function recordFocusSession(store: PomodoroStore, serviceId: string, taskId: string): void {
   const all = store.get("pomodoroTasks") || {};
   const data = all[serviceId];
   if (!data) return;
