@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.43] (2026-08-24)
+
 - The installer downloaded by an in-app update is now deleted on the next launch instead of being left in your temp folder for good.
 
 ## [0.1.42] (2026-08-24)
