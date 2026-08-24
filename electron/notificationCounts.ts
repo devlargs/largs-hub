@@ -103,6 +103,17 @@ function updateTaskbarBadge() {
   applyTaskbarBadge();
 }
 
+/**
+ * Every service's current count. The renderer's store starts empty on any UI
+ * reload while main keeps running, and reportNotificationCount returns early
+ * when a reading is unchanged — so without this the sidebar badges stayed
+ * blank until a count actually moved (issue #79). The renderer-side
+ * counterpart of refreshTaskbarBadge.
+ */
+export function getNotificationCounts(): Record<string, number> {
+  return Object.fromEntries(counts);
+}
+
 /** Re-apply the current badge — call after the window is shown or reloaded. */
 export function refreshTaskbarBadge() {
   applyTaskbarBadge();

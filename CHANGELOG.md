@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Sidebar unread badges no longer sit blank until a count changes — they now load the current counts as soon as the interface starts.
+
 - The updater no longer offers a "update" that would actually downgrade you. It now compares version numbers properly, so an older or unusual release tag is ignored instead of being installed on every check.
 
 - Security: a link to a lookalike domain (`evilnotion.so` for a Notion service) could open inside the logged-in service tab, with that tab's cookies and permissions. Domain matching now requires a real boundary, so only the service's own domain and known sign-in providers load in place.

@@ -3,6 +3,8 @@ import { create } from "zustand";
 interface NotificationState {
   counts: Record<string, number>;
   updateCount: (serviceId: string, count: number) => void;
+  /** Replace every count at once — used to seed from main on mount (#79). */
+  setCounts: (counts: Record<string, number>) => void;
   removeService: (serviceId: string) => void;
 }
 
@@ -17,6 +19,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       counts: { ...state.counts, [serviceId]: count },
     }));
   },
+  setCounts: (counts) => set({ counts }),
   removeService: (serviceId) => {
     set((state) => {
       const { [serviceId]: _, ...rest } = state.counts;

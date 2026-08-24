@@ -119,6 +119,8 @@ const api = {
   getServices: (): Promise<Service[]> => ipcRenderer.invoke("get-services"),
   getLastActiveService: (): Promise<string | null> =>
     ipcRenderer.invoke("get-last-active-service"),
+  getNotificationCounts: (): Promise<Record<string, number>> =>
+    ipcRenderer.invoke("get-notification-counts"),
   addService: (service: Service): Promise<Service[]> =>
     ipcRenderer.invoke("add-service", service),
   removeService: (serviceId: string): Promise<Service[]> =>

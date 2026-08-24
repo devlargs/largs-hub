@@ -11,6 +11,7 @@ import {
   applyPrivacyToView,
   removePrivacyFromView,
 } from "../serviceViews";
+import { getNotificationCounts } from "../notificationCounts";
 import { forgetPomodoroService } from "../tasks";
 import { stopTimerForService } from "../pomodoroTimer";
 
@@ -135,6 +136,10 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
 
   // The service to reopen on launch. Resolved here rather than in the renderer
   // so a stale id (service removed or disabled since) never reaches the UI.
+  ipcMain.handle("get-notification-counts", (): Record<string, number> =>
+    getNotificationCounts(),
+  );
+
   ipcMain.handle("get-last-active-service", (): string | null => {
     const serviceId = store.get("lastActiveServiceId");
     if (typeof serviceId !== "string") return null;

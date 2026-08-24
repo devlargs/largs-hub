@@ -32,6 +32,7 @@ function App() {
   const [showAutomationPanel, setShowAutomationPanel] = useState(false);
   const [automationTasks, setAutomationTasks] = useState<AutomationTask[]>([]);
   const updateNotificationCount = useNotificationStore((s) => s.updateCount);
+  const setNotificationCounts = useNotificationStore((s) => s.setCounts);
   const removeNotificationService = useNotificationStore((s) => s.removeService);
 
   useEffect(() => {
@@ -48,6 +49,10 @@ function App() {
         if (!isInternalService(service)) window.electronAPI.showService(lastActive);
       }
     });
+
+    // Seed from main before subscribing: counts already held there are only
+    // pushed when they change, so a UI reload would otherwise show no badges.
+    window.electronAPI.getNotificationCounts().then(setNotificationCounts);
 
     const unsub = window.electronAPI.onNotificationUpdate(
       ({ serviceId, count }) => {
@@ -123,7 +128,7 @@ function App() {
       unsubLinkClosed();
       unsubAutomation();
     };
-  }, [updateNotificationCount, removeNotificationService]);
+  }, [updateNotificationCount, setNotificationCounts, removeNotificationService]);
 
   const handleRemoveService = useCallback(
     async (serviceId: string) => {
