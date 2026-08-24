@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.45] (2026-08-24)
+
 - Sidebar unread badges no longer sit blank until a count changes — they now load the current counts as soon as the interface starts.
 
 - The updater no longer offers a "update" that would actually downgrade you. It now compares version numbers properly, so an older or unusual release tag is ignored instead of being installed on every check.
