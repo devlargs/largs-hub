@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.42] (2026-08-24)
+
 - Marking a Messenger conversation as unread now raises the badge count. Only genuinely new messages were being noticed before, because Messenger doesn't change the tab title when you mark a thread unread by hand. Facebook's notification count is still kept out of the Messenger badge.
 
 - The unread count on the Windows taskbar icon now actually appears. It was being drawn in a format Windows can't read, so nothing was ever shown; the badge is now a real image, stays legible on high-DPI screens, shows "99+" past 99, and comes back after the window is minimised and restored.
