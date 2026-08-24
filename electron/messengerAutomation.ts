@@ -32,6 +32,19 @@ export interface StartResult {
   tasks: AutomationTask[];
 }
 
+// An armed auto-stop: every task for the service is cleared when it expires.
+export interface AutoStopState {
+  serviceId: string;
+  minutes: number;
+  expiresAt: number;
+}
+
+export interface AutoStopResult {
+  ok: boolean;
+  error?: string;
+  autoStop: AutoStopState | null;
+}
+
 interface InternalTask extends AutomationTask {
   timer: NodeJS.Timeout | null;
   // Call cycle only: poll timer for the "she noticed you" watcher.
@@ -56,8 +69,13 @@ interface AutomationDeps {
 const tasks = new Map<string, InternalTask>();
 // Services that already have a webContents "destroyed" cleanup hook attached
 const hookedServices = new Set<string>();
+// serviceId -> armed auto-stop (state + its timer). At most one per service.
+const autoStops = new Map<string, AutoStopState & { timer: NodeJS.Timeout }>();
 
 const MAX_MESSAGE_LENGTH = 5000;
+// Bounds for the auto-stop duration (1 minute to 24 hours).
+const MIN_AUTO_STOP_MINUTES = 1;
+const MAX_AUTO_STOP_MINUTES = 1440;
 // How often the call cycle re-reads the conversation for a reaction.
 const NOTICE_POLL_MS = 2000;
 
@@ -241,6 +259,18 @@ export function validateSpec(spec: TaskSpec): string | null {
   }
 }
 
+// Pure validation for the auto-stop duration, kept beside validateSpec so it's
+// unit-testable without an Electron runtime.
+export function validateAutoStopMinutes(minutes: unknown): string | null {
+  if (typeof minutes !== "number" || !Number.isFinite(minutes) || !Number.isInteger(minutes)) {
+    return "Minutes must be a whole number";
+  }
+  if (minutes < MIN_AUTO_STOP_MINUTES || minutes > MAX_AUTO_STOP_MINUTES) {
+    return `Minutes must be between ${MIN_AUTO_STOP_MINUTES} and ${MAX_AUTO_STOP_MINUTES}`;
+  }
+  return null;
+}
+
 export function registerMessengerAutomation(deps: AutomationDeps): void {
   function pushUpdate() {
     const ui = deps.getUiView();
@@ -256,6 +286,37 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
     if (ui && !ui.webContents.isDestroyed()) {
       ui.webContents.send("messenger-automation-notice", { serviceId, reason });
     }
+  }
+
+  function publicAutoStop(serviceId: string): AutoStopState | null {
+    const armed = autoStops.get(serviceId);
+    if (!armed) return null;
+    const { timer: _timer, ...state } = armed;
+    return state;
+  }
+
+  // `fired` marks the push that follows an expired auto-stop, so the panel can
+  // say why the task list emptied instead of silently clearing it.
+  function pushAutoStop(serviceId: string, fired = false) {
+    const ui = deps.getUiView();
+    if (ui && !ui.webContents.isDestroyed()) {
+      ui.webContents.send("messenger-automation-auto-stop-updated", {
+        serviceId,
+        autoStop: publicAutoStop(serviceId),
+        fired,
+      });
+    }
+  }
+
+  // Cancel an armed auto-stop without touching the running tasks. Silent by
+  // default so callers can decide whether the UI needs a push.
+  function clearAutoStop(serviceId: string, notify = true) {
+    const armed = autoStops.get(serviceId);
+    if (!armed) return false;
+    clearTimeout(armed.timer);
+    autoStops.delete(serviceId);
+    if (notify) pushAutoStop(serviceId);
+    return true;
   }
 
   // Returns null when the view is gone — callers stop the task in that case.
@@ -294,6 +355,10 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
       }
     }
     if (removed) pushUpdate();
+    // The arm exists to clear this service's tasks; once they're gone (stopped
+    // by hand, by the timer itself, or because the view closed) it has no job
+    // left, so a fresh batch of tasks isn't killed by a stale countdown.
+    clearAutoStop(serviceId);
   }
 
   // Stop a service's tasks when its view is closed (service removed, disabled,
@@ -546,4 +611,45 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
   });
 
   ipcMain.handle("messenger-automation-list", (): AutomationTask[] => publicTasks());
+
+  // Arm (or re-arm) an auto-stop for a service: after `minutes`, every task for
+  // that service is cleared. Passing null cancels an armed auto-stop.
+  ipcMain.handle(
+    "messenger-automation-set-auto-stop",
+    (_event, serviceId: unknown, minutes: unknown): AutoStopResult => {
+      if (typeof serviceId !== "string") {
+        return { ok: false, error: "Invalid service", autoStop: null };
+      }
+      if (minutes === null) {
+        clearAutoStop(serviceId, false);
+        return { ok: true, autoStop: null };
+      }
+      const validationError = validateAutoStopMinutes(minutes);
+      if (validationError) {
+        return { ok: false, error: validationError, autoStop: publicAutoStop(serviceId) };
+      }
+      const durationMs = (minutes as number) * 60_000;
+      clearAutoStop(serviceId, false);
+      const timer = setTimeout(() => {
+        // Drop the arm first so stopAllForService's own cleanup is a no-op and
+        // the UI gets one push per side (tasks, then arm).
+        autoStops.delete(serviceId);
+        stopAllForService(serviceId);
+        pushAutoStop(serviceId, true);
+      }, durationMs);
+      autoStops.set(serviceId, {
+        serviceId,
+        minutes: minutes as number,
+        expiresAt: Date.now() + durationMs,
+        timer,
+      });
+      return { ok: true, autoStop: publicAutoStop(serviceId) };
+    },
+  );
+
+  ipcMain.handle(
+    "messenger-automation-get-auto-stop",
+    (_event, serviceId: unknown): AutoStopState | null =>
+      typeof serviceId === "string" ? publicAutoStop(serviceId) : null,
+  );
 }

@@ -67,6 +67,25 @@ export interface StartResult {
   tasks: AutomationTask[];
 }
 
+export interface AutoStopState {
+  serviceId: string;
+  minutes: number;
+  expiresAt: number;
+}
+
+export interface AutoStopResult {
+  ok: boolean;
+  error?: string;
+  autoStop: AutoStopState | null;
+}
+
+export interface AutoStopUpdate {
+  serviceId: string;
+  autoStop: AutoStopState | null;
+  // True when this push follows an expired auto-stop clearing the task list.
+  fired: boolean;
+}
+
 // Why a call cycle cancelled itself: the other person reacted in the thread.
 export type NoticeReason = "replied" | "seen" | "typing";
 
@@ -236,6 +255,10 @@ const api = {
       ipcRenderer.invoke("messenger-automation-stop-all", serviceId),
     list: (): Promise<AutomationTask[]> =>
       ipcRenderer.invoke("messenger-automation-list"),
+    setAutoStop: (serviceId: string, minutes: number | null): Promise<AutoStopResult> =>
+      ipcRenderer.invoke("messenger-automation-set-auto-stop", serviceId, minutes),
+    getAutoStop: (serviceId: string): Promise<AutoStopState | null> =>
+      ipcRenderer.invoke("messenger-automation-get-auto-stop", serviceId),
     setSplitOpen: (open: boolean): void =>
       ipcRenderer.send("set-automation-split", open),
     onUpdated: (callback: (tasks: AutomationTask[]) => void) => {
@@ -251,6 +274,11 @@ const api = {
       ) => callback(data);
       ipcRenderer.on("messenger-automation-notice", handler);
       return () => ipcRenderer.removeListener("messenger-automation-notice", handler);
+    },
+    onAutoStopUpdated: (callback: (data: AutoStopUpdate) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: AutoStopUpdate) => callback(data);
+      ipcRenderer.on("messenger-automation-auto-stop-updated", handler);
+      return () => ipcRenderer.removeListener("messenger-automation-auto-stop-updated", handler);
     },
   },
 };

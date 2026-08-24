@@ -111,6 +111,25 @@ export interface StartResult {
   tasks: AutomationTask[];
 }
 
+export interface AutoStopState {
+  serviceId: string;
+  minutes: number;
+  expiresAt: number;
+}
+
+export interface AutoStopResult {
+  ok: boolean;
+  error?: string;
+  autoStop: AutoStopState | null;
+}
+
+export interface AutoStopUpdate {
+  serviceId: string;
+  autoStop: AutoStopState | null;
+  // True when this push follows an expired auto-stop clearing the task list.
+  fired: boolean;
+}
+
 // Why a call cycle cancelled itself: the other person reacted in the thread.
 export type NoticeReason = "replied" | "seen" | "typing";
 
@@ -175,11 +194,14 @@ export interface ElectronAPI {
     stop: (taskId: string) => Promise<AutomationTask[]>;
     stopAll: (serviceId: string) => Promise<AutomationTask[]>;
     list: () => Promise<AutomationTask[]>;
+    setAutoStop: (serviceId: string, minutes: number | null) => Promise<AutoStopResult>;
+    getAutoStop: (serviceId: string) => Promise<AutoStopState | null>;
     setSplitOpen: (open: boolean) => void;
     onUpdated: (callback: (tasks: AutomationTask[]) => void) => () => void;
     onNotice: (
       callback: (data: { serviceId: string; reason: NoticeReason }) => void
     ) => () => void;
+    onAutoStopUpdated: (callback: (data: AutoStopUpdate) => void) => () => void;
   };
 }
 

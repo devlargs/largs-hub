@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AutomationTask, NoticeReason, TaskSpec } from "../types";
+import { AutoStopState, AutomationTask, NoticeReason, TaskSpec } from "../types";
 import { IoClose, IoStopCircleOutline } from "react-icons/io5";
 
 interface MessengerAutomationPanelProps {
@@ -101,6 +101,10 @@ export default function MessengerAutomationPanel({
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  // Auto-stop: clears every task for this service once the countdown expires.
+  const [autoStop, setAutoStop] = useState<AutoStopState | null>(null);
+  const [autoStopMinutes, setAutoStopMinutes] = useState("30");
+  const [autoStopError, setAutoStopError] = useState<string | null>(null);
 
   const serviceTasks = useMemo(
     () => tasks.filter((t) => t.serviceId === serviceId),
@@ -145,8 +149,31 @@ export default function MessengerAutomationPanel({
     return unsubscribe;
   }, [serviceId]);
 
+  // The auto-stop lives in the main process (it must survive this panel being
+  // closed), so read the armed state on mount and follow it from there.
+  useEffect(() => {
+    let cancelled = false;
+    window.electronAPI.messengerAutomation.getAutoStop(serviceId).then((state) => {
+      if (!cancelled) setAutoStop(state);
+    });
+    const unsubscribe = window.electronAPI?.messengerAutomation.onAutoStopUpdated(
+      ({ serviceId: id, autoStop: state, fired }) => {
+        if (id !== serviceId) return;
+        setAutoStop(state);
+        if (fired) {
+          setError(null);
+          setFeedback("Auto-stop reached — all automations cleared");
+        }
+      },
+    );
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [serviceId]);
+
   // Tick countdowns locally; main only pushes on task-state changes
-  const hasCountdown = serviceTasks.some((t) => t.nextFireAt !== null);
+  const hasCountdown = serviceTasks.some((t) => t.nextFireAt !== null) || autoStop !== null;
   useEffect(() => {
     if (!hasCountdown) return;
     setNow(Date.now());
@@ -203,6 +230,23 @@ export default function MessengerAutomationPanel({
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleArmAutoStop = async () => {
+    const minutes = Number(autoStopMinutes);
+    setAutoStopError(null);
+    const result = await window.electronAPI.messengerAutomation.setAutoStop(serviceId, minutes);
+    if (!result.ok) {
+      setAutoStopError(result.error ?? "Could not set the auto-stop");
+      return;
+    }
+    setAutoStop(result.autoStop);
+  };
+
+  const handleCancelAutoStop = async () => {
+    setAutoStopError(null);
+    await window.electronAPI.messengerAutomation.setAutoStop(serviceId, null);
+    setAutoStop(null);
   };
 
   const needsMessage =
@@ -433,6 +477,74 @@ export default function MessengerAutomationPanel({
             >
               {startLabel}
             </button>
+          </div>
+
+          {/* Auto-stop — clears every task for this service after a delay */}
+          <div
+            style={{
+              marginTop: 16,
+              paddingTop: 12,
+              borderTop: "1px solid var(--border)",
+            }}
+          >
+            <span className="text-xs font-semibold" style={labelStyle}>
+              Auto-stop
+            </span>
+            <p className="text-xs" style={{ ...labelStyle, marginTop: 4 }}>
+              Clears every automation for this service once the timer runs out. It keeps counting
+              while this panel is closed.
+            </p>
+            {autoStop ? (
+              <div className="flex items-center" style={{ gap: 8, marginTop: 8 }}>
+                <span className="text-xs flex-1" style={labelStyle}>
+                  Clearing in{" "}
+                  <span className="tabular-nums" style={{ color: "var(--accent)" }}>
+                    {formatCountdown(autoStop.expiresAt - now)}
+                  </span>
+                </span>
+                <button
+                  onClick={handleCancelAutoStop}
+                  className="text-xs rounded hover:bg-sidebar-hover transition-colors"
+                  style={{ padding: "4px 10px", color: "#f38ba8" }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-end" style={{ gap: 8, marginTop: 8 }}>
+                <div className="flex flex-col flex-1" style={{ gap: 4 }}>
+                  <label className="text-xs font-medium" style={labelStyle}>
+                    Clear after (minutes)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={1440}
+                    value={autoStopMinutes}
+                    onChange={(e) => setAutoStopMinutes(e.target.value)}
+                    className="text-sm outline-none rounded-lg w-full"
+                    style={inputStyle}
+                  />
+                </div>
+                <button
+                  onClick={handleArmAutoStop}
+                  className="text-sm font-medium rounded-lg transition-colors shrink-0"
+                  style={{
+                    padding: "8px 14px",
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  Set
+                </button>
+              </div>
+            )}
+            {autoStopError && (
+              <p className="text-xs" style={{ color: "#f38ba8", marginTop: 6 }}>
+                {autoStopError}
+              </p>
+            )}
           </div>
 
           {/* Running tasks */}

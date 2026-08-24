@@ -4,6 +4,7 @@ import {
   isNoticeSignals,
   NoticeSignals,
   validateSpec,
+  validateAutoStopMinutes,
   TaskSpec,
 } from "../electron/messengerAutomation";
 
@@ -158,5 +159,25 @@ describe("isNoticeSignals", () => {
     expect(isNoticeSignals("error")).toBe(false);
     expect(isNoticeSignals(null)).toBe(false);
     expect(isNoticeSignals({ count: 1 })).toBe(false);
+  });
+});
+
+describe("validateAutoStopMinutes", () => {
+  it("accepts durations inside the 1-1440 minute range", () => {
+    expect(validateAutoStopMinutes(1)).toBeNull();
+    expect(validateAutoStopMinutes(30)).toBeNull();
+    expect(validateAutoStopMinutes(1440)).toBeNull();
+  });
+
+  it("rejects out-of-range durations", () => {
+    expect(validateAutoStopMinutes(0)).toBe("Minutes must be between 1 and 1440");
+    expect(validateAutoStopMinutes(1441)).toBe("Minutes must be between 1 and 1440");
+  });
+
+  it("rejects non-integer and non-numeric values", () => {
+    expect(validateAutoStopMinutes(1.5)).toBe("Minutes must be a whole number");
+    expect(validateAutoStopMinutes(NaN)).toBe("Minutes must be a whole number");
+    expect(validateAutoStopMinutes("30")).toBe("Minutes must be a whole number");
+    expect(validateAutoStopMinutes(null)).toBe("Minutes must be a whole number");
   });
 });

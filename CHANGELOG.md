@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Messenger automation has a new "Auto-stop" setting: pick a number of minutes and every automation running for that Messenger service is cleared when the timer runs out. The countdown keeps going while the panel is closed, shows how long is left, and can be cancelled at any time.
+
 ## [0.1.38] (2026-08-12)
 
 - The Settings page now adapts to narrow windows: each setting's control drops below its label instead of being squashed, sliders stretch to the available width, long paths wrap instead of being cut off, and the page padding tightens up.
