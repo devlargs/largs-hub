@@ -55,21 +55,39 @@ interface FakeElement {
   href?: string;
 }
 
+// A thread row in the chat list. `ariaLabel` is the row's own label; a row can
+// instead carry the state on a descendant, which `unreadMarker` stands in for.
+interface FakeRow {
+  ariaLabel?: string;
+  unreadMarker?: boolean;
+}
+
 function fakeDocument(opts: {
   title?: string;
   navLinks?: FakeElement[];
+  rows?: FakeRow[];
   unreadRows?: number;
   faviconHref?: string;
   whatsappBadges?: string[];
 }) {
   const toNavLink = (el: FakeElement) => ({
     getAttribute: () => el.ariaLabel ?? "",
+    querySelector: () => null,
     querySelectorAll: () =>
       (el.spans ?? []).map((s) => ({
         textContent: s.text,
         children: { length: s.hasChildren ? 1 : 0 },
       })),
   });
+  const toRow = (row: FakeRow) => ({
+    getAttribute: () => row.ariaLabel ?? "",
+    querySelector: () => (row.unreadMarker ? {} : null),
+    querySelectorAll: () => [],
+  });
+  // `unreadRows: n` is shorthand for n rows marked unread by a descendant
+  const rows: FakeRow[] =
+    opts.rows ?? new Array(opts.unreadRows ?? 0).fill({ unreadMarker: true });
+
   return {
     title: opts.title ?? "Messenger",
     querySelector: (selector: string) =>
@@ -79,7 +97,7 @@ function fakeDocument(opts: {
         return (opts.whatsappBadges ?? []).map((text) => ({ textContent: text }));
       }
       if (selector.includes("role=\"row\"")) {
-        return new Array(opts.unreadRows ?? 0).fill({});
+        return rows.map(toRow);
       }
       if (selector.includes("aria-label")) {
         return (opts.navLinks ?? []).map(toNavLink);
@@ -115,6 +133,52 @@ describe("messenger poll script (executed)", () => {
 
   it("counts unread thread-list markers", () => {
     expect(runPollScript(script, fakeDocument({ unreadRows: 2 }))).toBe(2);
+  });
+
+  // Issue #57: marking a read thread unread never touches document.title, so
+  // these rows are the only signal when the rail carries no count.
+  it("counts a thread marked unread by hand from the row's own label", () => {
+    const doc = fakeDocument({
+      rows: [{ ariaLabel: "Ada Lovelace, sent a photo, 2h ago, Unread" }, { ariaLabel: "Alan, ok" }],
+    });
+    expect(runPollScript(script, doc)).toBe(1);
+  });
+
+  it("totals several hand-marked threads", () => {
+    const doc = fakeDocument({
+      rows: [
+        { ariaLabel: "Ada, Unread" },
+        { ariaLabel: "Grace, read" },
+        { unreadMarker: true },
+        { ariaLabel: "Alan, UNREAD" },
+      ],
+    });
+    expect(runPollScript(script, doc)).toBe(3);
+  });
+
+  it("drops back to 0 once the threads are opened", () => {
+    const doc = fakeDocument({ rows: [{ ariaLabel: "Ada, ok" }, { ariaLabel: "Alan, ok" }] });
+    expect(runPollScript(script, doc)).toBe(0);
+  });
+
+  it("reads the rail count off a label the old element selector missed", () => {
+    // Neither an <a> nor a div[role="link"] — the shape the old query assumed
+    const doc = fakeDocument({ navLinks: [{ ariaLabel: "Chats 2 unread" }] });
+    expect(runPollScript(script, doc)).toBe(2);
+  });
+
+  it("prefers the rail count over the rendered rows", () => {
+    // The list is virtualized, so rows undercount a long backlog
+    const doc = fakeDocument({
+      navLinks: [{ ariaLabel: "Chats, 12 unread" }],
+      unreadRows: 4,
+    });
+    expect(runPollScript(script, doc)).toBe(12);
+  });
+
+  it("ignores Facebook's notification jewel", () => {
+    const doc = fakeDocument({ navLinks: [{ ariaLabel: "Notifications, 5 unread" }] });
+    expect(runPollScript(script, doc)).toBe(0);
   });
 
   it("falls back to the legacy favicon badge as 1", () => {
