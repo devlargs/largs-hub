@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.48] (2026-08-29)
+
 - Removed the **Close when idle** setting and the auto-quit behaviour behind it. The app never closes itself now — it stays open until you close it.
 
 ## [0.1.47] (2026-08-24)
