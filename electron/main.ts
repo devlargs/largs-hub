@@ -6,10 +6,9 @@ import { store, StoreSchema } from "./store";
 import {
   registerMessengerAutomation,
   restoreAutomationState,
-  hasAnyAutomation,
 } from "./messengerAutomation";
 import { registerPomodoro, recordFocusSession } from "./tasks";
-import { registerPomodoroTimer, stopTimerForTask, hasRunningTimer } from "./pomodoroTimer";
+import { registerPomodoroTimer, stopTimerForTask } from "./pomodoroTimer";
 import { registerUpdater } from "./updater";
 import { registerServicesIpc } from "./ipc/services";
 import { sweepOrphanedPartitions } from "./partitions";
@@ -37,7 +36,6 @@ import {
   setActiveViewVisible,
   setAutomationSplitOpen,
   repositionActiveView,
-  isAnyServiceAudible,
   showService,
   setWindowMinimized,
   watchPowerForPolling,
@@ -52,13 +50,6 @@ import {
   closeCallWindow,
   armAutomationCall,
 } from "./serviceViews";
-import {
-  startIdleShutdown,
-  stopIdleShutdown,
-  initIdleShutdown,
-  trackInputActivity,
-  noteActivity,
-} from "./idleShutdown";
 
 // Entry point: owns the frameless window and the React UI layer (uiView), the
 // link-preview overlay, and z-order IPC. Everything else lives in modules:
@@ -72,7 +63,6 @@ import {
 //   updater.ts            GitHub release check + installer download
 //   ipc/services.ts       service CRUD/toggles/navigation/context menu
 //   ipc/settings.ts       theme, settings, custom icons, settings menu
-//   idleShutdown.ts       auto-quit after an hour with no user interaction
 
 app.setName("Largs Hub");
 // Must match build.appId in package.json — Windows keys taskbar overlays and
@@ -144,7 +134,6 @@ function createWindow() {
 
   uiView.setBackgroundColor("#00000000");
   mainWindow.contentView.addChildView(uiView);
-  trackInputActivity(uiView.webContents);
 
   const resizeUiView = () => {
     if (!mainWindow || !uiView) return;
@@ -161,7 +150,6 @@ function createWindow() {
 
   mainWindow.on("resize", () => {
     if (mainWindow) {
-      noteActivity(); // the user is dragging the window edge
       // While maximized the size is the screen's, not the user's — saving it
       // would leave nothing to restore to on unmaximize.
       if (!mainWindow.isMaximized()) {
@@ -179,7 +167,6 @@ function createWindow() {
   });
 
   mainWindow.on("focus", () => {
-    noteActivity(); // the user just switched back to the app
     mainWindow?.flashFrame(false); // Stop taskbar flashing
     handleWindowFocus();
   });
@@ -196,7 +183,6 @@ function createWindow() {
 
   mainWindow.on("move", () => {
     if (mainWindow) {
-      noteActivity(); // the user is dragging the window
       if (!mainWindow.isMaximized()) {
         const [x, y] = mainWindow.getPosition();
         saveBoundsDebounced({ x, y });
@@ -228,7 +214,6 @@ function createWindow() {
     // Toasts are top-level windows; leaving one open would block "window-all-closed"
     closeAllDownloadToasts();
     stopHibernationSweep();
-    stopIdleShutdown();
     mainWindow = null;
     uiView = null;
     linkPreviewView = null;
@@ -253,14 +238,6 @@ function createWindow() {
   watchPowerForPolling();
 
   startHibernationSweep();
-  // Unfinished work blocks the quit — see idleShutdown.ts (issue #73).
-  initIdleShutdown({
-    getIdleMinutes: () => store.get("idleQuitMinutes"),
-    isAnythingAudible: () => isAnyServiceAudible(),
-    hasRunningTimer,
-    hasPendingAutomation: hasAnyAutomation,
-  });
-  startIdleShutdown();
 
   // Pre-load all saved services so they're warm on startup (if enabled)
   uiView.webContents.on("did-finish-load", () => {
@@ -299,7 +276,6 @@ function openLinkPreview(url: string, partition: string) {
   });
 
   view.setBackgroundColor("#1e1e2e");
-  trackInputActivity(view.webContents);
 
   const chromeVersion = process.versions.chrome;
   view.webContents.setUserAgent(

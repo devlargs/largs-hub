@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Removed the **Close when idle** setting and the auto-quit behaviour behind it. The app never closes itself now — it stays open until you close it.
+
 ## [0.1.47] (2026-08-24)
 
 - New **tray icon**, so the app can keep running with the window out of the way instead of the choice being "window on screen" or "not running". Two settings (both off by default, so nothing changes unless you turn them on): **Close to tray** and **Minimize to tray**. The tray icon carries the unread total, left-clicking restores the window, and its menu jumps straight to any service — with its own unread count beside it — or quits properly.

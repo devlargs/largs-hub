@@ -34,7 +34,6 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
       openFileOnFinish: store.get("openFileOnFinish"),
       downloadAlertOnFinish: store.get("downloadAlertOnFinish"),
       hibernateInactiveMinutes: store.get("hibernateInactiveMinutes"),
-      idleQuitMinutes: store.get("idleQuitMinutes"),
       closeToTray: store.get("closeToTray"),
       minimizeToTray: store.get("minimizeToTray"),
       pomodoroFocusMinutes: store.get("pomodoroFocusMinutes"),
@@ -71,13 +70,6 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
       store.set(key, value);
       // Creates the tray when either is switched on, removes it when both go off.
       syncTray();
-    } else if (
-      key === "idleQuitMinutes" &&
-      typeof value === "number" &&
-      Number.isFinite(value) &&
-      value >= 0
-    ) {
-      store.set("idleQuitMinutes", Math.floor(value));
     } else if (key === "pomodoroFocusMinutes" || key === "pomodoroBreakMinutes") {
       // Same bounds sanitizeMinutes enforces on read, applied on the way in.
       if (typeof value !== "number" || !Number.isFinite(value)) return;

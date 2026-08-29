@@ -57,15 +57,12 @@ export interface StoreSchema {
   // app exactly as it did before unless asked otherwise (issue #90).
   closeToTray: boolean;
   minimizeToTray: boolean;
-  // Minutes of no interaction before the app closes itself (0 = never). Off by
-  // default: it used to be a hardcoded hour with no setting and no warning.
-  idleQuitMinutes: number;
   // Messenger automation tasks and armed auto-stops, so a scheduled send can
   // outlive the process that armed it (issue #75).
   automationTasks: AutomationTask[];
   automationAutoStops: AutoStopState[];
   // Pomodoro focus/break lengths in minutes, and the timer state itself so a
-  // running session survives a quit, a crash or the idle auto-quit (issue #74).
+  // running session survives a quit or a crash (issue #74).
   pomodoroFocusMinutes: number;
   pomodoroBreakMinutes: number;
   pomodoroTimer: PomodoroTimerState | null;
@@ -98,7 +95,6 @@ export const store = new Store<StoreSchema>({
     recentEmojis: [],
     closeToTray: false,
     minimizeToTray: false,
-    idleQuitMinutes: 0,
     automationTasks: [],
     automationAutoStops: [],
     pomodoroFocusMinutes: 25,

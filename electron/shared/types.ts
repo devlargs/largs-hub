@@ -22,8 +22,6 @@ export interface AppSettings {
   // Keep running in the tray instead of quitting when the window is closed
   closeToTray: boolean;
   minimizeToTray: boolean;
-  // Minutes of no interaction before the app closes itself (0 = never)
-  idleQuitMinutes: number;
   // Pomodoro phase lengths in minutes
   pomodoroFocusMinutes: number;
   pomodoroBreakMinutes: number;

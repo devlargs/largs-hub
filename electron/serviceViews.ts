@@ -13,7 +13,6 @@ import {
   clearNotificationCount,
   resetDecreaseDebounce,
 } from "./notificationCounts";
-import { trackInputActivity } from "./idleShutdown";
 import { DEFAULT_ZOOM, nextZoom, sanitizeZoom } from "./zoom";
 import { computeAutomationLayout } from "./automationLayout";
 import { SIDEBAR_WIDTH, TITLEBAR_HEIGHT, FIND_BAR_HEIGHT } from "./shared/layout";
@@ -501,7 +500,6 @@ function openCallWindow(callUrl: string, partition: string, spoofedUA: string) {
 
   callWindow.setMenuBarVisibility(false);
   callWindow.webContents.setUserAgent(spoofedUA);
-  trackInputActivity(callWindow.webContents);
   if (isAutomationCall) callWindow.webContents.setAudioMuted(true); // silence cycle calls
 
   // Cycle calls open minimized (and never take focus): the popup only matters
@@ -697,7 +695,6 @@ function createServiceView(service: Service): WebContentsView {
   });
 
   view.setBackgroundColor("#00000000");
-  trackInputActivity(view.webContents);
 
   // Spoof user agent so sites like Google and WhatsApp don't reject Electron
   const chromeVersion = process.versions.chrome;

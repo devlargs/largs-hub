@@ -13,7 +13,6 @@ export default function SettingsPage() {
     openFileOnFinish: false,
     downloadAlertOnFinish: true,
     hibernateInactiveMinutes: 0,
-    idleQuitMinutes: 0,
     closeToTray: false,
     minimizeToTray: false,
     pomodoroFocusMinutes: 25,
@@ -117,11 +116,6 @@ export default function SettingsPage() {
     setSettings((s) => ({ ...s, [key]: next }));
   };
 
-  const handleIdleQuitChange = async (minutes: number) => {
-    await window.electronAPI.updateSetting("idleQuitMinutes", minutes);
-    setSettings((s) => ({ ...s, idleQuitMinutes: minutes }));
-  };
-
   const handleHibernateChange = async (minutes: number) => {
     await window.electronAPI.updateSetting("hibernateInactiveMinutes", minutes);
     setSettings((s) => ({ ...s, hibernateInactiveMinutes: minutes }));
@@ -208,29 +202,6 @@ export default function SettingsPage() {
               checked={settings.minimizeToTray}
               onChange={() => handleTrayToggle("minimizeToTray")}
             />
-          </SettingRow>
-
-          <SettingRow
-            label="Close when idle"
-            description="Quit after this long with no interaction. A call, a running focus timer or pending automation keeps it open."
-          >
-            <select
-              value={settings.idleQuitMinutes}
-              onChange={(e) => handleIdleQuitChange(Number(e.target.value))}
-              className="text-sm rounded-lg cursor-pointer outline-none"
-              style={{
-                padding: "6px 10px",
-                backgroundColor: "var(--sidebar-hover)",
-                color: "var(--text-primary)",
-                border: "1px solid var(--border)",
-              }}
-            >
-              <option value={0}>Never</option>
-              <option value={60}>After 1 hour</option>
-              <option value={120}>After 2 hours</option>
-              <option value={240}>After 4 hours</option>
-              <option value={480}>After 8 hours</option>
-            </select>
           </SettingRow>
         </Section>
 
