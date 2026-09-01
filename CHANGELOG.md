@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **Automations survive moving around the app.** A running automation — most often a call cycle — could vanish from Running tasks for no visible reason. Anything that rebuilt a service's view took its automations with it: hibernating an idle service, changing a service's URL, "Clear data", or closing the window while it kept running in the tray. The call cycle was hit hardest because it checks the conversation every two seconds, so it was almost always mid-check when the gap happened. A missing view now just pauses the task — it shows "Waiting for the service to load" and picks up where it left off when the service opens again. Only removing or disabling the service ends its automations.
+
 - Settings rows line up properly. Each setting's name and its toggle, dropdown or slider now sit on one line — name left, control right, vertically centred — at every window width. In a narrow window the control used to drop onto its own line underneath the description, which read as a separate item from the setting it belonged to.
 
 ## [0.1.50] (2026-09-01)
