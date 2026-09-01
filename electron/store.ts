@@ -1,4 +1,5 @@
 import Store from "electron-store";
+import { migrateLegacyServiceShape } from "./serviceSchema";
 import { TodoData, TodoNotionConfig } from "./tasks";
 import { MessageListGroup } from "./messageLists";
 import type { AutoStopState, AutomationTask, Service } from "./shared/types";
@@ -110,8 +111,24 @@ if (legacyStore.has("notionNotes")) {
   legacyStore.delete("notionNotes");
 }
 
-// One-time migration: the Pomodoro service became a plain Todo list, so its
-// stored keys move across under the new names. Tasks and Notion credentials
+// One-time migration: stored services still carry `type: "pomodoro"`. Nothing
+// reads that type any more, so until it is rewritten the service renders as a
+// blank pane and the main process treats it as an ordinary web view. This runs
+// at module load, before main.ts touches the store, so every later reader —
+// including the get-services IPC handler, which returns the stored list as-is —
+// sees the migrated shape.
+const storedServices = store.get("services") as unknown[];
+if (Array.isArray(storedServices)) {
+  const migratedServices = storedServices.map(migrateLegacyServiceShape);
+  // migrateLegacyServiceShape hands back the same object when there is nothing
+  // to do, so an identity check is enough to avoid a pointless disk write.
+  if (migratedServices.some((service, i) => service !== storedServices[i])) {
+    store.set("services", migratedServices as Service[]);
+  }
+}
+
+// The Pomodoro service became a plain Todo list, so its stored keys move across
+// under the new names. Tasks and Notion credentials
 // are user data — dropping them on the rename would lose the list.
 for (const [from, to] of [
   ["pomodoroTasks", "todoTasks"],
@@ -134,4 +151,4 @@ for (const key of ["pomodoroFocusMinutes", "pomodoroBreakMinutes", "pomodoroTime
 
 // Shape validation lives in serviceSchema.ts (pure, unit-tested); re-exported
 // here so existing `from "./store"` imports keep working.
-export { isSafeServiceUrl, sanitizeService } from "./serviceSchema";
+export { isSafeServiceUrl, migrateLegacyServiceShape, sanitizeService } from "./serviceSchema";

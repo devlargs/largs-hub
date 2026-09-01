@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isSafeServiceUrl, sanitizeService } from "../electron/serviceSchema";
+import {
+  isSafeServiceUrl,
+  migrateLegacyServiceShape,
+  sanitizeService,
+} from "../electron/serviceSchema";
 
 describe("isSafeServiceUrl", () => {
   it("accepts http and https", () => {
@@ -133,5 +137,60 @@ describe("sanitizeService", () => {
   it("coerces non-string icon and color to their defaults", () => {
     const result = sanitizeService({ ...valid, icon: 5, color: null });
     expect(result).toMatchObject({ icon: "", color: "#888888" });
+  });
+});
+
+// The blank-pane bug: get-services returns the stored list untouched, so a
+// service left on the old type never reaches a renderer that recognises it.
+describe("migrateLegacyServiceShape", () => {
+  it("folds a stored Pomodoro service onto the todo type", () => {
+    expect(
+      migrateLegacyServiceShape({
+        id: "p",
+        name: "Pomodoro",
+        type: "pomodoro",
+        icon: "pomodoro.svg",
+      }),
+    ).toMatchObject({ type: "todo", name: "Todo", icon: "todo.svg" });
+  });
+
+  it("keeps a name and icon the user chose", () => {
+    expect(
+      migrateLegacyServiceShape({ id: "p", name: "My list", type: "pomodoro", icon: "custom:a" }),
+    ).toMatchObject({ type: "todo", name: "My list", icon: "custom:a" });
+  });
+
+  it("carries every other field across untouched", () => {
+    const migrated = migrateLegacyServiceShape({
+      id: "p",
+      name: "Pomodoro",
+      type: "pomodoro",
+      color: "#abcdef",
+      muted: true,
+      privacyMode: true,
+      url: "pomodoro://internal",
+    });
+    expect(migrated).toMatchObject({
+      id: "p",
+      color: "#abcdef",
+      muted: true,
+      privacyMode: true,
+      url: "pomodoro://internal",
+    });
+  });
+
+  // The store only rewrites itself when something actually changed, and it
+  // tells them apart by identity.
+  it("returns the very same object when there is nothing to migrate", () => {
+    for (const input of [
+      { id: "a", name: "A", type: "todo" },
+      { id: "b", name: "B", url: "https://example.com" },
+      { id: "c", name: "C", type: "notion-notes" },
+      null,
+      "nonsense",
+      undefined,
+    ]) {
+      expect(migrateLegacyServiceShape(input)).toBe(input);
+    }
   });
 });

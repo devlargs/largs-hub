@@ -17,25 +17,41 @@ export function isSafeServiceUrl(url: unknown): url is string {
   }
 }
 
-export function sanitizeService(raw: unknown): Service | null {
-  if (typeof raw !== "object" || raw === null) return null;
+// The Pomodoro service became the Todo service. Stored services still carry
+// the old type, name and icon, and nothing downstream recognises "pomodoro" any
+// more — the page renders blank and the main process treats it as a web view.
+// Folding them forward has to happen on *every* read of the store, not just on
+// the write paths that go through sanitizeService, so the rule lives here on
+// its own. Returns the same object when there is nothing to change, which is
+// what lets a caller tell whether the stored list needs rewriting.
+export function migrateLegacyServiceShape(raw: unknown): unknown {
+  if (typeof raw !== "object" || raw === null) return raw;
   const s = raw as Record<string, unknown>;
+  if (s.type !== "pomodoro") return raw;
+  return {
+    ...s,
+    type: "todo",
+    // Only the untouched default name is replaced — a list the user renamed
+    // keeps the name they gave it.
+    name: s.name === "Pomodoro" ? "Todo" : s.name,
+    icon: s.icon === "pomodoro.svg" ? "todo.svg" : s.icon,
+  };
+}
+
+export function sanitizeService(raw: unknown): Service | null {
+  const migrated = migrateLegacyServiceShape(raw);
+  if (typeof migrated !== "object" || migrated === null) return null;
+  const s = migrated as Record<string, unknown>;
   if (typeof s.id !== "string" || s.id.length === 0) return null;
   if (typeof s.name !== "string" || s.name.length === 0) return null;
-  // "pomodoro" is the pre-rename name for the todo service; stored services
-  // still carry it, so it is read and folded into the current type.
   const type: InternalServiceType | undefined =
-    s.type === "todo" || s.type === "pomodoro"
-      ? "todo"
-      : s.type === "notion-notes"
-        ? "notion-notes"
-        : undefined;
+    s.type === "todo" || s.type === "notion-notes" ? s.type : undefined;
   if (!type && !isSafeServiceUrl(s.url)) return null;
   return {
     id: s.id,
-    name: type === "todo" && s.name === "Pomodoro" ? "Todo" : s.name,
+    name: s.name,
     url: typeof s.url === "string" ? s.url : "",
-    icon: typeof s.icon === "string" ? (s.icon === "pomodoro.svg" ? "todo.svg" : s.icon) : "",
+    icon: typeof s.icon === "string" ? s.icon : "",
     color: typeof s.color === "string" ? s.color : "#888888",
     notificationCount: 0,
     muted: s.muted === true,
