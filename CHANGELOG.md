@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Settings rows line up properly. Each setting's name and its toggle, dropdown or slider now sit on one line — name left, control right, vertically centred — at every window width. In a narrow window the control used to drop onto its own line underneath the description, which read as a separate item from the setting it belonged to.
+
 ## [0.1.50] (2026-09-01)
 
 ## [0.1.49] (2026-09-01)

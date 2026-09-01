@@ -334,7 +334,7 @@ export default function SettingsPage() {
             }
           >
             {updateStatus === "downloading" ? (
-              <div className="flex w-full items-center gap-3 @lg:w-auto @lg:min-w-[160px]">
+              <div className="flex w-[140px] items-center gap-3 @lg:w-auto @lg:min-w-[160px]">
                 <div
                   className="flex-1 rounded-full"
                   style={{ height: 6, backgroundColor: "var(--border)" }}
@@ -415,8 +415,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       >
         {title}
       </h2>
-      {/* Stacked rows need real separation; side by side they don't. */}
-      <div className="flex flex-col gap-4 @lg:gap-1">{children}</div>
+      <div className="flex flex-col gap-1">{children}</div>
     </div>
   );
 }
@@ -433,10 +432,13 @@ function SettingRow({
   children: React.ReactNode;
 }) {
   return (
-    // Narrow windows stack the control under its label; from `sm` up the row
-    // goes back to label-left / control-right.
-    <div className="flex flex-col items-stretch gap-2 rounded-lg py-1 @lg:flex-row @lg:items-center @lg:justify-between @lg:gap-4 @lg:px-3.5 @lg:py-3">
-      <div style={{ minWidth: 0, flex: 1 }}>
+    // Label left, control right, on one line at every width — a control that
+    // stacks under its own label reads as a separate thing from the setting it
+    // belongs to (issue #98). The label column takes the slack and the control
+    // keeps its intrinsic size, so the two stay on the same optical line
+    // however the description wraps.
+    <div className="flex flex-row items-center justify-between gap-3 rounded-lg py-2 @lg:gap-6 @lg:px-3.5 @lg:py-3">
+      <div className="min-w-0 flex-1">
         <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
           {label}
         </div>
@@ -447,7 +449,7 @@ function SettingRow({
           {description}
         </div>
       </div>
-      <div className="flex justify-end @lg:block @lg:shrink-0">
+      <div className="flex shrink-0 justify-end">
         {/* The row's label is the control's accessible name; a bare Toggle has
             no text of its own. */}
         {React.isValidElement(children) && children.type === Toggle
@@ -468,7 +470,7 @@ function Slider({
   onCommit: (value: number) => void;
 }) {
   return (
-    <div className="flex w-full items-center gap-3 @lg:w-auto @lg:min-w-[180px]">
+    <div className="flex w-[140px] items-center gap-3 @lg:w-auto @lg:min-w-[180px]">
       <input
         type="range"
         min={0}
