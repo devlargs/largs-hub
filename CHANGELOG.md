@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.49] (2026-09-01)
+
 - The **Pomodoro** service is now simply **Todo** — a plain daily task list. The focus timer is gone: no ring, no clock, no start/pause/skip, no per-task session tally, and the Focus/Break length settings have been removed from Settings. Everything else the list did stays: add, edit, check off, delete, drag to reorder, step through days, and carry unfinished work over to the next day. Existing Pomodoro services, their tasks and their Notion connection carry across on first launch under the new name and icon; nothing needs re-adding.
 - **Checking a task now dissolves it.** Its letters blur and fade away one after another, left to right, and the row closes the gap behind them. Long tasks dissolve at the same pace as short ones rather than dragging on, and the whole thing is skipped if your system asks for reduced motion.
 - **Finished tasks are filed away instead of struck through.** A **Done tasks** button sits at the foot of the list with the day's count beside it; open it to see them, uncheck one to send it back to the list. The strikethrough is gone — a crossed-out task was still a full line of text to read past.
