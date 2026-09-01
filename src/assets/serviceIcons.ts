@@ -8,7 +8,7 @@ import x from "./images/x.png";
 import reddit from "./images/reddit.png";
 import linkedin from "./images/linkedin.png";
 import messenger from "./images/messenger.png";
-import pomodoro from "./images/pomodoro.svg";
+import todo from "./images/todo.svg";
 
 const serviceIcons: Record<string, string> = {
   "gmail.png": gmail,
@@ -21,7 +21,9 @@ const serviceIcons: Record<string, string> = {
   "reddit.png": reddit,
   "linkedin.png": linkedin,
   "messenger.png": messenger,
-  "pomodoro.svg": pomodoro,
+  "todo.svg": todo,
+  // Pre-rename filename, still stored against existing services
+  "pomodoro.svg": todo,
 };
 
 // Map service names to icons so older stored services (with emoji icons) still resolve
@@ -36,7 +38,8 @@ const serviceIconsByName: Record<string, string> = {
   reddit: reddit,
   linkedin: linkedin,
   messenger: messenger,
-  pomodoro: pomodoro,
+  todo: todo,
+  pomodoro: todo,
 };
 
 export function resolveIcon(icon: string, name: string): string | undefined {

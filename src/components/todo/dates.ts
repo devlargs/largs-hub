@@ -1,4 +1,4 @@
-// Day keys for the Pomodoro list. Mirrors the same helpers in
+// Day keys for the Todo list. Mirrors the same helpers in
 // electron/tasksLogic.ts — the renderer can't import from electron/, and both
 // sides must agree that a "day" is the user's local day, not a UTC one.
 

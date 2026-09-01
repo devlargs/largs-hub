@@ -19,10 +19,10 @@ const POPULAR_SERVICES: {
   { name: "Telegram", url: "https://web.telegram.org", icon: "telegram.png" },
   { name: "Notion", url: "https://www.notion.so", icon: "notion.png" },
   {
-    name: "Pomodoro",
-    url: "pomodoro://internal",
-    icon: "pomodoro.svg",
-    type: "pomodoro",
+    name: "Todo",
+    url: "todo://internal",
+    icon: "todo.svg",
+    type: "todo",
   },
   { name: "Twitter / X", url: "https://x.com", icon: "x.png" },
   { name: "Reddit", url: "https://reddit.com", icon: "reddit.png" },
@@ -169,7 +169,7 @@ export default function AddServiceModal({
         submitted.current = false;
         return;
       }
-      // Internal services (Pomodoro) carry a non-http URL that is never edited
+      // Internal services (Todo) carry a non-http URL that is never edited
       const url = editingService!.type ? editingService!.url : normalizeServiceUrl(editUrl);
       if (!url) {
         // The main process would reject this and hand back the unchanged list,

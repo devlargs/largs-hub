@@ -22,14 +22,20 @@ export function sanitizeService(raw: unknown): Service | null {
   const s = raw as Record<string, unknown>;
   if (typeof s.id !== "string" || s.id.length === 0) return null;
   if (typeof s.name !== "string" || s.name.length === 0) return null;
+  // "pomodoro" is the pre-rename name for the todo service; stored services
+  // still carry it, so it is read and folded into the current type.
   const type: InternalServiceType | undefined =
-    s.type === "pomodoro" || s.type === "notion-notes" ? s.type : undefined;
+    s.type === "todo" || s.type === "pomodoro"
+      ? "todo"
+      : s.type === "notion-notes"
+        ? "notion-notes"
+        : undefined;
   if (!type && !isSafeServiceUrl(s.url)) return null;
   return {
     id: s.id,
-    name: s.name,
+    name: type === "todo" && s.name === "Pomodoro" ? "Todo" : s.name,
     url: typeof s.url === "string" ? s.url : "",
-    icon: typeof s.icon === "string" ? s.icon : "",
+    icon: typeof s.icon === "string" ? (s.icon === "pomodoro.svg" ? "todo.svg" : s.icon) : "",
     color: typeof s.color === "string" ? s.color : "#888888",
     notificationCount: 0,
     muted: s.muted === true,

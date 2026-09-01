@@ -1,5 +1,14 @@
 [
   {
+    "date": "2026-09-01",
+    "macrostructure": "Workbench",
+    "theme": "preserved (Catppuccin Mocha/Latte)",
+    "theme_axes": "dark / system-sans + system-mono / cool-blue",
+    "genre": "modern-minimal",
+    "enrichment": "none (typography only)",
+    "brief": "Largs Hub Todo view - Pomodoro stripped back to a plain list, composer pinned to the head"
+  },
+  {
     "date": "2026-08-24",
     "macrostructure": "Stat-Led",
     "theme": "preserved (Catppuccin Mocha/Latte)",

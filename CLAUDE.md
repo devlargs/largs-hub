@@ -52,7 +52,7 @@ Adding any main↔renderer capability touches three places, which must be kept c
 2. `electron/preload.ts` — method on the `api` object exposed as `window.electronAPI`
 3. `src/types.ts` — matching signature on the `ElectronAPI` interface
 
-**Payload types are not duplicated.** `Service`, the Pomodoro types, `TaskSpec`, `AutomationTask` and friends live once in `electron/shared/types.ts`; `store.ts` re-exports them, preload imports them from `./shared/types`, and `src/types.ts` re-exports them via `@shared/types`. Add or change a field there and both tsconfig projects fail until every caller agrees — so declare new payload shapes in the shared module, never in the layer that happens to need them first.
+**Payload types are not duplicated.** `Service`, the Todo types, `TaskSpec`, `AutomationTask` and friends live once in `electron/shared/types.ts`; `store.ts` re-exports them, preload imports them from `./shared/types`, and `src/types.ts` re-exports them via `@shared/types`. Add or change a field there and both tsconfig projects fail until every caller agrees — so declare new payload shapes in the shared module, never in the layer that happens to need them first.
 
 ### Service view behaviors (createServiceView in main.ts)
 

@@ -44,11 +44,7 @@ export default function NotionTaskSetup({
     if (!canConnect) return;
     setBusy(true);
     setError(null);
-    const res = await window.electronAPI.pomodoro.connect(
-      serviceId,
-      apiKey.trim(),
-      databaseId.trim(),
-    );
+    const res = await window.electronAPI.todo.connect(serviceId, apiKey.trim(), databaseId.trim());
     setBusy(false);
     if (!res.ok) {
       setError(res.error || "Could not connect to Notion.");
@@ -65,7 +61,7 @@ export default function NotionTaskSetup({
   const handleReset = async () => {
     setBusy(true);
     setError(null);
-    const res = await window.electronAPI.pomodoro.resetDatabase(serviceId);
+    const res = await window.electronAPI.todo.resetDatabase(serviceId);
     setBusy(false);
     if (res.ok) onReady();
     else setError(res.error || "Could not empty the database.");
@@ -74,14 +70,14 @@ export default function NotionTaskSetup({
   const handleAdopt = async () => {
     setBusy(true);
     setError(null);
-    const res = await window.electronAPI.pomodoro.adoptDatabase(serviceId);
+    const res = await window.electronAPI.todo.adoptDatabase(serviceId);
     setBusy(false);
     if (res.ok) onReady();
     else setError(res.error || "Could not reconnect to the existing tasks.");
   };
 
   const handleUseDifferent = async () => {
-    await window.electronAPI.pomodoro.disconnect(serviceId);
+    await window.electronAPI.todo.disconnect(serviceId);
     setError(null);
     setMode("form");
   };
@@ -275,10 +271,10 @@ export default function NotionTaskSetup({
                 </>
               ) : (
                 <>
-                  Pomodoro needs full control of the database you connect. To keep using this one,
-                  Largs Hub will <strong>move all of its existing pages to Notion's trash</strong>{" "}
-                  and repurpose its fields for tasks. If that data matters to you, connect a
-                  different, freshly created database instead.
+                  Todo needs full control of the database you connect. To keep using this one, Largs
+                  Hub will <strong>move all of its existing pages to Notion's trash</strong> and
+                  repurpose its fields for tasks. If that data matters to you, connect a different,
+                  freshly created database instead.
                 </>
               )}
             </p>

@@ -22,9 +22,6 @@ export interface AppSettings {
   // Keep running in the tray instead of quitting when the window is closed
   closeToTray: boolean;
   minimizeToTray: boolean;
-  // Pomodoro phase lengths in minutes
-  pomodoroFocusMinutes: number;
-  pomodoroBreakMinutes: number;
   // Privacy mode appearance: the vertical cover spans a share of the page
   // height from the top, the horizontal cover a share of the width from the
   // left. Sizes and opacities are 0-100; a size of 0 disables that cover.
@@ -34,10 +31,10 @@ export interface AppSettings {
   privacyHorizontalOpacity: number;
 }
 
-export type InternalServiceType = "pomodoro" | "notion-notes";
+export type InternalServiceType = "todo" | "notion-notes";
 
 export function isInternalService(service: { type?: string } | null | undefined): boolean {
-  return service?.type === "pomodoro" || service?.type === "notion-notes";
+  return service?.type === "todo" || service?.type === "notion-notes";
 }
 
 export interface Service {
@@ -55,13 +52,13 @@ export interface Service {
   privacyMode?: boolean;
   // Internal services render as React pages instead of getting a
   // WebContentsView in the main process. "notion-notes" is retired (the Note
-  // Taker was replaced by Pomodoro) and only renders a migration notice.
+  // Taker was replaced by Todo) and only renders a migration notice.
   type?: InternalServiceType;
 }
 
-// --- Pomodoro (internal "pomodoro" service) ---------------------------------
+// --- Todo (internal "todo" service) -----------------------------------------
 
-export interface PomodoroTask {
+export interface TodoTask {
   id: string;
   text: string;
   done: boolean;
@@ -71,55 +68,40 @@ export interface PomodoroTask {
   // Notion page id, present once the task has been pushed
   pageId?: string;
   editedAt: string;
-  // Completed focus sessions spent on this task
-  focusSessions: number;
 }
 
 // Notion connection state for the service (not the same as sync health)
-export type PomodoroConnectionState = "local" | "pending" | "pending-adoptable" | "ready";
+export type TodoConnectionState = "local" | "pending" | "pending-adoptable" | "ready";
 
-export type PomodoroSyncStatus = "local" | "synced" | "syncing" | "offline";
+export type TodoSyncStatus = "local" | "synced" | "syncing" | "offline";
 
-export interface PomodoroSyncState {
+export interface TodoSyncState {
   serviceId: string;
-  status: PomodoroSyncStatus;
+  status: TodoSyncStatus;
   pending: number;
   error?: string;
 }
 
-export interface PomodoroListResult {
+export interface TodoListResult {
   ok: boolean;
   error?: string;
-  tasks?: PomodoroTask[];
+  tasks?: TodoTask[];
   pulledAt?: number;
-  sync?: PomodoroSyncState;
+  sync?: TodoSyncState;
 }
 
-export interface PomodoroTaskResult {
+export interface TodoTaskResult {
   ok: boolean;
   error?: string;
-  task?: PomodoroTask;
-  tasks?: PomodoroTask[];
+  task?: TodoTask;
+  tasks?: TodoTask[];
 }
 
-export interface PomodoroConnectResult {
+export interface TodoConnectResult {
   ok: boolean;
   error?: string;
   needsReset?: boolean;
   adoptable?: boolean;
-}
-
-export type PomodoroTimerPhase = "focus" | "break";
-
-export interface PomodoroTimerState {
-  serviceId: string;
-  taskId: string | null;
-  phase: PomodoroTimerPhase;
-  running: boolean;
-  // Epoch ms the current phase ends; the UI ticks its countdown from this
-  endsAt: number;
-  remainingMs: number;
-  completedFocus: number;
 }
 
 export type TaskSpec =

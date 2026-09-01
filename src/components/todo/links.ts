@@ -25,7 +25,7 @@ function trimTrailingPunctuation(url: string): string {
     const last = out[out.length - 1];
     if (!TRAILING.has(last)) break;
     // Counted with the bracket still attached, so ">=" is the balanced case:
-    // ".../Pomodoro_(technique)" keeps its bracket, "(https://x.com)" doesn't.
+    // ".../Todo_(technique)" keeps its bracket, "(https://x.com)" doesn't.
     if (last === ")" && count(out, "(") >= count(out, ")")) break;
     if (last === "]" && count(out, "[") >= count(out, "]")) break;
     if (last === "}" && count(out, "{") >= count(out, "}")) break;

@@ -28,7 +28,6 @@ function task(overrides: Partial<Task> & { id: string }): Task {
     date: "2026-08-24",
     order: 0,
     editedAt: "2026-08-24T09:00:00.000Z",
-    focusSessions: 0,
     ...overrides,
   };
 }

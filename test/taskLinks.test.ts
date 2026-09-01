@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasLink, parseTaskSegments, toHref } from "../src/components/pomodoro/links";
+import { hasLink, parseTaskSegments, toHref } from "../src/components/todo/links";
 
 const values = (text: string) => parseTaskSegments(text).map((s) => s.value);
 const links = (text: string) =>
@@ -60,8 +60,8 @@ describe("parseTaskSegments", () => {
     });
 
     it("keeps a closing bracket that belongs to the URL", () => {
-      expect(links("read https://en.wikipedia.org/wiki/Pomodoro_(technique)")).toEqual([
-        "https://en.wikipedia.org/wiki/Pomodoro_(technique)",
+      expect(links("read https://en.wikipedia.org/wiki/Todo_(technique)")).toEqual([
+        "https://en.wikipedia.org/wiki/Todo_(technique)",
       ]);
     });
 

@@ -36,8 +36,6 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
       hibernateInactiveMinutes: store.get("hibernateInactiveMinutes"),
       closeToTray: store.get("closeToTray"),
       minimizeToTray: store.get("minimizeToTray"),
-      pomodoroFocusMinutes: store.get("pomodoroFocusMinutes"),
-      pomodoroBreakMinutes: store.get("pomodoroBreakMinutes"),
       privacyCoverPercent: store.get("privacyCoverPercent"),
       privacyOpacity: store.get("privacyOpacity"),
       privacyHorizontalPercent: store.get("privacyHorizontalPercent"),
@@ -70,10 +68,6 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
       store.set(key, value);
       // Creates the tray when either is switched on, removes it when both go off.
       syncTray();
-    } else if (key === "pomodoroFocusMinutes" || key === "pomodoroBreakMinutes") {
-      // Same bounds sanitizeMinutes enforces on read, applied on the way in.
-      if (typeof value !== "number" || !Number.isFinite(value)) return;
-      store.set(key, Math.min(180, Math.max(1, Math.round(value))));
     } else if (
       key === "privacyCoverPercent" ||
       key === "privacyOpacity" ||

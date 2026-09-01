@@ -1,4 +1,4 @@
-// Pure logic for the Pomodoro task service: day bucketing, ordering,
+// Pure logic for the Todo task service: day bucketing, ordering,
 // carry-over, and the sync queue. Kept free of Electron/Notion imports so it
 // can be unit-tested (see test/tasksLogic.test.ts) and reasoned about on its
 // own — electron/tasks.ts holds the IPC + Notion side.
@@ -16,8 +16,6 @@ export interface Task {
   // ISO timestamp of the last local edit — compared against Notion's
   // last_edited_time for last-write-wins
   editedAt: string;
-  // Completed focus sessions spent on this task (local only)
-  focusSessions: number;
 }
 
 // Work waiting to be pushed to Notion. Task ids (not operations) so repeated
@@ -236,7 +234,6 @@ export function mergeRemoteTasks(
       order: entry.order,
       pageId: entry.pageId,
       editedAt: entry.editedAt,
-      focusSessions: 0,
     });
   }
 

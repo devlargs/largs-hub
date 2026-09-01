@@ -1,7 +1,7 @@
 import Store from "electron-store";
-import { PomodoroData, PomodoroNotionConfig } from "./tasks";
+import { TodoData, TodoNotionConfig } from "./tasks";
 import { MessageListGroup } from "./messageLists";
-import type { AutoStopState, AutomationTask, PomodoroTimerState, Service } from "./shared/types";
+import type { AutoStopState, AutomationTask, Service } from "./shared/types";
 
 // Persistent app state (electron-store) and the shapes stored in it.
 // The Service interface is intentionally duplicated in preload.ts and
@@ -61,15 +61,10 @@ export interface StoreSchema {
   // outlive the process that armed it (issue #75).
   automationTasks: AutomationTask[];
   automationAutoStops: AutoStopState[];
-  // Pomodoro focus/break lengths in minutes, and the timer state itself so a
-  // running session survives a quit or a crash (issue #74).
-  pomodoroFocusMinutes: number;
-  pomodoroBreakMinutes: number;
-  pomodoroTimer: PomodoroTimerState | null;
-  // Pomodoro service: local task state (the source of truth for writes) and
+  // Todo service: local task state (the source of truth for writes) and
   // the optional Notion connection behind it, both keyed by service id
-  pomodoroTasks: Record<string, PomodoroData>;
-  pomodoroNotion: Record<string, PomodoroNotionConfig>;
+  todoTasks: Record<string, TodoData>;
+  todoNotion: Record<string, TodoNotionConfig>;
 }
 
 export const store = new Store<StoreSchema>({
@@ -97,23 +92,44 @@ export const store = new Store<StoreSchema>({
     minimizeToTray: false,
     automationTasks: [],
     automationAutoStops: [],
-    pomodoroFocusMinutes: 25,
-    pomodoroBreakMinutes: 5,
-    pomodoroTimer: null,
-    pomodoroTasks: {},
-    pomodoroNotion: {},
+    todoTasks: {},
+    todoNotion: {},
   },
 });
 
-// One-time cleanup: the Notion Note Taker was replaced by the Pomodoro
+// One-time cleanup: the Notion Note Taker was replaced by the Todo
 // service, so its stored configs (which hold an encrypted integration token)
 // are dead weight. Nothing reads the key any more — drop it on first launch.
 const legacyStore = store as unknown as {
   has(key: string): boolean;
+  get(key: string): unknown;
+  set(key: string, value: unknown): void;
   delete(key: string): void;
 };
 if (legacyStore.has("notionNotes")) {
   legacyStore.delete("notionNotes");
+}
+
+// One-time migration: the Pomodoro service became a plain Todo list, so its
+// stored keys move across under the new names. Tasks and Notion credentials
+// are user data — dropping them on the rename would lose the list.
+for (const [from, to] of [
+  ["pomodoroTasks", "todoTasks"],
+  ["pomodoroNotion", "todoNotion"],
+] as const) {
+  if (legacyStore.has(from)) {
+    const existing = legacyStore.get(to) as Record<string, unknown> | undefined;
+    if (!existing || Object.keys(existing).length === 0) {
+      legacyStore.set(to, legacyStore.get(from));
+    }
+    legacyStore.delete(from);
+  }
+}
+
+// The focus timer is gone with it — its lengths and persisted session are dead
+// weight now.
+for (const key of ["pomodoroFocusMinutes", "pomodoroBreakMinutes", "pomodoroTimer"]) {
+  if (legacyStore.has(key)) legacyStore.delete(key);
 }
 
 // Shape validation lives in serviceSchema.ts (pure, unit-tested); re-exported

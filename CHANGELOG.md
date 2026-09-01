@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- The **Pomodoro** service is now simply **Todo** — a plain daily task list. The focus timer is gone: no ring, no clock, no start/pause/skip, no per-task session tally, and the Focus/Break length settings have been removed from Settings. Everything else the list did stays: add, edit, check off, delete, drag to reorder, step through days, and carry unfinished work over to the next day. Existing Pomodoro services, their tasks and their Notion connection carry across on first launch under the new name and icon; nothing needs re-adding.
+- **Checking a task now dissolves it.** Its letters blur and fade away one after another, left to right, and the row closes the gap behind them. Long tasks dissolve at the same pace as short ones rather than dragging on, and the whole thing is skipped if your system asks for reduced motion.
+- **Finished tasks are filed away instead of struck through.** A **Done tasks** button sits at the foot of the list with the day's count beside it; open it to see them, uncheck one to send it back to the list. The strikethrough is gone — a crossed-out task was still a full line of text to read past.
+- **Adding a task no longer means scrolling.** The add-a-task box has moved to the top of the page, directly under the day, and stays pinned there while the list scrolls beneath it — on a long list the composer used to sit at the very bottom, out of reach. It takes the caret the moment you open the service, so a new task is one keystroke away.
+
 ## [0.1.48] (2026-08-29)
 
 - Removed the **Close when idle** setting and the auto-quit behaviour behind it. The app never closes itself now — it stays open until you close it.

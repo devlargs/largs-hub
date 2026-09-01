@@ -20,8 +20,7 @@ import {
   getAutomationPanelWidth,
 } from "../serviceViews";
 import { getNotificationCounts } from "../notificationCounts";
-import { forgetPomodoroService } from "../tasks";
-import { stopTimerForService } from "../pomodoroTimer";
+import { forgetTodoService } from "../tasks";
 import { clearServiceSessionData } from "../partitions";
 import { deleteCustomIconFile } from "../customIcons";
 import { supersededIconFile } from "../iconCleanup";
@@ -147,10 +146,8 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     // and cache would otherwise be unreachable on disk forever.
     await clearServiceSessionData(serviceId);
 
-    // Drop the Pomodoro service's tasks, queue, and Notion credentials, and
-    // stop any focus timer bound to it
-    forgetPomodoroService(store, serviceId);
-    stopTimerForService(serviceId);
+    // Drop the Todo service's tasks, queue, and Notion credentials
+    forgetTodoService(store, serviceId);
 
     return services;
   });

@@ -16,13 +16,12 @@ import type {
   ListGroupsResult,
   MessageListGroup,
   NoticeReason,
-  PomodoroConnectResult,
-  PomodoroConnectionState,
-  PomodoroListResult,
-  PomodoroSyncState,
-  PomodoroTask,
-  PomodoroTaskResult,
-  PomodoroTimerState,
+  TodoConnectResult,
+  TodoConnectionState,
+  TodoListResult,
+  TodoSyncState,
+  TodoTask,
+  TodoTaskResult,
   Service,
   StartResult,
   TaskSpec,
@@ -100,47 +99,34 @@ export interface ElectronAPI {
   downloadAndInstallUpdate: () => Promise<void>;
   onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
   onDownloadComplete: (callback: (fileName: string) => void) => () => void;
-  pomodoro: {
-    getState: (serviceId: string) => Promise<PomodoroConnectionState>;
-    connect: (
-      serviceId: string,
-      apiKey: string,
-      databaseId: string,
-    ) => Promise<PomodoroConnectResult>;
+  todo: {
+    getState: (serviceId: string) => Promise<TodoConnectionState>;
+    connect: (serviceId: string, apiKey: string, databaseId: string) => Promise<TodoConnectResult>;
     resetDatabase: (serviceId: string) => Promise<{ ok: boolean; error?: string }>;
     adoptDatabase: (serviceId: string) => Promise<{ ok: boolean; error?: string }>;
     disconnect: (serviceId: string) => Promise<void>;
-    list: (serviceId: string, date: string) => Promise<PomodoroListResult>;
-    refresh: (serviceId: string, date: string) => Promise<PomodoroListResult>;
-    create: (serviceId: string, date: string, text: string) => Promise<PomodoroTaskResult>;
+    list: (serviceId: string, date: string) => Promise<TodoListResult>;
+    refresh: (serviceId: string, date: string) => Promise<TodoListResult>;
+    create: (serviceId: string, date: string, text: string) => Promise<TodoTaskResult>;
     update: (
       serviceId: string,
       taskId: string,
       patch: { text?: string; done?: boolean },
-    ) => Promise<PomodoroTaskResult>;
-    remove: (serviceId: string, taskId: string) => Promise<PomodoroTaskResult>;
-    reorder: (serviceId: string, date: string, taskIds: string[]) => Promise<PomodoroTaskResult>;
+    ) => Promise<TodoTaskResult>;
+    remove: (serviceId: string, taskId: string) => Promise<TodoTaskResult>;
+    reorder: (serviceId: string, date: string, taskIds: string[]) => Promise<TodoTaskResult>;
     carryOver: (
       serviceId: string,
       fromDate: string,
       toDate: string,
-    ) => Promise<PomodoroTaskResult & { moved?: number }>;
+    ) => Promise<TodoTaskResult & { moved?: number }>;
     pendingCount: (serviceId: string, date: string) => Promise<number>;
-    syncState: (serviceId: string) => Promise<PomodoroSyncState | null>;
-    retrySync: (serviceId: string) => Promise<PomodoroSyncState | null>;
-    onSyncUpdated: (callback: (state: PomodoroSyncState) => void) => () => void;
+    syncState: (serviceId: string) => Promise<TodoSyncState | null>;
+    retrySync: (serviceId: string) => Promise<TodoSyncState | null>;
+    onSyncUpdated: (callback: (state: TodoSyncState) => void) => () => void;
     onTasksUpdated: (
-      callback: (data: { serviceId: string; tasks: PomodoroTask[] }) => void,
+      callback: (data: { serviceId: string; tasks: TodoTask[] }) => void,
     ) => () => void;
-    timer: {
-      get: () => Promise<PomodoroTimerState | null>;
-      start: (serviceId: string, taskId: string | null) => Promise<PomodoroTimerState | null>;
-      pause: () => Promise<PomodoroTimerState | null>;
-      resume: () => Promise<PomodoroTimerState | null>;
-      skip: () => Promise<PomodoroTimerState | null>;
-      stop: () => Promise<null>;
-      onUpdated: (callback: (state: PomodoroTimerState | null) => void) => () => void;
-    };
   };
   messengerAutomation: {
     start: (serviceId: string, spec: TaskSpec) => Promise<StartResult>;

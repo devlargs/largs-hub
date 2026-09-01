@@ -6,7 +6,7 @@ interface RetiredNoteTakerScreenProps {
 }
 
 // One-time notice for services still carrying the old "notion-notes" type.
-// The Notion Note Taker was replaced by the Pomodoro service; this explains
+// The Notion Note Taker was replaced by the Todo service; this explains
 // where it went and offers to clean the entry up. The user's Notion database
 // is untouched either way — only the app-side link is gone.
 export default function RetiredNoteTakerScreen({ service, onRemove }: RetiredNoteTakerScreenProps) {
@@ -43,8 +43,8 @@ export default function RetiredNoteTakerScreen({ service, onRemove }: RetiredNot
           }}
         >
           “{service.name}” was a Notion Note Taker service, which has been replaced by{" "}
-          <strong>Pomodoro</strong> — a daily task list with a focus timer, which can sync to a
-          Notion database in the same way.
+          <strong>Todo</strong> — a daily task list, which can sync to a Notion database in the same
+          way.
         </p>
         <p
           style={{
@@ -55,8 +55,8 @@ export default function RetiredNoteTakerScreen({ service, onRemove }: RetiredNot
           }}
         >
           Your notes are safe: they live in your own Notion database and nothing there has been
-          changed or deleted. Add “Pomodoro” from the <strong>+</strong> button in the sidebar to
-          start using the new service.
+          changed or deleted. Add “Todo” from the <strong>+</strong> button in the sidebar to start
+          using the new service.
         </p>
         <button
           onClick={onRemove}

@@ -20,7 +20,7 @@ import {
   tasksForDate,
 } from "./tasksLogic";
 
-// Pomodoro: a daily task list with an optional Notion database behind it.
+// Todo: a daily task list with an optional Notion database behind it.
 // Local state in electron-store is always the source of truth for writes — the
 // UI never waits on the network — and a per-service queue pushes changes to
 // Notion in the background. All Notion HTTP stays in the main process (the API
@@ -35,7 +35,7 @@ const FLUSH_DEBOUNCE_MS = 400;
 // Retry backoff after a failed flush (offline, rate limit, …)
 const RETRY_DELAYS_MS = [5_000, 15_000, 30_000, 60_000];
 
-export interface PomodoroNotionConfig {
+export interface TodoNotionConfig {
   apiKey: string;
   databaseId: string;
   titleProp: string;
@@ -46,7 +46,7 @@ export interface PomodoroNotionConfig {
   adoptable?: boolean;
 }
 
-export interface PomodoroData {
+export interface TodoData {
   tasks: Task[];
   pending: PendingSync;
   // date -> epoch ms of the last successful pull for that day
@@ -62,18 +62,16 @@ export interface SyncState {
   error?: string;
 }
 
-export interface PomodoroStore {
-  get(key: "pomodoroTasks"): Record<string, PomodoroData> | undefined;
-  set(key: "pomodoroTasks", value: Record<string, PomodoroData>): void;
-  get(key: "pomodoroNotion"): Record<string, PomodoroNotionConfig> | undefined;
-  set(key: "pomodoroNotion", value: Record<string, PomodoroNotionConfig>): void;
+export interface TodoStore {
+  get(key: "todoTasks"): Record<string, TodoData> | undefined;
+  set(key: "todoTasks", value: Record<string, TodoData>): void;
+  get(key: "todoNotion"): Record<string, TodoNotionConfig> | undefined;
+  set(key: "todoNotion", value: Record<string, TodoNotionConfig>): void;
 }
 
-interface PomodoroDeps {
-  store: PomodoroStore;
+interface TodoDeps {
+  store: TodoStore;
   getUiView: () => WebContentsView | null;
-  // A task is gone — the timer bound to it (if any) has nothing left to time
-  onTaskRemoved: (serviceId: string, taskId: string) => void;
 }
 
 // --- Notion REST types (only the fields we read) ---
@@ -168,7 +166,7 @@ async function ensureSchema(apiKey: string, databaseId: string, db: NotionDataba
   await notionRequest(apiKey, "PATCH", `/databases/${databaseId}`, { properties: missing });
 }
 
-function pageToRemoteTask(config: PomodoroNotionConfig, page: NotionPage): RemoteTask | null {
+function pageToRemoteTask(config: TodoNotionConfig, page: NotionPage): RemoteTask | null {
   const titleValue = page.properties[config.titleProp];
   const text = plainText(titleValue?.title ?? titleValue?.rich_text).trim();
   const date = page.properties["Date"]?.date?.start?.slice(0, 10);
@@ -183,7 +181,7 @@ function pageToRemoteTask(config: PomodoroNotionConfig, page: NotionPage): Remot
   };
 }
 
-function buildProperties(config: PomodoroNotionConfig, task: Task) {
+function buildProperties(config: TodoNotionConfig, task: Task) {
   return {
     [config.titleProp]: { title: richText(task.text) },
     Done: { checkbox: task.done },
@@ -212,13 +210,13 @@ function decryptApiKey(stored: string): string {
   }
 }
 
-export function registerPomodoro(deps: PomodoroDeps): void {
+export function registerTodo(deps: TodoDeps): void {
   const { store } = deps;
 
   // --- persistence -----------------------------------------------------------
 
-  const getData = (serviceId: string): PomodoroData => {
-    const all = store.get("pomodoroTasks") || {};
+  const getData = (serviceId: string): TodoData => {
+    const all = store.get("todoTasks") || {};
     const data = all[serviceId];
     return {
       tasks: Array.isArray(data?.tasks) ? data.tasks : [],
@@ -227,36 +225,36 @@ export function registerPomodoro(deps: PomodoroDeps): void {
     };
   };
 
-  const saveData = (serviceId: string, data: PomodoroData) => {
-    const all = store.get("pomodoroTasks") || {};
+  const saveData = (serviceId: string, data: TodoData) => {
+    const all = store.get("todoTasks") || {};
     all[serviceId] = data;
-    store.set("pomodoroTasks", all);
+    store.set("todoTasks", all);
   };
 
-  const getConfig = (serviceId: string): PomodoroNotionConfig | null => {
-    const all = store.get("pomodoroNotion") || {};
+  const getConfig = (serviceId: string): TodoNotionConfig | null => {
+    const all = store.get("todoNotion") || {};
     const config = all[serviceId];
     if (!config) return null;
     return { ...config, apiKey: decryptApiKey(config.apiKey) };
   };
 
-  const saveConfig = (serviceId: string, config: PomodoroNotionConfig) => {
+  const saveConfig = (serviceId: string, config: TodoNotionConfig) => {
     // Re-read raw configs and encrypt every key on the way out, which also
     // migrates any legacy plaintext entry.
-    const all = store.get("pomodoroNotion") || {};
+    const all = store.get("todoNotion") || {};
     all[serviceId] = config;
-    const encrypted: Record<string, PomodoroNotionConfig> = {};
+    const encrypted: Record<string, TodoNotionConfig> = {};
     for (const [id, cfg] of Object.entries(all)) {
       encrypted[id] = { ...cfg, apiKey: encryptApiKey(decryptApiKey(cfg.apiKey)) };
     }
-    store.set("pomodoroNotion", encrypted);
+    store.set("todoNotion", encrypted);
   };
 
   const dropConfig = (serviceId: string) => {
-    const all = store.get("pomodoroNotion") || {};
+    const all = store.get("todoNotion") || {};
     if (all[serviceId]) {
       delete all[serviceId];
-      store.set("pomodoroNotion", all);
+      store.set("todoNotion", all);
     }
   };
 
@@ -281,10 +279,10 @@ export function registerPomodoro(deps: PomodoroDeps): void {
     return { serviceId, status: pending > 0 ? "syncing" : "synced", pending };
   }
 
-  const pushSync = (serviceId: string) => send("pomodoro-sync-updated", syncState(serviceId));
+  const pushSync = (serviceId: string) => send("todo-sync-updated", syncState(serviceId));
 
   const pushTasks = (serviceId: string) =>
-    send("pomodoro-tasks-updated", { serviceId, tasks: getData(serviceId).tasks });
+    send("todo-tasks-updated", { serviceId, tasks: getData(serviceId).tasks });
 
   // --- background flush ------------------------------------------------------
 
@@ -378,7 +376,7 @@ export function registerPomodoro(deps: PomodoroDeps): void {
 
   // --- pull ------------------------------------------------------------------
 
-  async function queryDate(config: PomodoroNotionConfig, date: string): Promise<RemoteTask[]> {
+  async function queryDate(config: TodoNotionConfig, date: string): Promise<RemoteTask[]> {
     const results: RemoteTask[] = [];
     let cursor: string | null = null;
     do {
@@ -435,7 +433,7 @@ export function registerPomodoro(deps: PomodoroDeps): void {
     return value;
   };
 
-  ipcMain.handle("pomodoro-get-state", (_event, serviceIdRaw: unknown) => {
+  ipcMain.handle("todo-get-state", (_event, serviceIdRaw: unknown) => {
     if (typeof serviceIdRaw !== "string") return "local";
     const config = getConfig(serviceIdRaw);
     if (!config) return "local";
@@ -445,7 +443,7 @@ export function registerPomodoro(deps: PomodoroDeps): void {
 
   // Tasks for one day, straight from the local store (instant), plus whether a
   // background pull is worth doing.
-  ipcMain.handle("pomodoro-list", (_event, serviceIdRaw: unknown, dateRaw: unknown) => {
+  ipcMain.handle("todo-list", (_event, serviceIdRaw: unknown, dateRaw: unknown) => {
     try {
       const serviceId = requireServiceId(serviceIdRaw);
       if (!isDateKey(dateRaw)) return { ok: false, error: "Invalid date." };
@@ -462,7 +460,7 @@ export function registerPomodoro(deps: PomodoroDeps): void {
   });
 
   // Force a pull for a day (mount refresh / the Refresh button).
-  ipcMain.handle("pomodoro-refresh", async (_event, serviceIdRaw: unknown, dateRaw: unknown) => {
+  ipcMain.handle("todo-refresh", async (_event, serviceIdRaw: unknown, dateRaw: unknown) => {
     try {
       const serviceId = requireServiceId(serviceIdRaw);
       if (!isDateKey(dateRaw)) return { ok: false, error: "Invalid date." };
@@ -480,7 +478,7 @@ export function registerPomodoro(deps: PomodoroDeps): void {
   });
 
   ipcMain.handle(
-    "pomodoro-create",
+    "todo-create",
     (_event, serviceIdRaw: unknown, dateRaw: unknown, textRaw: unknown) => {
       try {
         const serviceId = requireServiceId(serviceIdRaw);
@@ -495,7 +493,6 @@ export function registerPomodoro(deps: PomodoroDeps): void {
           date: dateRaw,
           order: nextOrder(data.tasks, dateRaw),
           editedAt: new Date().toISOString(),
-          focusSessions: 0,
         };
         commit(serviceId, [...data.tasks, task], [task.id]);
         return { ok: true, task, tasks: tasksForDate(getData(serviceId).tasks, dateRaw) };
@@ -506,7 +503,7 @@ export function registerPomodoro(deps: PomodoroDeps): void {
   );
 
   ipcMain.handle(
-    "pomodoro-update",
+    "todo-update",
     (_event, serviceIdRaw: unknown, taskIdRaw: unknown, patchRaw: unknown) => {
       try {
         const serviceId = requireServiceId(serviceIdRaw);
@@ -543,14 +540,13 @@ export function registerPomodoro(deps: PomodoroDeps): void {
     },
   );
 
-  ipcMain.handle("pomodoro-remove", (_event, serviceIdRaw: unknown, taskIdRaw: unknown) => {
+  ipcMain.handle("todo-remove", (_event, serviceIdRaw: unknown, taskIdRaw: unknown) => {
     try {
       const serviceId = requireServiceId(serviceIdRaw);
       if (typeof taskIdRaw !== "string") return { ok: false, error: "Invalid task id." };
       const data = getData(serviceId);
       const task = data.tasks.find((t) => t.id === taskIdRaw);
       if (!task) return { ok: true, tasks: [] };
-      deps.onTaskRemoved(serviceId, task.id);
       commit(
         serviceId,
         data.tasks.filter((t) => t.id !== task.id),
@@ -564,7 +560,7 @@ export function registerPomodoro(deps: PomodoroDeps): void {
   });
 
   ipcMain.handle(
-    "pomodoro-reorder",
+    "todo-reorder",
     (_event, serviceIdRaw: unknown, dateRaw: unknown, idsRaw: unknown) => {
       try {
         const serviceId = requireServiceId(serviceIdRaw);
@@ -589,7 +585,7 @@ export function registerPomodoro(deps: PomodoroDeps): void {
 
   // Moves yesterday's unfinished tasks onto the given day.
   ipcMain.handle(
-    "pomodoro-carry-over",
+    "todo-carry-over",
     (_event, serviceIdRaw: unknown, fromRaw: unknown, toRaw: unknown) => {
       try {
         const serviceId = requireServiceId(serviceIdRaw);
@@ -611,17 +607,17 @@ export function registerPomodoro(deps: PomodoroDeps): void {
 
   // How many unfinished tasks the previous day still holds — drives the
   // "Carry over N tasks" button without loading that day into the UI.
-  ipcMain.handle("pomodoro-pending-count", (_event, serviceIdRaw: unknown, dateRaw: unknown) => {
+  ipcMain.handle("todo-pending-count", (_event, serviceIdRaw: unknown, dateRaw: unknown) => {
     if (typeof serviceIdRaw !== "string" || !isDateKey(dateRaw)) return 0;
     return tasksForDate(getData(serviceIdRaw).tasks, dateRaw).filter((t) => !t.done).length;
   });
 
-  ipcMain.handle("pomodoro-sync-state", (_event, serviceIdRaw: unknown): SyncState | null =>
+  ipcMain.handle("todo-sync-state", (_event, serviceIdRaw: unknown): SyncState | null =>
     typeof serviceIdRaw === "string" ? syncState(serviceIdRaw) : null,
   );
 
   // Retry a stalled queue on demand (the sync pill is clickable when offline).
-  ipcMain.handle("pomodoro-retry-sync", (_event, serviceIdRaw: unknown) => {
+  ipcMain.handle("todo-retry-sync", (_event, serviceIdRaw: unknown) => {
     if (typeof serviceIdRaw !== "string") return null;
     syncErrors.delete(serviceIdRaw);
     retryAttempts.delete(serviceIdRaw);
@@ -632,7 +628,7 @@ export function registerPomodoro(deps: PomodoroDeps): void {
   // --- connection ------------------------------------------------------------
 
   ipcMain.handle(
-    "pomodoro-connect",
+    "todo-connect",
     async (_event, serviceIdRaw: unknown, apiKeyRaw: unknown, databaseIdRaw: unknown) => {
       try {
         if (
@@ -691,7 +687,7 @@ export function registerPomodoro(deps: PomodoroDeps): void {
     },
   );
 
-  ipcMain.handle("pomodoro-reset-database", async (_event, serviceIdRaw: unknown) => {
+  ipcMain.handle("todo-reset-database", async (_event, serviceIdRaw: unknown) => {
     try {
       const serviceId = requireServiceId(serviceIdRaw);
       const config = getConfig(serviceId);
@@ -737,7 +733,7 @@ export function registerPomodoro(deps: PomodoroDeps): void {
 
   // Keep the database's existing pages as tasks instead of wiping them — the
   // non-destructive counterpart to reset-database for reconnects.
-  ipcMain.handle("pomodoro-adopt-database", async (_event, serviceIdRaw: unknown) => {
+  ipcMain.handle("todo-adopt-database", async (_event, serviceIdRaw: unknown) => {
     try {
       const serviceId = requireServiceId(serviceIdRaw);
       const config = getConfig(serviceId);
@@ -771,7 +767,7 @@ export function registerPomodoro(deps: PomodoroDeps): void {
   });
 
   // Back to local-only mode: credentials and page links go, tasks stay.
-  ipcMain.handle("pomodoro-disconnect", (_event, serviceIdRaw: unknown) => {
+  ipcMain.handle("todo-disconnect", (_event, serviceIdRaw: unknown) => {
     if (typeof serviceIdRaw !== "string") return;
     dropConfig(serviceIdRaw);
     const timer = flushTimers.get(serviceIdRaw);
@@ -790,32 +786,21 @@ export function registerPomodoro(deps: PomodoroDeps): void {
   });
 
   // Push anything still queued as soon as the app starts.
-  for (const serviceId of Object.keys(store.get("pomodoroTasks") || {})) {
+  for (const serviceId of Object.keys(store.get("todoTasks") || {})) {
     if (pendingCount(getData(serviceId).pending) > 0) scheduleFlush(serviceId, 2_000);
   }
 }
 
 // Drops a service's tasks and credentials (called when the service is removed).
-export function forgetPomodoroService(store: PomodoroStore, serviceId: string): void {
-  const tasks = store.get("pomodoroTasks") || {};
+export function forgetTodoService(store: TodoStore, serviceId: string): void {
+  const tasks = store.get("todoTasks") || {};
   if (tasks[serviceId]) {
     delete tasks[serviceId];
-    store.set("pomodoroTasks", tasks);
+    store.set("todoTasks", tasks);
   }
-  const configs = store.get("pomodoroNotion") || {};
+  const configs = store.get("todoNotion") || {};
   if (configs[serviceId]) {
     delete configs[serviceId];
-    store.set("pomodoroNotion", configs);
+    store.set("todoNotion", configs);
   }
-}
-
-// Records a completed focus session against a task (called by the timer).
-export function recordFocusSession(store: PomodoroStore, serviceId: string, taskId: string): void {
-  const all = store.get("pomodoroTasks") || {};
-  const data = all[serviceId];
-  if (!data) return;
-  data.tasks = data.tasks.map((t) =>
-    t.id === taskId ? { ...t, focusSessions: (t.focusSessions ?? 0) + 1 } : t,
-  );
-  store.set("pomodoroTasks", all);
 }

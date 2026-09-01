@@ -9,7 +9,7 @@ import MessengerAutomationPanel from "./components/MessengerAutomationPanel";
 import WelcomeScreen from "./components/WelcomeScreen";
 import SettingsPage from "./components/SettingsPage";
 import DisabledServiceScreen from "./components/DisabledServiceScreen";
-import PomodoroPage from "./components/pomodoro/PomodoroPage";
+import TodoPage from "./components/todo/TodoPage";
 import RetiredNoteTakerScreen from "./components/RetiredNoteTakerScreen";
 import { useNotificationStore } from "./store/notifications";
 
@@ -373,8 +373,8 @@ function App() {
             />
           )}
           {showSettingsPage && !activeServiceId && <SettingsPage />}
-          {activeService?.type === "pomodoro" && activeService.enabled !== false && (
-            <PomodoroPage key={activeService.id} service={activeService} />
+          {activeService?.type === "todo" && activeService.enabled !== false && (
+            <TodoPage key={activeService.id} service={activeService} />
           )}
           {activeService?.type === "notion-notes" && activeService.enabled !== false && (
             <RetiredNoteTakerScreen

@@ -48,7 +48,7 @@ Juggling a dozen browser tabs for the apps you use all day is noisy and easy to 
 | ⌨️ **Keyboard shortcuts**       | Jump between services with `Ctrl`+`1`–`9`, even while a web app has focus.                                                                                     |
 | 📥 **Download handling**        | Configurable download location and completion notifications.                                                                                                   |
 | 🔕 **Focus options**            | Per-service mute and optional blur-when-inactive for privacy.                                                                                                  |
-| 🍅 **Pomodoro**                 | Built-in daily task list with a 25/5 focus timer. Works offline, and can optionally sync to a Notion database you own.                                         |
+| ✅ **Todo**                     | Built-in daily task list. Add and check off tasks, carry unfinished work forward. Works offline, and can optionally sync to a Notion database you own.         |
 | 🤖 **Messenger automation**     | Optional automation panel for Messenger: scheduled and interval messages, emoji bursts, and automated in-app call cycles.                                      |
 | ⬆️ **Auto-updates** _(Windows)_ | Checks GitHub Releases and installs the latest version in-app.                                                                                                 |
 | 🕵️ **Private by design**        | No account, no tracking, no cloud. All data lives in a local `electron-store` file on your machine.                                                            |

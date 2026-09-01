@@ -3,12 +3,8 @@ import path from "path";
 import { pathToFileURL } from "url";
 import { customIconsDir, resolveCustomIconPath, sweepOrphanedIcons } from "./customIcons";
 import { store, StoreSchema } from "./store";
-import {
-  registerMessengerAutomation,
-  restoreAutomationState,
-} from "./messengerAutomation";
-import { registerPomodoro, recordFocusSession } from "./tasks";
-import { registerPomodoroTimer, stopTimerForTask } from "./pomodoroTimer";
+import { registerMessengerAutomation, restoreAutomationState } from "./messengerAutomation";
+import { registerTodo } from "./tasks";
 import { registerUpdater } from "./updater";
 import { registerServicesIpc } from "./ipc/services";
 import { sweepOrphanedPartitions } from "./partitions";
@@ -54,8 +50,7 @@ import {
 // Entry point: owns the frameless window and the React UI layer (uiView), the
 // link-preview overlay, and z-order IPC. Everything else lives in modules:
 //   store.ts              persistent state + stored-shape validation
-//   tasks.ts              Pomodoro tasks: local store + optional Notion sync
-//   pomodoroTimer.ts      the 25/5 focus timer, bound to one task
+//   tasks.ts              Todo tasks: local store + optional Notion sync
 //   serviceViews.ts       service view lifecycle, switching, hibernation
 //   downloads.ts          per-session download handling + completion toast
 //   notificationCounts.ts badge state, debounce, taskbar overlay
@@ -354,17 +349,10 @@ registerUpdater({
   getUiView: () => uiView,
 });
 
-// Pomodoro (internal "pomodoro" service): daily tasks, optionally synced to
-// Notion, plus the focus timer that runs alongside them.
-registerPomodoro({
+// Todo (internal "todo" service): daily tasks, optionally synced to Notion.
+registerTodo({
   store,
   getUiView: () => uiView,
-  onTaskRemoved: (serviceId, taskId) => stopTimerForTask(serviceId, taskId),
-});
-
-registerPomodoroTimer({
-  getUiView: () => uiView,
-  onFocusSessionComplete: (serviceId, taskId) => recordFocusSession(store, serviceId, taskId),
 });
 
 // Messenger automation (scheduled/interval sends, call cycles)

@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MdDragIndicator, MdOutlineDeleteOutline, MdTimer, MdTimerOff } from "react-icons/md";
-import { PomodoroTask } from "../../types";
+import { MdDragIndicator, MdOutlineDeleteOutline } from "react-icons/md";
+import { TodoTask } from "../../types";
+import { buildDissolveWords } from "./dissolve";
 import { parseTaskSegments } from "./links";
 
 interface TaskRowProps {
-  task: PomodoroTask;
-  // The focus timer is currently running against this task
-  focused: boolean;
+  task: TodoTask;
+  // The task has just been checked and its label is dissolving away. The row
+  // still reads as done for the whole animation, so the tick doesn't wait.
+  dissolving: boolean;
+  // Done rows sit in their own section and aren't part of the manual order
+  reorderable: boolean;
   onToggle: () => void;
   onRename: (text: string) => void;
   onDelete: () => void;
-  onFocus: () => void;
   onDragStart: () => void;
   onDragOver: () => void;
   onDrop: () => void;
@@ -19,39 +22,13 @@ interface TaskRowProps {
   dropTarget: boolean;
 }
 
-// Completed focus sessions, drawn as bars rather than an emoji — the tomato
-// glyph was OS-rendered and never part of the page's type system.
-function SessionTally({ count }: { count: number }) {
-  const shown = Math.min(count, 4);
-  return (
-    <span
-      className="shrink-0 flex items-center"
-      style={{ gap: 2, marginTop: 5 }}
-      aria-label={`${count} focus session${count === 1 ? "" : "s"}`}
-      title={`${count} focus session${count === 1 ? "" : "s"}`}
-    >
-      {Array.from({ length: shown }, (_, i) => (
-        <span key={i} className="pom-tally-bar" />
-      ))}
-      {count > shown && (
-        <span
-          className="pom-figure"
-          style={{ fontSize: "var(--text-3xs)", color: "var(--text-secondary)", marginLeft: 2 }}
-        >
-          +{count - shown}
-        </span>
-      )}
-    </span>
-  );
-}
-
 export default function TaskRow({
   task,
-  focused,
+  dissolving,
+  reorderable,
   onToggle,
   onRename,
   onDelete,
-  onFocus,
   onDragStart,
   onDragOver,
   onDrop,
@@ -92,10 +69,14 @@ export default function TaskRow({
     border: "none",
   } as const;
 
+  // Checked reads true for the whole dissolve, so the tick draws itself in
+  // while the letters are still going rather than after them.
+  const checked = task.done || dissolving;
+
   const labelStyle = {
     fontSize: "var(--text-md)",
     lineHeight: 1.45,
-    color: task.done ? "var(--text-muted)" : "var(--text-primary)",
+    color: checked ? "var(--text-muted)" : "var(--text-primary)",
     background: "transparent",
     border: "none",
     padding: 0,
@@ -103,10 +84,14 @@ export default function TaskRow({
 
   // Recomputed only when the text changes — every row renders on any list update
   const segments = useMemo(() => parseTaskSegments(task.text), [task.text]);
+  const dissolveWords = useMemo(
+    () => (dissolving ? buildDissolveWords(segments) : []),
+    [dissolving, segments],
+  );
 
   return (
     <div
-      draggable={!editing}
+      draggable={reorderable && !editing && !dissolving}
       onDragStart={onDragStart}
       onDragOver={(e) => {
         e.preventDefault();
@@ -119,25 +104,30 @@ export default function TaskRow({
       onDragEnd={onDragEnd}
       onAnimationEnd={() => setSpringing(false)}
       className={[
-        "pom-row flex items-start",
-        task.done ? "pom-row-done" : "",
-        focused ? "pom-row-focused" : "",
-        springing ? "pom-row-springing" : "",
-        dragging ? "pom-row-dragging" : "",
-        dropTarget ? "pom-row-drop-target" : "",
+        "todo-row flex items-start",
+        checked ? "todo-row-done" : "",
+        dissolving ? "todo-row-dissolving" : "",
+        springing ? "todo-row-springing" : "",
+        dragging ? "todo-row-dragging" : "",
+        dropTarget ? "todo-row-drop-target" : "",
       ]
         .filter(Boolean)
         .join(" ")}
       style={{ gap: "var(--space-sm)", padding: "var(--space-sm) var(--space-sm)" }}
     >
-      <span
-        className="pom-row-action shrink-0 cursor-grab"
-        style={{ color: "var(--text-muted)", marginTop: 2 }}
-        aria-label="Drag to reorder"
-        title="Drag to reorder"
-      >
-        <MdDragIndicator size={16} />
-      </span>
+      {reorderable ? (
+        <span
+          className="todo-row-action shrink-0 cursor-grab"
+          style={{ color: "var(--text-muted)", marginTop: 2 }}
+          aria-label="Drag to reorder"
+          title="Drag to reorder"
+        >
+          <MdDragIndicator size={16} />
+        </span>
+      ) : (
+        // Holds the checkbox on the same column as the open rows above
+        <span className="shrink-0" style={{ width: 16 }} />
+      )}
 
       {/* Checkbox — the tick draws itself in */}
       <button
@@ -145,25 +135,26 @@ export default function TaskRow({
           setSpringing(true);
           onToggle();
         }}
-        className={`pom-check shrink-0 flex items-center justify-center rounded-md cursor-pointer ${
-          task.done ? "pom-check-on" : ""
+        disabled={dissolving}
+        className={`todo-check shrink-0 flex items-center justify-center rounded-md cursor-pointer ${
+          checked ? "todo-check-on" : ""
         }`}
         style={{
           width: 19,
           height: 19,
           marginTop: 1,
-          background: task.done ? "var(--accent)" : "transparent",
+          background: checked ? "var(--accent)" : "transparent",
           border: `1.5px solid ${
-            task.done ? "var(--accent)" : "color-mix(in srgb, var(--border) 90%, transparent)"
+            checked ? "var(--accent)" : "color-mix(in srgb, var(--border) 90%, transparent)"
           }`,
         }}
-        aria-label={task.done ? "Mark as not done" : "Mark as done"}
-        title={task.done ? "Mark as not done" : "Mark as done"}
-        aria-pressed={task.done}
+        aria-label={checked ? "Mark as not done" : "Mark as done"}
+        title={checked ? "Mark as not done" : "Mark as done"}
+        aria-pressed={checked}
       >
         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
-            className="pom-check-tick"
+            className="todo-check-tick"
             d="M5 12.5l4.5 4.5L19 7.5"
             stroke="var(--surface)"
             strokeWidth={3}
@@ -175,7 +166,25 @@ export default function TaskRow({
 
       {/* Label / inline editor */}
       <div className="flex-1 min-w-0">
-        {editing ? (
+        {dissolving ? (
+          // Every character on its own delay, grouped into nowrap words so the
+          // line breaks stay exactly where they were.
+          <span className="todo-label todo-dissolve" style={labelStyle} aria-hidden="true">
+            {dissolveWords.map((word, w) => (
+              <span key={w} className="todo-dissolve-word">
+                {word.map((c, i) => (
+                  <span
+                    key={i}
+                    className={`todo-char ${c.isLink ? "todo-char-link" : ""}`}
+                    style={{ animationDelay: `${c.delayMs}ms` }}
+                  >
+                    {c.char}
+                  </span>
+                ))}
+              </span>
+            ))}
+          </span>
+        ) : editing ? (
           <input
             ref={inputRef}
             value={draft}
@@ -202,7 +211,7 @@ export default function TaskRow({
           // single-tab-stop case that most tasks are.
           <button
             onClick={() => setEditing(true)}
-            className={`pom-label cursor-text text-left ${task.done ? "pom-label-done" : ""}`}
+            className="todo-label cursor-text text-left"
             style={labelStyle}
             aria-label="Click to edit"
             title="Click to edit"
@@ -220,7 +229,7 @@ export default function TaskRow({
             onKeyDown={(e) => {
               if (e.key === "Enter") setEditing(true);
             }}
-            className={`pom-label cursor-text ${task.done ? "pom-label-done" : ""}`}
+            className="todo-label cursor-text"
             style={labelStyle}
             aria-label="Click to edit"
             title="Click to edit"
@@ -230,7 +239,7 @@ export default function TaskRow({
                 <a
                   key={i}
                   href={segment.href}
-                  className="pom-link"
+                  className="todo-link"
                   aria-label={`Open ${segment.href}`}
                   title={`Open ${segment.href}`}
                   onClick={(e) => {
@@ -251,23 +260,9 @@ export default function TaskRow({
         )}
       </div>
 
-      {task.focusSessions > 0 && <SessionTally count={task.focusSessions} />}
-
-      <button
-        onClick={onFocus}
-        className={`shrink-0 flex items-center justify-center rounded-md cursor-pointer hover:bg-sidebar-hover ${
-          focused ? "" : "pom-row-action"
-        }`}
-        style={{ ...actionStyle, color: focused ? "var(--accent)" : "var(--text-muted)" }}
-        aria-label={focused ? "Stop the focus timer" : "Start a focus session on this task"}
-        title={focused ? "Stop the focus timer" : "Start a focus session on this task"}
-      >
-        {focused ? <MdTimerOff size={16} /> : <MdTimer size={16} />}
-      </button>
-
       <button
         onClick={onDelete}
-        className="pom-row-action shrink-0 flex items-center justify-center rounded-md cursor-pointer hover:bg-sidebar-hover"
+        className="todo-row-action shrink-0 flex items-center justify-center rounded-md cursor-pointer hover:bg-sidebar-hover"
         style={{ ...actionStyle, color: "var(--danger)" }}
         aria-label="Delete task"
         title="Delete task"

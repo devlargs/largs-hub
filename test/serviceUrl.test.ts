@@ -21,7 +21,7 @@ describe("normalizeServiceUrl", () => {
   it("rejects non-web schemes", () => {
     expect(normalizeServiceUrl("file:///etc/passwd")).toBeNull();
     expect(normalizeServiceUrl("javascript://alert(1)")).toBeNull();
-    expect(normalizeServiceUrl("pomodoro://internal")).toBeNull();
+    expect(normalizeServiceUrl("todo://internal")).toBeNull();
   });
 
   it("rejects empty and hostless input", () => {

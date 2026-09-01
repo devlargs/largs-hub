@@ -98,10 +98,24 @@ describe("sanitizeService", () => {
   });
 
   it("allows an internal service to have no URL at all", () => {
-    const pomodoro = sanitizeService({ id: "p", name: "Pomodoro", type: "pomodoro" });
-    expect(pomodoro).toMatchObject({ type: "pomodoro", url: "" });
+    const todo = sanitizeService({ id: "p", name: "Todo", type: "todo" });
+    expect(todo).toMatchObject({ type: "todo", url: "" });
     const retired = sanitizeService({ id: "n", name: "Notes", type: "notion-notes" });
     expect(retired).toMatchObject({ type: "notion-notes" });
+  });
+
+  // Services stored before the Pomodoro service became a plain Todo list still
+  // carry the old type, name and icon — they have to survive the rename.
+  it("migrates a stored Pomodoro service onto the todo type", () => {
+    expect(
+      sanitizeService({ id: "p", name: "Pomodoro", type: "pomodoro", icon: "pomodoro.svg" }),
+    ).toMatchObject({ type: "todo", name: "Todo", icon: "todo.svg" });
+  });
+
+  it("keeps a renamed Pomodoro service's own name", () => {
+    expect(
+      sanitizeService({ id: "p", name: "My list", type: "pomodoro", icon: "custom:a.png" }),
+    ).toMatchObject({ type: "todo", name: "My list", icon: "custom:a.png" });
   });
 
   it("drops an unrecognised type rather than trusting it", () => {
