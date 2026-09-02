@@ -11,6 +11,7 @@ import { sweepOrphanedPartitions } from "./partitions";
 import { initTray, isQuitting, isTrayAvailable, refreshTray, syncTray, destroyTray } from "./tray";
 import { windowCloseAction, windowMinimizeAction } from "./trayMenu";
 import { linkPreviewBounds } from "./shared/layout";
+import { spoofedUserAgent } from "./userAgent";
 import { registerSettingsIpc } from "./ipc/settings";
 import { attachSecurityWindowEvents, registerSecurityIpc } from "./ipc/security";
 import { registerListGroupsIpc } from "./ipc/listGroups";
@@ -278,10 +279,9 @@ function openLinkPreview(url: string, partition: string) {
 
   view.setBackgroundColor("#1e1e2e");
 
-  const chromeVersion = process.versions.chrome;
-  view.webContents.setUserAgent(
-    `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`,
-  );
+  // Same Chrome disguise as the service views; the header rewrite that goes
+  // with it is registered on the (shared) service session in serviceViews.ts.
+  view.webContents.setUserAgent(spoofedUserAgent(process.versions.chrome));
 
   // Anything that tries to open a new window goes to the system browser
   view.webContents.setWindowOpenHandler(({ url: popupUrl }) => {

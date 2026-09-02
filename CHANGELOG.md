@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Google sign-in works in the app's services again.** Signing in to Google Chat (and anything else that goes through a Google account page) ended at "Couldn't sign you in — this browser or app may not be secure". The services already claimed to be Chrome, but every request still carried a second, quieter identity alongside it that named Electron, and that is what Google was reading. Services now present themselves as Chrome consistently, so the sign-in pages let you through.
 
 ## [0.1.52] (2026-09-02)
 - **Google Chat is one of the presets.** It sits in the add-a-service grid between Gmail and LinkedIn, with its own icon, so adding it no longer means going through **Custom** and typing the address yourself. Signing in works through the Google account pages the other Google services already use.

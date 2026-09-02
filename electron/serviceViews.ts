@@ -16,6 +16,7 @@ import {
 import { DEFAULT_ZOOM, nextZoom, sanitizeZoom } from "./zoom";
 import { computeAutomationLayout } from "./automationLayout";
 import { SIDEBAR_WIDTH, TITLEBAR_HEIGHT, FIND_BAR_HEIGHT } from "./shared/layout";
+import { spoofedUserAgent, withChromeIdentityHeaders } from "./userAgent";
 
 // Service-view lifecycle: creation (with UA spoofing, permission policy,
 // notification extraction, popup handling), show/hide switching, hibernation,
@@ -708,11 +709,20 @@ function createServiceView(service: Service): WebContentsView {
 
   // Spoof user agent so sites like Google and WhatsApp don't reject Electron
   const chromeVersion = process.versions.chrome;
-  const spoofedUA = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
+  const spoofedUA = spoofedUserAgent(chromeVersion);
   view.webContents.setUserAgent(spoofedUA);
 
   // Also set at session level so OAuth popups inherit the spoofed UA
   view.webContents.session.setUserAgent(spoofedUA);
+
+  // The UA string is only half the disguise: Chromium also sends User-Agent
+  // Client Hints, and Electron's name the runtime, which is what makes Google
+  // sign-in answer "this browser or app may not be secure" (issue #106).
+  // Rewriting them on the way out is the only place they can be reached.
+  // Registering the listener again on view recreation just replaces it.
+  view.webContents.session.webRequest.onBeforeSendHeaders((details, callback) => {
+    callback({ requestHeaders: withChromeIdentityHeaders(details.requestHeaders, chromeVersion) });
+  });
 
   // Electron underlines misspellings but only once a dictionary is chosen.
   // macOS uses the OS spellchecker and rejects the call, hence the guard.
