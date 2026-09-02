@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" role="img" aria-label="Google Chat">
+  <!--
+    Hand-drawn rather than shipped as a brand PNG (issue #105): one speech
+    bubble whose bottom-left corner is a point, its outline walked in four
+    runs so each carries one of the four brand hues. Butt caps, so the runs
+    meet exactly at the shared endpoints instead of overlapping.
+  -->
+  <g stroke-width="3" stroke-linejoin="round" stroke-linecap="butt">
+    <!-- left edge + top-left corner -->
+    <path d="M3 21V7a4 4 0 0 1 4-4" stroke="#4285F4" />
+    <!-- top edge + top-right corner -->
+    <path d="M7 3h10a4 4 0 0 1 4 4" stroke="#EA4335" />
+    <!-- right edge + bottom-right corner -->
+    <path d="M21 7v6a4 4 0 0 1-4 4" stroke="#FBBC04" />
+    <!-- bottom edge + the tail's point -->
+    <path d="M17 17H8l-5 4" stroke="#34A853" />
+  </g>
+</svg>

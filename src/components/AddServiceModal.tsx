@@ -37,6 +37,7 @@ const POPULAR_SERVICES: {
     url: "https://www.messenger.com",
     icon: "messenger.png",
   },
+  { name: "Google Chat", url: "https://chat.google.com", icon: "googlechat.svg" },
 ]);
 
 interface AddServiceModalProps {

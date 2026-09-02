@@ -8,6 +8,7 @@ import x from "./images/x.png";
 import reddit from "./images/reddit.png";
 import linkedin from "./images/linkedin.png";
 import messenger from "./images/messenger.png";
+import googlechat from "./images/googlechat.svg";
 import todo from "./images/todo.svg";
 
 const serviceIcons: Record<string, string> = {
@@ -21,6 +22,7 @@ const serviceIcons: Record<string, string> = {
   "reddit.png": reddit,
   "linkedin.png": linkedin,
   "messenger.png": messenger,
+  "googlechat.svg": googlechat,
   "todo.svg": todo,
   // Pre-rename filename, still stored against existing services
   "pomodoro.svg": todo,
@@ -38,6 +40,7 @@ const serviceIconsByName: Record<string, string> = {
   reddit: reddit,
   linkedin: linkedin,
   messenger: messenger,
+  "google chat": googlechat,
   todo: todo,
   pomodoro: todo,
 };
