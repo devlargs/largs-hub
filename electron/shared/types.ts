@@ -31,6 +31,24 @@ export interface AppSettings {
   privacyHorizontalOpacity: number;
 }
 
+// --- Security controls (workspace lock) --------------------------------------
+
+// What the renderer is allowed to know about the lock. The stored credential
+// never crosses the bridge — only whether one exists.
+export interface SecurityState {
+  enabled: boolean;
+  hasPassword: boolean;
+  // Minutes the window may stay minimized before the workspace locks
+  lockDelayMinutes: number;
+  locked: boolean;
+}
+
+export interface SecurityResult {
+  ok: boolean;
+  // Present when ok is false: a sentence to show under the field
+  error?: string;
+}
+
 export type InternalServiceType = "todo" | "notion-notes";
 
 export function isInternalService(service: { type?: string } | null | undefined): boolean {

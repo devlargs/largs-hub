@@ -2,6 +2,7 @@ import Store from "electron-store";
 import { migrateLegacyServiceShape } from "./serviceSchema";
 import { TodoData, TodoNotionConfig } from "./tasks";
 import { MessageListGroup } from "./messageLists";
+import type { MasterPasswordCredential } from "./masterPassword";
 import type { AutoStopState, AutomationTask, Service } from "./shared/types";
 
 // Persistent app state (electron-store) and the shapes stored in it.
@@ -62,6 +63,15 @@ export interface StoreSchema {
   // outlive the process that armed it (issue #75).
   automationTasks: AutomationTask[];
   automationAutoStops: AutoStopState[];
+  // Security controls (issue #102): the workspace lock. The credential is a
+  // salted scrypt hash, never the password itself — but electron-store writes
+  // plain JSON, so this is a screen lock against casual access, not encryption.
+  // Switching the toggle off deliberately keeps the credential, so turning it
+  // back on doesn't ask for a new password.
+  securityControlsEnabled: boolean;
+  masterPasswordCredential: MasterPasswordCredential | null;
+  // Minutes the window may sit minimized before the workspace locks
+  lockDelayMinutes: number;
   // Todo service: local task state (the source of truth for writes) and
   // the optional Notion connection behind it, both keyed by service id
   todoTasks: Record<string, TodoData>;
@@ -93,6 +103,9 @@ export const store = new Store<StoreSchema>({
     minimizeToTray: false,
     automationTasks: [],
     automationAutoStops: [],
+    securityControlsEnabled: false,
+    masterPasswordCredential: null,
+    lockDelayMinutes: 10,
     todoTasks: {},
     todoNotion: {},
   },

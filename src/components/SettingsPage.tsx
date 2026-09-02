@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { AppSettings } from "../types";
+import { AppSettings, SecurityState } from "../types";
 import { IoFolderOpen, IoClose } from "react-icons/io5";
+import MasterPasswordDialog from "./MasterPasswordDialog";
 
 type UpdateStatus = "idle" | "checking" | "available" | "downloading" | "latest" | "error";
 
@@ -20,6 +21,15 @@ export default function SettingsPage() {
     privacyHorizontalPercent: 0,
     privacyHorizontalOpacity: 100,
   });
+  const [security, setSecurity] = useState<SecurityState>({
+    enabled: false,
+    hasPassword: false,
+    lockDelayMinutes: 10,
+    locked: false,
+  });
+  // Which master-password prompt is open, if any: "set" is the first-run prompt
+  // behind the toggle, "change" the Change Master Password button.
+  const [passwordDialog, setPasswordDialog] = useState<"set" | "change" | null>(null);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
   const [currentVersion, setCurrentVersion] = useState("");
   const [newVersion, setNewVersion] = useState("");
@@ -28,6 +38,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!window.electronAPI) return;
     window.electronAPI.getSettings().then(setSettings);
+    window.electronAPI.security.getState().then(setSecurity);
     window.electronAPI.getAppVersion().then(setCurrentVersion);
 
     const unsub = window.electronAPI.onUpdateDownloadProgress((info) => {
@@ -104,6 +115,21 @@ export default function SettingsPage() {
     const next = !settings[key];
     await window.electronAPI.updateSetting(key, next);
     setSettings((s) => ({ ...s, [key]: next }));
+  };
+
+  // Switching the toggle on for the first time has to collect a password
+  // before anything is stored; every later switch is just the flag, because the
+  // credential deliberately survives switching it off.
+  const handleSecurityToggle = async () => {
+    if (!security.enabled && !security.hasPassword) {
+      setPasswordDialog("set");
+      return;
+    }
+    setSecurity(await window.electronAPI.security.setEnabled(!security.enabled));
+  };
+
+  const handleLockDelayChange = async (minutes: number) => {
+    setSecurity(await window.electronAPI.security.setLockDelay(minutes));
   };
 
   const handleHibernateChange = async (minutes: number) => {
@@ -193,6 +219,58 @@ export default function SettingsPage() {
               onChange={() => handleTrayToggle("minimizeToTray")}
             />
           </SettingRow>
+        </Section>
+
+        {/* Security */}
+        <Section title="Security">
+          <SettingRow
+            label="Add Security Controls"
+            description="Ask for a master password on launch, and after the window has been left minimized"
+          >
+            <Toggle checked={security.enabled} onChange={handleSecurityToggle} />
+          </SettingRow>
+
+          {security.enabled && (
+            <>
+              <SettingRow
+                label="Lock after"
+                description="How long the window may stay minimized before the workspace locks"
+              >
+                <select
+                  value={security.lockDelayMinutes}
+                  onChange={(e) => handleLockDelayChange(Number(e.target.value))}
+                  className="text-sm rounded-lg cursor-pointer outline-none"
+                  style={{
+                    padding: "6px 10px",
+                    backgroundColor: "var(--sidebar-hover)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <option value={5}>After 5 min</option>
+                  <option value={10}>After 10 min</option>
+                  <option value={30}>After 30 min</option>
+                </select>
+              </SettingRow>
+
+              <SettingRow
+                label="Change Master Password"
+                description="The password is stored as a salted hash, so this is the only way to replace it"
+              >
+                <button
+                  onClick={() => setPasswordDialog("change")}
+                  className="rounded-lg text-sm font-medium transition-colors cursor-pointer hover:opacity-90"
+                  style={{
+                    padding: "6px 14px",
+                    backgroundColor: "var(--sidebar-hover)",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  Change
+                </button>
+              </SettingRow>
+            </>
+          )}
         </Section>
 
         {/* Privacy */}
@@ -397,6 +475,17 @@ export default function SettingsPage() {
           </SettingRow>
         </Section>
       </div>
+
+      {passwordDialog && (
+        <MasterPasswordDialog
+          mode={passwordDialog}
+          onDone={async () => {
+            setPasswordDialog(null);
+            setSecurity(await window.electronAPI.security.getState());
+          }}
+          onCancel={() => setPasswordDialog(null)}
+        />
+      )}
     </div>
   );
 }

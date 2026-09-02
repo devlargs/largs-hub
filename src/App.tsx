@@ -11,6 +11,7 @@ import SettingsPage from "./components/SettingsPage";
 import DisabledServiceScreen from "./components/DisabledServiceScreen";
 import TodoPage from "./components/todo/TodoPage";
 import RetiredNoteTakerScreen from "./components/RetiredNoteTakerScreen";
+import LockScreen from "./components/LockScreen";
 import { useNotificationStore } from "./store/notifications";
 
 // Mirrors the main process's hostname-based Messenger detection (main.ts)
@@ -46,6 +47,12 @@ function App() {
   // Per-service zoom factors, mirrored from the main process for the titlebar.
   const [zoomFactors, setZoomFactors] = useState<Record<string, number>>({});
   const [automationTasks, setAutomationTasks] = useState<AutomationTask[]>([]);
+  // The workspace lock (issue #102). Main owns the state — a fresh launch, the
+  // auto-lock countdown and every unlock are decided there — so the renderer
+  // only mirrors it.
+  const [locked, setLocked] = useState(false);
+  const lockedRef = useRef(false);
+  lockedRef.current = locked;
   // Read inside window-level key handlers, which are registered once and must
   // not re-bind on every service switch.
   const activeServiceIdRef = useRef<string | null>(null);
@@ -68,6 +75,11 @@ function App() {
         if (!isInternalService(service)) window.electronAPI.showService(lastActive);
       }
     });
+
+    window.electronAPI.security.getState().then((state) => setLocked(state.locked));
+    const unsubSecurity = window.electronAPI.security.onStateChanged((state) =>
+      setLocked(state.locked),
+    );
 
     // Seed from main before subscribing: counts already held there are only
     // pushed when they change, so a UI reload would otherwise show no badges.
@@ -159,6 +171,7 @@ function App() {
       unsubFindOpen();
       unsubFindClose();
       unsubZoom();
+      unsubSecurity();
     };
   }, [updateNotificationCount, setNotificationCounts, removeNotificationService]);
 
@@ -195,6 +208,8 @@ function App() {
 
   useEffect(() => {
     const handleKeydown = (e: KeyboardEvent) => {
+      // Nothing behind the lock screen is reachable, shortcuts included.
+      if (lockedRef.current) return;
       if (!e.ctrlKey || e.altKey || e.metaKey) return;
       // Zoom tolerates shift ("+" is shift+"=" on most layouts).
       const zoomDirection = ZOOM_KEYS[e.key];
@@ -430,6 +445,8 @@ function App() {
           onClose={() => setShowAutomationPanel(false)}
         />
       )}
+      {/* Last, and fixed inset-0, so it covers the titlebar and sidebar too. */}
+      {locked && <LockScreen />}
     </div>
   );
 }

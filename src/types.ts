@@ -22,6 +22,8 @@ import type {
   TodoSyncState,
   TodoTask,
   TodoTaskResult,
+  SecurityResult,
+  SecurityState,
   Service,
   StartResult,
   TaskSpec,
@@ -88,6 +90,18 @@ export interface ElectronAPI {
   getSettings: () => Promise<AppSettings>;
   updateSetting: (key: string, value: unknown) => Promise<void>;
   selectDownloadFolder: () => Promise<string | null>;
+  security: {
+    getState: () => Promise<SecurityState>;
+    setEnabled: (enabled: boolean) => Promise<SecurityState>;
+    setLockDelay: (minutes: number) => Promise<SecurityState>;
+    setPassword: (payload: {
+      currentPassword?: string;
+      password: string;
+      confirm: string;
+    }) => Promise<SecurityResult>;
+    unlock: (password: string) => Promise<SecurityResult>;
+    onStateChanged: (callback: (state: SecurityState) => void) => () => void;
+  };
   saveCustomIcon: (fileName: string, dataUrl: string) => Promise<string>;
   deleteCustomIcon: (fileName: string) => Promise<void>;
   checkForUpdates: () => Promise<{

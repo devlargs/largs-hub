@@ -399,10 +399,20 @@ export function handleWindowBlur() {
 
 // Z-order rule (see CLAUDE.md): overlays can't reliably stack above service
 // views on Windows, so React modals hide the active view instead.
+// While the workspace is locked no service view may be on screen, whatever the
+// renderer asks for — the lock screen draws in the UI view, and a service view
+// would sit on top of it (issue #102).
+let viewsSuppressed = false;
+
+export function setViewsSuppressed(suppressed: boolean) {
+  viewsSuppressed = suppressed;
+  setActiveViewVisible(!suppressed);
+}
+
 export function setActiveViewVisible(visible: boolean) {
   if (!activeServiceId) return;
   const view = serviceViews.get(activeServiceId);
-  if (view) view.setVisible(visible);
+  if (view) view.setVisible(visible && !viewsSuppressed);
 }
 
 // One in-app call window per service partition. Reused so a call cycle that
@@ -1222,11 +1232,11 @@ export function showService(serviceId: string) {
     mainWindow.contentView.addChildView(view);
   }
 
-  view.setVisible(true);
+  view.setVisible(!viewsSuppressed);
   view.setBounds(getViewBounds());
   if (isPrivacyMode(serviceId)) applyPrivacyToView(view);
   else removePrivacyFromView(view);
-  if (windowFocused) {
+  if (windowFocused && !viewsSuppressed) {
     view.webContents.focus();
   } else {
     const service = store.get("services").find((s) => s.id === serviceId);

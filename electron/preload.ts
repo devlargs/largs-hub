@@ -13,6 +13,8 @@ import type {
   TodoSyncState,
   TodoTask,
   TodoTaskResult,
+  SecurityResult,
+  SecurityState,
   Service,
   StartResult,
   TaskSpec,
@@ -168,6 +170,28 @@ const api = {
   updateSetting: (key: string, value: unknown): Promise<void> =>
     ipcRenderer.invoke("update-setting", key, value),
   selectDownloadFolder: (): Promise<string | null> => ipcRenderer.invoke("select-download-folder"),
+
+  // Security controls (workspace lock). The stored credential stays in the main
+  // process — the bridge only carries passwords in, and never back out.
+  security: {
+    getState: (): Promise<SecurityState> => ipcRenderer.invoke("get-security-state"),
+    setEnabled: (enabled: boolean): Promise<SecurityState> =>
+      ipcRenderer.invoke("set-security-enabled", enabled),
+    setLockDelay: (minutes: number): Promise<SecurityState> =>
+      ipcRenderer.invoke("set-lock-delay", minutes),
+    setPassword: (payload: {
+      currentPassword?: string;
+      password: string;
+      confirm: string;
+    }): Promise<SecurityResult> => ipcRenderer.invoke("set-master-password", payload),
+    unlock: (password: string): Promise<SecurityResult> =>
+      ipcRenderer.invoke("unlock-app", password),
+    onStateChanged: (callback: (state: SecurityState) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, state: SecurityState) => callback(state);
+      ipcRenderer.on("security-state-changed", handler);
+      return () => ipcRenderer.removeListener("security-state-changed", handler);
+    },
+  },
 
   // Custom icons
   saveCustomIcon: (fileName: string, dataUrl: string): Promise<string> =>

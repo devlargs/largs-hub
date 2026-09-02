@@ -12,6 +12,7 @@ import { initTray, isQuitting, isTrayAvailable, refreshTray, syncTray, destroyTr
 import { windowCloseAction, windowMinimizeAction } from "./trayMenu";
 import { linkPreviewBounds } from "./shared/layout";
 import { registerSettingsIpc } from "./ipc/settings";
+import { attachSecurityWindowEvents, registerSecurityIpc } from "./ipc/security";
 import { registerListGroupsIpc } from "./ipc/listGroups";
 import { addRecentEmoji, sanitizeRecentEmojis } from "./recentEmojis";
 import {
@@ -30,6 +31,7 @@ import {
   initServiceViews,
   getServiceView,
   setActiveViewVisible,
+  setViewsSuppressed,
   setAutomationSplitOpen,
   repositionActiveView,
   showService,
@@ -58,6 +60,7 @@ import {
 //   updater.ts            GitHub release check + installer download
 //   ipc/services.ts       service CRUD/toggles/navigation/context menu
 //   ipc/settings.ts       theme, settings, custom icons, settings menu
+//   ipc/security.ts       workspace lock: master password + auto-lock timer
 
 app.setName("Largs Hub");
 // Must match build.appId in package.json — Windows keys taskbar overlays and
@@ -232,6 +235,9 @@ function createWindow() {
   mainWindow.on("show", () => setWindowMinimized(false));
   watchPowerForPolling();
 
+  // Auto-lock countdown follows the window, not the renderer (issue #102).
+  attachSecurityWindowEvents(mainWindow);
+
   startHibernationSweep();
 
   // Pre-load all saved services so they're warm on startup (if enabled)
@@ -340,6 +346,11 @@ registerServicesIpc({
 registerSettingsIpc({
   getMainWindow: () => mainWindow,
   getUiView: () => uiView,
+});
+
+registerSecurityIpc({
+  getUiView: () => uiView,
+  onLockedChanged: (locked) => setViewsSuppressed(locked),
 });
 
 registerListGroupsIpc();
