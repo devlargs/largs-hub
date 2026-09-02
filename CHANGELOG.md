@@ -7,6 +7,7 @@
 - Settings rows line up properly. Each setting's name and its toggle, dropdown or slider now sit on one line — name left, control right, vertically centred — at every window width. In a narrow window the control used to drop onto its own line underneath the description, which read as a separate item from the setting it belonged to.
 
 ## [0.1.50] (2026-09-01)
+- Existing **Pomodoro** services now really do come across as **Todo** lists. After the rename they still carried the old type in your saved settings, which nothing recognised any more — the service opened as a blank pane and behaved like an ordinary web page. They are converted once on launch, keeping their tasks, their Notion connection and any name you had given the list.
 
 ## [0.1.49] (2026-09-01)
 
@@ -129,11 +130,11 @@
 
 ## [0.1.37] (2026-08-12)
 
+- Privacy mode now has a second, horizontal cover that hides part of the page from the left edge, with its own size and opacity sliders alongside the existing (vertical) ones. Any cover size can be set to 0 to turn that cover off.
+
 ## [0.1.36] (2026-08-12)
 
 - New "Privacy" section in Settings: sliders for how much of the page the privacy cover hides and how opaque it is. Changes apply immediately to every service with privacy mode on.
-
-- Privacy mode now has a second, horizontal cover that hides part of the page from the left edge, with its own size and opacity sliders alongside the existing (vertical) ones. Any cover size can be set to 0 to turn that cover off.
 
 - The "Download complete" alert no longer disappears on its own after a few seconds — it stays until you close it with its new ✕ button. Multiple alerts stack above one another, follow the window when you move it, and hide while the app is minimized.
 
