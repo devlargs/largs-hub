@@ -4,9 +4,10 @@ import {
   PendingSync,
   RemoteTask,
   Task,
-  carryOverTasks,
+  carryOverPending,
   clearDeleted,
   clearDirty,
+  dateKey,
   emptyPending,
   isDateKey,
   markDeleted,
@@ -452,16 +453,36 @@ export function registerTodo(deps: TodoDeps): void {
     return config ? notionDatabaseUrl(config.databaseId) : null;
   });
 
+  // Unfinished work is never left stranded on a day that has passed: reading
+  // today's list first moves every open task from an earlier day onto today
+  // (issue #107). It runs here rather than on a timer because this is the only
+  // moment the backlog can be seen — opening the service, coming back to today,
+  // or a refresh after midnight all go through it. Moves are queued for Notion
+  // like any other edit, so the pages follow. Reading a past or future day
+  // changes nothing.
+  function carryIntoToday(serviceId: string, date: string): string[] {
+    if (date !== dateKey(new Date())) return [];
+    const { tasks, moved } = carryOverPending(
+      getData(serviceId).tasks,
+      date,
+      new Date().toISOString(),
+    );
+    if (moved.length > 0) commit(serviceId, tasks, moved);
+    return moved;
+  }
+
   // Tasks for one day, straight from the local store (instant), plus whether a
   // background pull is worth doing.
   ipcMain.handle("todo-list", (_event, serviceIdRaw: unknown, dateRaw: unknown) => {
     try {
       const serviceId = requireServiceId(serviceIdRaw);
       if (!isDateKey(dateRaw)) return { ok: false, error: "Invalid date." };
+      const carried = carryIntoToday(serviceId, dateRaw);
       const data = getData(serviceId);
       return {
         ok: true,
         tasks: tasksForDate(data.tasks, dateRaw),
+        carried,
         pulledAt: data.pulledAt[dateRaw] ?? 0,
         sync: syncState(serviceId),
       };
@@ -476,11 +497,15 @@ export function registerTodo(deps: TodoDeps): void {
       const serviceId = requireServiceId(serviceIdRaw);
       if (!isDateKey(dateRaw)) return { ok: false, error: "Invalid date." };
       const error = await pullDate(serviceId, dateRaw);
+      // A pull can revive a day's tasks (or arrive after midnight), so today's
+      // backlog is swept again once the remote state has been merged in.
+      const carried = carryIntoToday(serviceId, dateRaw);
       const data = getData(serviceId);
       return {
         ok: !error,
         error: error ?? undefined,
         tasks: tasksForDate(data.tasks, dateRaw),
+        carried,
         sync: syncState(serviceId),
       };
     } catch (err) {
@@ -593,35 +618,6 @@ export function registerTodo(deps: TodoDeps): void {
       }
     },
   );
-
-  // Moves yesterday's unfinished tasks onto the given day.
-  ipcMain.handle(
-    "todo-carry-over",
-    (_event, serviceIdRaw: unknown, fromRaw: unknown, toRaw: unknown) => {
-      try {
-        const serviceId = requireServiceId(serviceIdRaw);
-        if (!isDateKey(fromRaw) || !isDateKey(toRaw)) return { ok: false, error: "Invalid date." };
-        const data = getData(serviceId);
-        const { tasks, moved } = carryOverTasks(
-          data.tasks,
-          fromRaw,
-          toRaw,
-          new Date().toISOString(),
-        );
-        commit(serviceId, tasks, moved);
-        return { ok: true, moved: moved.length, tasks: tasksForDate(tasks, toRaw) };
-      } catch (err) {
-        return { ok: false, error: errorMessage(err) };
-      }
-    },
-  );
-
-  // How many unfinished tasks the previous day still holds — drives the
-  // "Carry over N tasks" button without loading that day into the UI.
-  ipcMain.handle("todo-pending-count", (_event, serviceIdRaw: unknown, dateRaw: unknown) => {
-    if (typeof serviceIdRaw !== "string" || !isDateKey(dateRaw)) return 0;
-    return tasksForDate(getData(serviceIdRaw).tasks, dateRaw).filter((t) => !t.done).length;
-  });
 
   ipcMain.handle("todo-sync-state", (_event, serviceIdRaw: unknown): SyncState | null =>
     typeof serviceIdRaw === "string" ? syncState(serviceIdRaw) : null,

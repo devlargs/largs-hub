@@ -6,7 +6,6 @@ import {
   MdExpandMore,
   MdOutlineSettings,
   MdRefresh,
-  MdSubdirectoryArrowRight,
 } from "react-icons/md";
 import { Service, TodoConnectionState, TodoSyncState, TodoTask } from "../../types";
 import NotionTaskSetup from "./NotionTaskSetup";
@@ -40,7 +39,6 @@ export default function TodoPage({ service }: TodoPageProps) {
   const [showSetup, setShowSetup] = useState(false);
   const [tasks, setTasks] = useState<TodoTask[]>([]);
   const [sync, setSync] = useState<TodoSyncState | null>(null);
-  const [carryCount, setCarryCount] = useState(0);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -103,12 +101,12 @@ export default function TodoPage({ service }: TodoPageProps) {
       if (res.ok && res.tasks) {
         setTasks(res.tasks);
         if (res.sync) setSync(res.sync);
+        // Anything the main process just carried over from an earlier day grows
+        // in, so a list that gained tasks on its own explains itself.
+        if (res.carried?.length) setEnteringIds(res.carried);
       } else if (res.error) {
         setError(res.error);
       }
-      setCarryCount(
-        await window.electronAPI.todo.pendingCount(serviceId, shiftDateKey(targetDate, -1)),
-      );
     },
     [serviceId],
   );
@@ -140,6 +138,26 @@ export default function TodoPage({ service }: TodoPageProps) {
     if (cached && Date.now() - cached < CACHE_TTL_MS) return;
     void pullDay(date);
   }, [serviceId, date, connection, loadDay, pullDay]);
+
+  // Left open overnight the page would still be showing the old day under the
+  // heading "Today". Once the date turns, the view follows it — which is what
+  // brings the unfinished tasks across as well (issue #107). Only a view that
+  // was sitting on "today" moves; a day you navigated to deliberately stays put.
+  const lastTodayRef = useRef(todayKey());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const today = todayKey();
+      const previous = lastTodayRef.current;
+      if (today === previous) return;
+      lastTodayRef.current = today;
+      setDate((current) => {
+        if (current !== previous) return current;
+        setSlide("next");
+        return today;
+      });
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Pushes from the main process: a background flush that assigned a page id,
   // or a pull that merged remote changes.
@@ -281,17 +299,6 @@ export default function TodoPage({ service }: TodoPageProps) {
     );
     applyResult(await window.electronAPI.todo.reorder(serviceId, date, ids));
   }, [draggingId, dropTargetId, openTasks, doneTasks, serviceId, date, applyResult]);
-
-  const handleCarryOver = useCallback(async () => {
-    const before = new Set(tasks.map((t) => t.id));
-    const res = await window.electronAPI.todo.carryOver(serviceId, shiftDateKey(date, -1), date);
-    applyResult(res);
-    if (res.ok) {
-      // Only the tasks that actually arrived get the grow-in animation
-      setEnteringIds((res.tasks ?? []).filter((t) => !before.has(t.id)).map((t) => t.id));
-      setCarryCount(0);
-    }
-  }, [tasks, serviceId, date, applyResult]);
 
   const goToDay = useCallback((next: string, direction: "next" | "prev") => {
     setSlide(direction);
@@ -605,29 +612,6 @@ export default function TodoPage({ service }: TodoPageProps) {
       {/* --- The list. Scrolls under the head. --- */}
       <div className="todo-scroll flex-1 overflow-y-auto">
         <div className="todo-measure">
-          {carryCount > 0 && (
-            <button
-              onClick={() => void handleCarryOver()}
-              className="flex items-center rounded-lg cursor-pointer w-full"
-              style={{
-                gap: "var(--space-xs)",
-                padding: "var(--space-xs) var(--space-sm)",
-                marginBottom: "var(--space-sm)",
-                fontSize: "var(--text-sm)",
-                textAlign: "left",
-                whiteSpace: "nowrap",
-                color: "var(--accent)",
-                background: "transparent",
-                border: "1px dashed color-mix(in srgb, var(--accent) 40%, transparent)",
-              }}
-            >
-              <MdSubdirectoryArrowRight size={15} className="shrink-0" />
-              <span className="truncate">
-                Carry over {carryCount} from {formatDayLabel(shiftDateKey(date, -1)).toLowerCase()}
-              </span>
-            </button>
-          )}
-
           {error && (
             <div
               className="flex items-center rounded-lg"

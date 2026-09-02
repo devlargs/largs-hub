@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Unfinished tasks follow you to today by themselves.** The Todo list used to offer a "Carry over N from yesterday" button, which only reached back one day and only if you noticed it. Open tasks from any earlier day — a Friday you never got through, a whole quiet week — now move onto today the moment you open the list, and they grow into place so you can see what arrived. Completed tasks stay on the day you finished them, and a list left open overnight rolls onto the new day on its own instead of still saying "Today" over yesterday's work. The moves go to Notion like any other edit.
 - **Google sign-in works in the app's services again.** Signing in to Google Chat (and anything else that goes through a Google account page) ended at "Couldn't sign you in — this browser or app may not be secure". The services already claimed to be Chrome, but every request still carried a second, quieter identity alongside it that named Electron, and that is what Google was reading. Services now present themselves as Chrome consistently, so the sign-in pages let you through.
 
 ## [0.1.52] (2026-09-02)

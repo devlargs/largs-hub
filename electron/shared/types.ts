@@ -104,6 +104,9 @@ export interface TodoListResult {
   ok: boolean;
   error?: string;
   tasks?: TodoTask[];
+  // Ids of tasks just moved onto this day from an earlier one, so the UI can
+  // show them arriving rather than having them appear out of nowhere.
+  carried?: string[];
   pulledAt?: number;
   sync?: TodoSyncState;
 }

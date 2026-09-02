@@ -131,12 +131,6 @@ export interface ElectronAPI {
     ) => Promise<TodoTaskResult>;
     remove: (serviceId: string, taskId: string) => Promise<TodoTaskResult>;
     reorder: (serviceId: string, date: string, taskIds: string[]) => Promise<TodoTaskResult>;
-    carryOver: (
-      serviceId: string,
-      fromDate: string,
-      toDate: string,
-    ) => Promise<TodoTaskResult & { moved?: number }>;
-    pendingCount: (serviceId: string, date: string) => Promise<number>;
     syncState: (serviceId: string) => Promise<TodoSyncState | null>;
     retrySync: (serviceId: string) => Promise<TodoSyncState | null>;
     onSyncUpdated: (callback: (state: TodoSyncState) => void) => () => void;

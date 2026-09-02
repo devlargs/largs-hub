@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   Task,
   bucketByDate,
-  carryOverTasks,
+  carryOverPending,
   clearDirty,
   dateKey,
   emptyPending,
@@ -104,7 +104,7 @@ describe("reorderTasks", () => {
   });
 });
 
-describe("carryOverTasks", () => {
+describe("carryOverPending", () => {
   const tasks = [
     task({ id: "done", date: "2026-08-23", order: 0, done: true }),
     task({ id: "open1", date: "2026-08-23", order: 1 }),
@@ -113,18 +113,52 @@ describe("carryOverTasks", () => {
   ];
 
   it("moves only unfinished tasks onto the target day, appended", () => {
-    const { tasks: next, moved } = carryOverTasks(tasks, "2026-08-23", "2026-08-24", NOW);
+    const { tasks: next, moved } = carryOverPending(tasks, "2026-08-24", NOW);
     expect(moved).toEqual(["open1", "open2"]);
     expect(tasksForDate(next, "2026-08-24").map((t) => t.id)).toEqual(["today", "open1", "open2"]);
     // The completed task stays on the day it was completed
     expect(tasksForDate(next, "2026-08-23").map((t) => t.id)).toEqual(["done"]);
   });
 
-  it("is a no-op when the source day has nothing open", () => {
+  it("sweeps every earlier day, oldest first — not just yesterday", () => {
+    const backlog = [
+      task({ id: "old", date: "2026-08-01", order: 5 }),
+      task({ id: "older", date: "2026-07-30", order: 0 }),
+      ...tasks,
+    ];
+    const { tasks: next, moved } = carryOverPending(backlog, "2026-08-24", NOW);
+    expect(moved).toEqual(["older", "old", "open1", "open2"]);
+    expect(tasksForDate(next, "2026-08-24").map((t) => t.id)).toEqual([
+      "today",
+      "older",
+      "old",
+      "open1",
+      "open2",
+    ]);
+  });
+
+  it("stamps the move so it queues for Notion like any other edit", () => {
+    const { tasks: next } = carryOverPending(tasks, "2026-08-24", NOW);
+    expect(next.find((t) => t.id === "open1")?.editedAt).toBe(NOW);
+  });
+
+  it("leaves the target day and anything after it alone", () => {
+    const withFuture = [...tasks, task({ id: "later", date: "2026-08-25", order: 0 })];
+    const { moved } = carryOverPending(withFuture, "2026-08-24", NOW);
+    expect(moved).not.toContain("later");
+    expect(moved).not.toContain("today");
+  });
+
+  it("is a no-op when nothing earlier is open", () => {
     const onlyDone = [task({ id: "done", date: "2026-08-23", done: true })];
-    const { tasks: next, moved } = carryOverTasks(onlyDone, "2026-08-23", "2026-08-24", NOW);
+    const { tasks: next, moved } = carryOverPending(onlyDone, "2026-08-24", NOW);
     expect(moved).toEqual([]);
     expect(next).toBe(onlyDone);
+  });
+
+  it("is idempotent — a second sweep finds nothing left behind", () => {
+    const { tasks: once } = carryOverPending(tasks, "2026-08-24", NOW);
+    expect(carryOverPending(once, "2026-08-24", NOW).moved).toEqual([]);
   });
 });
 

@@ -114,16 +114,24 @@ export function reorderTasks(
 
 // --- Carry over --------------------------------------------------------------
 
-// Moves every unfinished task from `fromDate` onto `toDate`, appended after
-// whatever is already there. Moving (rather than copying) keeps the completed
-// history of a past day honest — an undone task was never part of it.
-export function carryOverTasks(
+// Moves every unfinished task from any earlier day onto `toDate`, appended
+// after whatever is already there, oldest day first so the backlog keeps its
+// order. Moving (rather than copying) keeps the completed history of a past day
+// honest — an undone task was never part of it — and means an open task is only
+// ever in one place: the day you are actually working on (issue #107).
+//
+// Days are compared as strings: YYYY-MM-DD sorts chronologically.
+export function carryOverPending(
   tasks: Task[],
-  fromDate: string,
   toDate: string,
   now: string,
 ): { tasks: Task[]; moved: string[] } {
-  const pending = tasksForDate(tasks, fromDate).filter((t) => !t.done);
+  const pending = tasks
+    .filter((t) => !t.done && t.date < toDate)
+    .sort(
+      (a, b) =>
+        a.date.localeCompare(b.date) || a.order - b.order || a.editedAt.localeCompare(b.editedAt),
+    );
   if (pending.length === 0) return { tasks, moved: [] };
 
   let order = nextOrder(tasks, toDate);

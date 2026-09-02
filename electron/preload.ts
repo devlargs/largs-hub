@@ -250,14 +250,6 @@ const api = {
       ipcRenderer.invoke("todo-remove", serviceId, taskId),
     reorder: (serviceId: string, date: string, taskIds: string[]): Promise<TodoTaskResult> =>
       ipcRenderer.invoke("todo-reorder", serviceId, date, taskIds),
-    carryOver: (
-      serviceId: string,
-      fromDate: string,
-      toDate: string,
-    ): Promise<TodoTaskResult & { moved?: number }> =>
-      ipcRenderer.invoke("todo-carry-over", serviceId, fromDate, toDate),
-    pendingCount: (serviceId: string, date: string): Promise<number> =>
-      ipcRenderer.invoke("todo-pending-count", serviceId, date),
     syncState: (serviceId: string): Promise<TodoSyncState | null> =>
       ipcRenderer.invoke("todo-sync-state", serviceId),
     retrySync: (serviceId: string): Promise<TodoSyncState | null> =>
