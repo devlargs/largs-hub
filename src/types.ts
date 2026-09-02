@@ -119,6 +119,7 @@ export interface ElectronAPI {
     resetDatabase: (serviceId: string) => Promise<{ ok: boolean; error?: string }>;
     adoptDatabase: (serviceId: string) => Promise<{ ok: boolean; error?: string }>;
     disconnect: (serviceId: string) => Promise<void>;
+    databaseUrl: (serviceId: string) => Promise<string | null>;
     list: (serviceId: string, date: string) => Promise<TodoListResult>;
     refresh: (serviceId: string, date: string) => Promise<TodoListResult>;
     create: (serviceId: string, date: string, text: string) => Promise<TodoTaskResult>;

@@ -12,6 +12,7 @@ import {
   mergeRemoteTasks,
   nextOrder,
   normalizeDatabaseId,
+  notionDatabaseUrl,
   reorderTasks,
   sanitizeTaskText,
   shiftDateKey,
@@ -242,5 +243,32 @@ describe("normalizeDatabaseId", () => {
 
   it("rejects anything that isn't an id", () => {
     expect(normalizeDatabaseId("not a database")).toBeNull();
+  });
+});
+
+describe("notionDatabaseUrl", () => {
+  it("builds the database's page URL from a bare id", () => {
+    expect(notionDatabaseUrl("0123456789abcdef0123456789abcdef")).toBe(
+      "https://www.notion.so/0123456789abcdef0123456789abcdef",
+    );
+  });
+
+  it("strips the dashes a stored uuid may carry", () => {
+    expect(notionDatabaseUrl("01234567-89ab-cdef-0123-456789abcdef")).toBe(
+      "https://www.notion.so/0123456789abcdef0123456789abcdef",
+    );
+  });
+
+  it("lowercases, so the same database always gives the same link", () => {
+    expect(notionDatabaseUrl("0123456789ABCDEF0123456789ABCDEF")).toBe(
+      "https://www.notion.so/0123456789abcdef0123456789abcdef",
+    );
+  });
+
+  it("has nothing to open without a usable id", () => {
+    expect(notionDatabaseUrl("")).toBeNull();
+    expect(notionDatabaseUrl("not a database")).toBeNull();
+    expect(notionDatabaseUrl(null)).toBeNull();
+    expect(notionDatabaseUrl(undefined)).toBeNull();
   });
 });

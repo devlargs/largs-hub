@@ -14,6 +14,7 @@ import {
   mergeRemoteTasks,
   nextOrder,
   normalizeDatabaseId,
+  notionDatabaseUrl,
   pendingCount,
   reorderTasks,
   sanitizeTaskText,
@@ -439,6 +440,16 @@ export function registerTodo(deps: TodoDeps): void {
     if (!config) return "local";
     if (config.ready) return "ready";
     return config.adoptable ? "pending-adoptable" : "pending";
+  });
+
+  // The connected database's page on notion.so, so the Todo menu can offer to
+  // open it (issue #103). Null when nothing is connected. Deliberately not part
+  // of todo-get-state: that returns a bare status string every caller switches
+  // on, and the URL is only wanted when the menu is on screen.
+  ipcMain.handle("todo-database-url", (_event, serviceIdRaw: unknown): string | null => {
+    if (typeof serviceIdRaw !== "string") return null;
+    const config = getConfig(serviceIdRaw);
+    return config ? notionDatabaseUrl(config.databaseId) : null;
   });
 
   // Tasks for one day, straight from the local store (instant), plus whether a

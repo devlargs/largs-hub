@@ -45,6 +45,9 @@ export default function TodoPage({ service }: TodoPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // The connected database's page on notion.so, or null when there's nothing to
+  // open (issue #103).
+  const [databaseUrl, setDatabaseUrl] = useState<string | null>(null);
   const [enteringIds, setEnteringIds] = useState<string[]>([]);
   // The task whose label is mid-dissolve; it stays in the open list until the
   // letters have gone, so the row doesn't vanish out from under the animation.
@@ -77,6 +80,22 @@ export default function TodoPage({ service }: TodoPageProps) {
       cancelled = true;
     };
   }, [serviceId]);
+
+  // Re-read on every connection change, so the menu item appears the moment a
+  // database is connected and goes with it on disconnect.
+  useEffect(() => {
+    if (connection === "loading" || connection === "local") {
+      setDatabaseUrl(null);
+      return;
+    }
+    let cancelled = false;
+    void window.electronAPI.todo.databaseUrl(serviceId).then((url) => {
+      if (!cancelled) setDatabaseUrl(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [serviceId, connection]);
 
   const loadDay = useCallback(
     async (targetDate: string) => {
@@ -334,6 +353,16 @@ export default function TodoPage({ service }: TodoPageProps) {
     border: "none",
   } as const;
 
+  // Shared by every row of the settings menu, so a second entry can't drift
+  // away from the first.
+  const menuItem = {
+    padding: "var(--space-xs) var(--space-sm)",
+    fontSize: "var(--text-sm)",
+    color: "var(--text-primary)",
+    background: "transparent",
+    border: "none",
+  } as const;
+
   const syncPill = (() => {
     if (!sync || sync.status === "local") return null;
     const label =
@@ -496,6 +525,18 @@ export default function TodoPage({ service }: TodoPageProps) {
                         boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
                       }}
                     >
+                      {databaseUrl && (
+                        <button
+                          onClick={() => {
+                            setMenuOpen(false);
+                            window.electronAPI.openLinkExternal(databaseUrl);
+                          }}
+                          className="block w-full text-left cursor-pointer hover:bg-sidebar-hover"
+                          style={menuItem}
+                        >
+                          View database in Notion
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           if (connection === "ready") void handleDisconnect();
@@ -505,13 +546,7 @@ export default function TodoPage({ service }: TodoPageProps) {
                           }
                         }}
                         className="block w-full text-left cursor-pointer hover:bg-sidebar-hover"
-                        style={{
-                          padding: "var(--space-xs) var(--space-sm)",
-                          fontSize: "var(--text-sm)",
-                          color: "var(--text-primary)",
-                          background: "transparent",
-                          border: "none",
-                        }}
+                        style={menuItem}
                       >
                         {connection === "ready"
                           ? "Disconnect Notion database"

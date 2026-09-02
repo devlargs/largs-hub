@@ -260,3 +260,13 @@ export function normalizeDatabaseId(raw: string): string | null {
   const plain = input.match(/[0-9a-f]{32}/i);
   return plain ? plain[0] : null;
 }
+
+// The connected database's own page on notion.so, for the "View database in
+// Notion" menu item (issue #103). Notion resolves the bare 32-character id and
+// redirects to the full workspace URL, so no workspace slug is needed — which
+// is just as well, since we never learn one.
+export function notionDatabaseUrl(databaseId: unknown): string | null {
+  if (typeof databaseId !== "string") return null;
+  const id = normalizeDatabaseId(databaseId);
+  return id ? `https://www.notion.so/${id.replace(/-/g, "").toLowerCase()}` : null;
+}

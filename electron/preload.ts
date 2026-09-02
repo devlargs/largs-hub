@@ -231,6 +231,8 @@ const api = {
       ipcRenderer.invoke("todo-adopt-database", serviceId),
     disconnect: (serviceId: string): Promise<void> =>
       ipcRenderer.invoke("todo-disconnect", serviceId),
+    databaseUrl: (serviceId: string): Promise<string | null> =>
+      ipcRenderer.invoke("todo-database-url", serviceId),
     list: (serviceId: string, date: string): Promise<TodoListResult> =>
       ipcRenderer.invoke("todo-list", serviceId, date),
     refresh: (serviceId: string, date: string): Promise<TodoListResult> =>
