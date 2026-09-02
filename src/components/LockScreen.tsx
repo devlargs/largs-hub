@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { IoLockClosed } from "react-icons/io5";
+import PasswordInput from "./ui/PasswordInput";
 
 // The workspace lock's front door (issue #102). Covers the whole window, over
 // the top of the sidebar and titlebar, until the master password is entered.
@@ -96,10 +97,9 @@ export default function LockScreen() {
         <label htmlFor="lock-password" className="sr-only">
           Master password
         </label>
-        <input
+        <PasswordInput
           id="lock-password"
-          ref={inputRef}
-          type="password"
+          inputRef={inputRef}
           value={password}
           autoComplete="current-password"
           disabled={disabled}

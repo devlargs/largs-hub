@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import Modal from "./ui/Modal";
+import PasswordInput from "./ui/PasswordInput";
 
 // Sets the first master password, or changes an existing one (issue #102).
 // Changing asks for the current password first — otherwise anyone who walks up
@@ -167,9 +168,8 @@ function Field({
       <label htmlFor={id} className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
         {label}
       </label>
-      <input
+      <PasswordInput
         id={id}
-        type="password"
         value={value}
         autoFocus={autoFocus}
         autoComplete="new-password"

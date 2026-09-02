@@ -64,7 +64,9 @@ describe("withChromeIdentityHeaders", () => {
     );
     const hintKeys = Object.keys(out).filter((k) => k.toLowerCase().startsWith("sec-ch-ua"));
     expect(hintKeys).toEqual(["sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform"]);
-    expect(Object.keys(out).filter((k) => k.toLowerCase() === "user-agent")).toEqual(["User-Agent"]);
+    expect(Object.keys(out).filter((k) => k.toLowerCase() === "user-agent")).toEqual([
+      "User-Agent",
+    ]);
   });
 
   it("rewrites high-entropy hints only when the site asked for them", () => {

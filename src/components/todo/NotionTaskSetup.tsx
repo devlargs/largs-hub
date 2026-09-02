@@ -1,5 +1,6 @@
 import { useState } from "react";
 import notionIcon from "../../assets/images/notion.png";
+import PasswordInput from "../ui/PasswordInput";
 
 interface NotionTaskSetupProps {
   serviceId: string;
@@ -169,12 +170,11 @@ export default function NotionTaskSetup({
               <label className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
                 NOTION_API_KEY
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="ntn_… or secret_…"
-                className="outline-none"
+                className="w-full outline-none"
                 style={inputStyle}
               />
             </div>
