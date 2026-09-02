@@ -12,6 +12,7 @@ import DisabledServiceScreen from "./components/DisabledServiceScreen";
 import TodoPage from "./components/todo/TodoPage";
 import RetiredNoteTakerScreen from "./components/RetiredNoteTakerScreen";
 import LockScreen from "./components/LockScreen";
+import ConfirmDialog, { ConfirmTone } from "./components/ui/ConfirmDialog";
 import { useNotificationStore } from "./store/notifications";
 
 // Mirrors the main process's hostname-based Messenger detection (main.ts)
@@ -50,6 +51,15 @@ function App() {
   // The workspace lock (issue #102). Main owns the state — a fresh launch, the
   // auto-lock countdown and every unlock are decided there — so the renderer
   // only mirrors it.
+  // The destructive prompts the service context menu asks for (issue #104).
+  // Main no longer opens a native message box; it sends the request here.
+  const [confirm, setConfirm] = useState<{
+    title: string;
+    body: string;
+    confirmLabel: string;
+    tone: ConfirmTone;
+    onConfirm: () => void;
+  } | null>(null);
   const [locked, setLocked] = useState(false);
   const lockedRef = useRef(false);
   lockedRef.current = locked;
@@ -60,6 +70,22 @@ function App() {
   const updateNotificationCount = useNotificationStore((s) => s.updateCount);
   const setNotificationCounts = useNotificationStore((s) => s.setCounts);
   const removeNotificationService = useNotificationStore((s) => s.removeService);
+
+  const handleRemoveService = useCallback(
+    async (serviceId: string) => {
+      const updated = await window.electronAPI.removeService(serviceId);
+      setServices(updated);
+      removeNotificationService(serviceId);
+      setActiveServiceId((prev) => {
+        if (prev === serviceId) {
+          window.electronAPI.hideService();
+          return null;
+        }
+        return prev;
+      });
+    },
+    [removeNotificationService],
+  );
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -112,17 +138,33 @@ function App() {
           }
           return current;
         });
-      } else if (action === "remove-service") {
-        window.electronAPI.removeService(serviceId).then((updated) => {
-          setServices(updated);
-          removeNotificationService(serviceId);
-          setActiveServiceId((prev) => {
-            if (prev === serviceId) {
-              window.electronAPI.hideService();
-              return null;
-            }
-            return prev;
-          });
+      } else if (action === "confirm-remove-service") {
+        setServices((current) => {
+          const svc = current.find((s) => s.id === serviceId);
+          if (svc) {
+            setConfirm({
+              title: `Remove ${svc.name}?`,
+              body: "This permanently removes the service from Largs Hub, along with its saved sign-in.",
+              confirmLabel: "Remove",
+              tone: "danger",
+              onConfirm: () => void handleRemoveService(serviceId),
+            });
+          }
+          return current;
+        });
+      } else if (action === "confirm-clear-data") {
+        setServices((current) => {
+          const svc = current.find((s) => s.id === serviceId);
+          if (svc) {
+            setConfirm({
+              title: `Clear ${svc.name}'s data?`,
+              body: "This signs the account out and deletes the service's cookies, site data and cache. The service itself is kept.",
+              confirmLabel: "Clear data",
+              tone: "danger",
+              onConfirm: () => void window.electronAPI.clearServiceData(serviceId),
+            });
+          }
+          return current;
         });
       } else if (action === "show-service") {
         setActiveServiceId(serviceId);
@@ -173,23 +215,12 @@ function App() {
       unsubZoom();
       unsubSecurity();
     };
-  }, [updateNotificationCount, setNotificationCounts, removeNotificationService]);
-
-  const handleRemoveService = useCallback(
-    async (serviceId: string) => {
-      const updated = await window.electronAPI.removeService(serviceId);
-      setServices(updated);
-      removeNotificationService(serviceId);
-      setActiveServiceId((prev) => {
-        if (prev === serviceId) {
-          window.electronAPI.hideService();
-          return null;
-        }
-        return prev;
-      });
-    },
-    [removeNotificationService],
-  );
+  }, [
+    updateNotificationCount,
+    setNotificationCounts,
+    removeNotificationService,
+    handleRemoveService,
+  ]);
 
   const handleSelectService = useCallback((serviceId: string) => {
     setActiveServiceId(serviceId);
@@ -443,6 +474,16 @@ function App() {
           serviceId={activeServiceId}
           tasks={automationTasks}
           onClose={() => setShowAutomationPanel(false)}
+        />
+      )}
+      {confirm && (
+        <ConfirmDialog
+          title={confirm.title}
+          body={confirm.body}
+          confirmLabel={confirm.confirmLabel}
+          tone={confirm.tone}
+          onConfirm={confirm.onConfirm}
+          onClose={() => setConfirm(null)}
         />
       )}
       {/* Last, and fixed inset-0, so it covers the titlebar and sidebar too. */}

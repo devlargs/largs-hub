@@ -35,6 +35,7 @@ export interface ElectronAPI {
   getNotificationCounts: () => Promise<Record<string, number>>;
   addService: (service: Service) => Promise<Service[]>;
   removeService: (serviceId: string) => Promise<Service[]>;
+  clearServiceData: (serviceId: string) => Promise<void>;
   updateService: (service: Service) => Promise<Service[]>;
   reorderServices: (serviceIds: string[]) => Promise<Service[]>;
   toggleMuteService: (serviceId: string) => Promise<Service[]>;

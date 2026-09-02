@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useModalDismiss } from "../hooks/useModalDismiss";
+import Modal from "./ui/Modal";
 import {
   MAX_ZOOM,
   Offset,
@@ -36,24 +36,12 @@ export default function IconCropper({ source, onCancel, onApply }: IconCropperPr
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState<Offset>({ x: 0, y: 0 });
   const [failed, setFailed] = useState(false);
-  const [visible, setVisible] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
   // Pointer id and the grab point, so a drag survives the cursor leaving the frame.
   const drag = useRef<{ pointerId: number; x: number; y: number } | null>(null);
 
   const base = image ? coverScale(image, FRAME) : 1;
   const scale = base * zoom;
-
-  useEffect(() => {
-    requestAnimationFrame(() => setVisible(true));
-  }, []);
-
-  // Renders above the service views (CLAUDE.md); the modal underneath has
-  // already brought the UI layer forward, and the ref-count nests.
-  useEffect(() => {
-    window.electronAPI?.bringUiToFront();
-    return () => window.electronAPI?.sendUiToBack();
-  }, []);
 
   // Measured off a detached Image so the natural size is known before the first
   // paint — laying out from a zero-sized <img> would flash the image off-centre.
@@ -71,8 +59,6 @@ export default function IconCropper({ source, onCancel, onApply }: IconCropperPr
     probe.onerror = () => setFailed(true);
     probe.src = source;
   }, [source]);
-
-  const dialogRef = useModalDismiss<HTMLDivElement>({ onDismiss: onCancel });
 
   const handleZoom = (next: number) => {
     if (!image) return;
@@ -147,158 +133,142 @@ export default function IconCropper({ source, onCancel, onApply }: IconCropperPr
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center transition-all duration-200 ease-out"
-      style={{
-        backgroundColor: visible ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0)",
-        backdropFilter: visible ? "blur(4px)" : "blur(0px)",
-      }}
-      onClick={onCancel}
-    >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Crop icon"
-        className="bg-sidebar rounded-3xl shadow-2xl mx-4 transition-all duration-200 ease-out"
-        style={{
-          padding: 28,
-          opacity: visible ? 1 : 0,
-          transform: visible ? "scale(1) translateY(0)" : "scale(0.95) translateY(12px)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2
-          className="font-semibold"
-          style={{
-            fontSize: "var(--text-lg)",
-            color: "var(--text-primary)",
-            marginBottom: "var(--space-2xs)",
-          }}
-        >
-          Crop icon
-        </h2>
-        <p
-          style={{
-            fontSize: "var(--text-xs)",
-            color: "var(--text-muted)",
-            marginBottom: "var(--space-md)",
-          }}
-        >
-          Drag to reposition, and zoom to fill the square.
-        </p>
-
-        {failed ? (
-          <div
-            className="flex items-center justify-center rounded-2xl text-center"
+    // Opened from the add-service modal, so it sits a layer above it.
+    <Modal label="Crop icon" onClose={onCancel} width="auto" padding={28} zIndex={60}>
+      {(close) => (
+        <>
+          <h2
+            className="font-semibold"
             style={{
-              width: FRAME,
-              height: FRAME,
-              padding: "var(--space-md)",
-              fontSize: "var(--text-sm)",
-              color: "var(--danger)",
-              border: "1px solid var(--border)",
-            }}
-          >
-            That file could not be read as an image.
-          </div>
-        ) : (
-          <div
-            role="application"
-            aria-label="Crop area. Drag, or use the arrow keys, to reposition the image."
-            tabIndex={0}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={endDrag}
-            onPointerCancel={endDrag}
-            onKeyDown={handleKeyDown}
-            className="relative overflow-hidden rounded-2xl"
-            style={{
-              width: FRAME,
-              height: FRAME,
-              backgroundColor: "var(--surface)",
-              cursor: image ? "grab" : "default",
-              touchAction: "none",
-            }}
-          >
-            {image && (
-              <img
-                ref={imgRef}
-                src={source}
-                alt=""
-                draggable={false}
-                className="absolute select-none"
-                style={{
-                  left: offset.x,
-                  top: offset.y,
-                  width: image.width * scale,
-                  height: image.height * scale,
-                  maxWidth: "none",
-                }}
-              />
-            )}
-          </div>
-        )}
-
-        <div
-          className="flex items-center"
-          style={{ gap: "var(--space-sm)", marginTop: "var(--space-md)" }}
-        >
-          <label
-            htmlFor="crop-zoom"
-            className="text-xs font-medium"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Zoom
-          </label>
-          <input
-            id="crop-zoom"
-            type="range"
-            min={1}
-            max={MAX_ZOOM}
-            step={0.01}
-            value={zoom}
-            disabled={!image}
-            onChange={(e) => handleZoom(Number(e.target.value))}
-            className="min-w-0 flex-1 cursor-pointer"
-            style={{ accentColor: "var(--accent)" }}
-          />
-        </div>
-
-        <div
-          className="flex justify-end"
-          style={{ gap: "var(--space-xs)", marginTop: "var(--space-md)" }}
-        >
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-lg text-sm font-medium cursor-pointer hover:brightness-110"
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "var(--sidebar-hover)",
+              fontSize: "var(--text-lg)",
               color: "var(--text-primary)",
+              marginBottom: "var(--space-2xs)",
             }}
           >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleApply}
-            disabled={!image}
-            className={`rounded-lg text-sm font-semibold ${
-              image ? "cursor-pointer hover:brightness-110 active:translate-y-px" : ""
-            }`}
+            Crop icon
+          </h2>
+          <p
             style={{
-              padding: "8px 16px",
-              backgroundColor: "var(--accent)",
-              color: "var(--surface)",
-              opacity: image ? 1 : 0.5,
+              fontSize: "var(--text-xs)",
+              color: "var(--text-muted)",
+              marginBottom: "var(--space-md)",
             }}
           >
-            Use image
-          </button>
-        </div>
-      </div>
-    </div>
+            Drag to reposition, and zoom to fill the square.
+          </p>
+
+          {failed ? (
+            <div
+              className="flex items-center justify-center rounded-2xl text-center"
+              style={{
+                width: FRAME,
+                height: FRAME,
+                padding: "var(--space-md)",
+                fontSize: "var(--text-sm)",
+                color: "var(--danger)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              That file could not be read as an image.
+            </div>
+          ) : (
+            <div
+              role="application"
+              aria-label="Crop area. Drag, or use the arrow keys, to reposition the image."
+              tabIndex={0}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+              onKeyDown={handleKeyDown}
+              className="relative overflow-hidden rounded-2xl"
+              style={{
+                width: FRAME,
+                height: FRAME,
+                backgroundColor: "var(--surface)",
+                cursor: image ? "grab" : "default",
+                touchAction: "none",
+              }}
+            >
+              {image && (
+                <img
+                  ref={imgRef}
+                  src={source}
+                  alt=""
+                  draggable={false}
+                  className="absolute select-none"
+                  style={{
+                    left: offset.x,
+                    top: offset.y,
+                    width: image.width * scale,
+                    height: image.height * scale,
+                    maxWidth: "none",
+                  }}
+                />
+              )}
+            </div>
+          )}
+
+          <div
+            className="flex items-center"
+            style={{ gap: "var(--space-sm)", marginTop: "var(--space-md)" }}
+          >
+            <label
+              htmlFor="crop-zoom"
+              className="text-xs font-medium"
+              style={{ color: "var(--text-muted)" }}
+            >
+              Zoom
+            </label>
+            <input
+              id="crop-zoom"
+              type="range"
+              min={1}
+              max={MAX_ZOOM}
+              step={0.01}
+              value={zoom}
+              disabled={!image}
+              onChange={(e) => handleZoom(Number(e.target.value))}
+              className="min-w-0 flex-1 cursor-pointer"
+              style={{ accentColor: "var(--accent)" }}
+            />
+          </div>
+
+          <div
+            className="flex justify-end"
+            style={{ gap: "var(--space-xs)", marginTop: "var(--space-md)" }}
+          >
+            <button
+              type="button"
+              onClick={close}
+              className="rounded-lg text-sm font-medium cursor-pointer hover:brightness-110"
+              style={{
+                padding: "8px 16px",
+                backgroundColor: "var(--sidebar-hover)",
+                color: "var(--text-primary)",
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleApply}
+              disabled={!image}
+              className={`rounded-lg text-sm font-semibold ${
+                image ? "cursor-pointer hover:brightness-110 active:translate-y-px" : ""
+              }`}
+              style={{
+                padding: "8px 16px",
+                backgroundColor: "var(--accent)",
+                color: "var(--surface)",
+                opacity: image ? 1 : 0.5,
+              }}
+            >
+              Use image
+            </button>
+          </div>
+        </>
+      )}
+    </Modal>
   );
 }

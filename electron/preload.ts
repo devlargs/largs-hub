@@ -32,6 +32,8 @@ const api = {
   addService: (service: Service): Promise<Service[]> => ipcRenderer.invoke("add-service", service),
   removeService: (serviceId: string): Promise<Service[]> =>
     ipcRenderer.invoke("remove-service", serviceId),
+  clearServiceData: (serviceId: string): Promise<void> =>
+    ipcRenderer.invoke("clear-service-data", serviceId),
   updateService: (service: Service): Promise<Service[]> =>
     ipcRenderer.invoke("update-service", service),
   reorderServices: (serviceIds: string[]): Promise<Service[]> =>

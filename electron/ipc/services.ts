@@ -1,4 +1,4 @@
-import { ipcMain, dialog, Menu, BrowserWindow, WebContentsView } from "electron";
+import { ipcMain, Menu, BrowserWindow, WebContentsView } from "electron";
 import { store, Service, sanitizeService } from "../store";
 import {
   getServiceView,
@@ -150,6 +150,24 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     forgetTodoService(store, serviceId);
 
     return services;
+  });
+
+  // Signs the account out and drops its cached data, keeping the service. Split
+  // out of the context menu when the confirmation moved into the app (issue
+  // #104): the prompt is the renderer's, the work stays here.
+  ipcMain.handle("clear-service-data", async (_event, serviceId: unknown) => {
+    if (typeof serviceId !== "string" || !serviceId) return;
+    if (!store.get("services").some((s) => s.id === serviceId)) return;
+    const wasActive = getActiveServiceId() === serviceId;
+    // Tear the view down first so nothing is holding the partition open,
+    // then reopen it (blank) if it was the one on screen.
+    destroyServiceView(serviceId, { clearCounts: true });
+    await clearServiceSessionData(serviceId);
+    if (wasActive) {
+      deps
+        .getUiView()
+        ?.webContents.send("context-menu-action", { action: "show-service", serviceId });
+    }
   });
 
   ipcMain.handle("update-service", (_event, rawUpdated: unknown) => {
@@ -379,53 +397,24 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
         },
       },
       {
+        // Both destructive items ask the renderer to confirm rather than
+        // opening a native message box, so the prompt looks like the rest of
+        // the app (issue #104). The work itself still happens in main.
         label: "Clear data and sign out",
-        click: async () => {
-          const win = deps.getMainWindow();
-          if (!win) return;
-          const { response } = await dialog.showMessageBox(win, {
-            type: "warning",
-            buttons: ["Clear data", "Cancel"],
-            defaultId: 1,
-            cancelId: 1,
-            title: "Clear data",
-            message: `Clear ${service.name}'s data?`,
-            detail:
-              "This signs the account out and deletes the service's cookies, site data and cache. The service itself is kept.",
-          });
-          if (response !== 0) return;
-          const wasActive = getActiveServiceId() === serviceId;
-          // Tear the view down first so nothing is holding the partition open,
-          // then reopen it (blank) if it was the one on screen.
-          destroyServiceView(serviceId, { clearCounts: true });
-          await clearServiceSessionData(serviceId);
-          if (wasActive) {
-            deps
-              .getUiView()
-              ?.webContents.send("context-menu-action", { action: "show-service", serviceId });
-          }
+        click: () => {
+          deps
+            .getUiView()
+            ?.webContents.send("context-menu-action", { action: "confirm-clear-data", serviceId });
         },
       },
       { type: "separator" },
       {
         label: "Remove service",
-        click: async () => {
-          const win = deps.getMainWindow();
-          if (!win) return;
-          const { response } = await dialog.showMessageBox(win, {
-            type: "warning",
-            buttons: ["Remove", "Cancel"],
-            defaultId: 1,
-            cancelId: 1,
-            title: "Remove service",
-            message: `Remove ${service.name}?`,
-            detail: "This will permanently remove the service from Largs Hub.",
+        click: () => {
+          deps.getUiView()?.webContents.send("context-menu-action", {
+            action: "confirm-remove-service",
+            serviceId,
           });
-          if (response === 0) {
-            deps
-              .getUiView()
-              ?.webContents.send("context-menu-action", { action: "remove-service", serviceId });
-          }
         },
       },
     ]);
