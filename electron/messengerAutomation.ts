@@ -1,5 +1,6 @@
 import { ipcMain, powerMonitor, WebContentsView } from "electron";
 import { randomUUID } from "crypto";
+import { LivenessAction, livenessFor } from "./automationLiveness";
 import { MAX_MESSAGE_LENGTH, MAX_GROUP_MESSAGES, pickNextIndex } from "./messageLists";
 import { isAutoStopStillArmed, planTaskRestore, restorableTasks } from "./automationRestore";
 
@@ -60,7 +61,8 @@ interface InternalTask extends AutomationTask {
 
 interface AutomationDeps {
   getServiceView: (serviceId: string) => WebContentsView | undefined;
-  getServices: () => Array<{ id: string; url: string }>;
+  // `enabled` is read by the liveness check: a disabled service ends its tasks.
+  getServices: () => Array<{ id: string; url: string; enabled?: boolean }>;
   getUiView: () => WebContentsView | null;
   // Ring an in-app call for up to timeoutMs; resolves true if answered, false
   // on timeout (popup is closed by the callee). Owned by serviceViews.
@@ -89,7 +91,6 @@ const tasks = new Map<string, InternalTask>();
 // service views it needs to inject into actually exist.
 let restoreAll: () => void = () => {};
 // Services that already have a webContents "destroyed" cleanup hook attached
-const hookedServices = new Set<string>();
 // serviceId -> armed auto-stop (state + its timer). At most one per service.
 const autoStops = new Map<string, AutoStopState & { timer: NodeJS.Timeout }>();
 
@@ -400,6 +401,41 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
     }
   }
 
+  // What to do when an injection found no view. Only the service itself going
+  // away ends a task now; a view that is merely absent (hibernated, rebuilt,
+  // dropped when the window closed) means wait for it to come back.
+  function liveness(serviceId: string): LivenessAction {
+    const view = deps.getServiceView(serviceId);
+    return livenessFor({
+      service: deps.getServices().find((s) => s.id === serviceId),
+      viewPresent: !!view && !view.webContents.isDestroyed(),
+    });
+  }
+
+  /**
+   * Handle an injection that couldn't run. Returns true when the task is over
+   * and the caller should give up, false when it should reschedule as normal.
+   *
+   * The status line is only pushed when it actually changes — the call cycle
+   * polls every two seconds, and a push writes the task list to disk.
+   */
+  function handleMissingView(taskId: string, serviceId: string): boolean {
+    const task = tasks.get(taskId);
+    if (!task) return true;
+    const state = liveness(serviceId);
+    // The service is gone or switched off; the panel goes with it, so there is
+    // nothing left to report the reason to.
+    if (state.action === "stop") {
+      stopTask(taskId);
+      return true;
+    }
+    if (state.action === "wait" && task.lastResult !== state.reason) {
+      task.lastResult = state.reason;
+      pushUpdate();
+    }
+    return false;
+  }
+
   // hangUp defaults true so user-initiated stops also close a ringing call
   // popup. The answered path passes false — the call connected and must stay.
   function stopTask(taskId: string, hangUp = true): boolean {
@@ -433,17 +469,6 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
 
   // Stop a service's tasks when its view is closed (service removed, disabled,
   // or URL changed) — covers every view-close site without touching them.
-  function ensureCleanupHook(serviceId: string) {
-    if (hookedServices.has(serviceId)) return;
-    const view = deps.getServiceView(serviceId);
-    if (!view || view.webContents.isDestroyed()) return;
-    hookedServices.add(serviceId);
-    view.webContents.once("destroyed", () => {
-      hookedServices.delete(serviceId);
-      stopAllForService(serviceId);
-    });
-  }
-
   function createTask(serviceId: string, spec: TaskSpec): InternalTask {
     const task: InternalTask = {
       id: randomUUID(),
@@ -510,7 +535,9 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
       task.timer = setTimeout(async () => {
         const result = await inject(serviceId, getScript());
         if (result === null) {
-          stopTask(task.id);
+          // No view to inject into — park the task rather than losing it.
+          if (handleMissingView(task.id, serviceId)) return;
+          scheduleNext();
           return;
         }
         if (!tasks.has(task.id)) return; // stopped while firing
@@ -543,7 +570,10 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
       const signals = await inject<NoticeSignals>(serviceId, NOTICE_SCRIPT);
       if (!tasks.has(task.id)) return;
       if (signals === null) {
-        stopTask(task.id); // view gone
+        // The watcher must not be what ends the cycle: the view can be absent
+        // for a moment while the task itself is still perfectly valid.
+        if (handleMissingView(task.id, serviceId)) return;
+        task.noticeTimer = setTimeout(pollNotice, NOTICE_POLL_MS);
         return;
       }
       if (isNoticeSignals(signals)) {
@@ -574,7 +604,8 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
         deps.armAutomationCall(serviceId);
         const result = await inject(serviceId, CLICK_CALL_SCRIPT);
         if (result === null) {
-          stopTask(task.id);
+          if (handleMissingView(task.id, serviceId)) return;
+          scheduleNext();
           return;
         }
         if (!tasks.has(task.id)) return;
@@ -626,7 +657,6 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
         missed.push({ ...task, lastResult: plan.reason });
         continue;
       }
-      ensureCleanupHook(task.serviceId);
       if (plan.action === "fire-now") {
         // Late is better than never for a one-shot send, but only just — fire
         // it right away rather than re-arming for tomorrow.
@@ -758,8 +788,6 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
       const taskSpec = spec as TaskSpec;
       const validationError = validateSpec(taskSpec);
       if (validationError) return fail(validationError);
-
-      ensureCleanupHook(serviceId);
 
       if (taskSpec.type === "sendChatMessage") {
         // Immediate one-off — never enters the task list
