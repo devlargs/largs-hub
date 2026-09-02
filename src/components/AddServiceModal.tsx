@@ -1,17 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { InternalServiceType, Service } from "../types";
 import { normalizeServiceUrl, serviceNameFromUrl } from "../lib/serviceUrl";
+import { sortByName } from "../lib/serviceOrder";
 import { useModalDismiss } from "../hooks/useModalDismiss";
 import { v4 as uuidv4 } from "uuid";
 import serviceIcons, { resolveIcon } from "../assets/serviceIcons";
 import { IoAdd, IoCloudUploadOutline, IoTrashOutline } from "react-icons/io5";
 
+// Sorted by name below, so the grid reads alphabetically however this literal
+// happens to be ordered (issue #100). The Custom tile isn't in here — it is
+// appended after the presets in the grid itself.
 const POPULAR_SERVICES: {
   name: string;
   url: string;
   icon: string;
   type?: InternalServiceType;
-}[] = [
+}[] = sortByName([
   { name: "Gmail", url: "https://mail.google.com", icon: "gmail.png" },
   { name: "Slack", url: "https://app.slack.com", icon: "slack.png" },
   { name: "Discord", url: "https://discord.com/app", icon: "discord.png" },
@@ -32,7 +36,7 @@ const POPULAR_SERVICES: {
     url: "https://www.messenger.com",
     icon: "messenger.png",
   },
-];
+]);
 
 interface AddServiceModalProps {
   editingService: Service | null;
