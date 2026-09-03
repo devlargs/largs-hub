@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Locking your PC locks the workspace.** With security controls on, the app used to wait out the **Lock after** countdown even when you had locked Windows and walked away — anyone waking the machine into your session found the workspace open behind it. The app now locks the moment the machine's lock screen appears, so the master password screen is already waiting when you come back.
 
 ## [0.1.54] (2026-09-03)
 - **New tasks land at the top of the Todo list.** Typing a task used to drop it at the bottom of the day, under everything already there — on a long list the thing you just added was the one you couldn't see. It now appears directly under the composer, with the rest of the day sliding down to make room. Dragging still puts any task wherever you want it.

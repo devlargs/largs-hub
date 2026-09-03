@@ -27,7 +27,8 @@ export const INITIAL_LOCK_STATE: LockState = { armedAt: null, locked: false };
 // "away" covers minimize and hide-to-tray; "back" covers restore, show and
 // focus. "elapsed" is the timer firing. Checking the clock on "back" as well as
 // on "elapsed" is what keeps a slept machine honest — its timer may never fire.
-export type LockEvent = "away" | "back" | "elapsed";
+// "session-locked" is the OS lock screen coming up, which skips the countdown.
+export type LockEvent = "away" | "back" | "elapsed" | "session-locked";
 
 export interface LockOptions {
   enabled: boolean;
@@ -44,6 +45,10 @@ export function reduceLock(
   const delayMs = sanitizeLockDelayMinutes(options.delayMinutes) * 60_000;
 
   switch (event) {
+    case "session-locked":
+      // Locking the machine is the user saying they have walked away, so there
+      // is nothing left to wait for: lock now, whatever the countdown was doing.
+      return { armedAt: null, locked: true };
     case "away":
       // Already locked, or already counting down — leave the original arm time
       // alone so a second minimize doesn't restart the clock.

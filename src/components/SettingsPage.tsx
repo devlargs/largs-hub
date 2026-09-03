@@ -225,7 +225,7 @@ export default function SettingsPage() {
         <Section title="Security">
           <SettingRow
             label="Add Security Controls"
-            description="Ask for a master password on launch, and after the window has been left minimized"
+            description="Ask for a master password on launch, when you lock your PC, and after the window has been left minimized"
           >
             <Toggle checked={security.enabled} onChange={handleSecurityToggle} />
           </SettingRow>

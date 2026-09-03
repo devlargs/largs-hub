@@ -80,6 +80,27 @@ describe("reduceLock", () => {
     expect(reduceLock(locked, "back", NOW + MINUTE, OPTIONS)).toEqual(locked);
   });
 
+  it("locks straight away when the machine's own lock screen comes up", () => {
+    expect(reduceLock(INITIAL_LOCK_STATE, "session-locked", NOW, OPTIONS)).toEqual({
+      armedAt: null,
+      locked: true,
+    });
+  });
+
+  it("drops a pending countdown when the machine locks", () => {
+    const armed = reduceLock(INITIAL_LOCK_STATE, "away", NOW, OPTIONS);
+    expect(reduceLock(armed, "session-locked", NOW + MINUTE, OPTIONS)).toEqual({
+      armedAt: null,
+      locked: true,
+    });
+  });
+
+  it("ignores the machine locking while the toggle is off", () => {
+    expect(
+      reduceLock(INITIAL_LOCK_STATE, "session-locked", NOW, { ...OPTIONS, enabled: false }),
+    ).toEqual(INITIAL_LOCK_STATE);
+  });
+
   it("honours the delay it is given", () => {
     const armed = reduceLock(INITIAL_LOCK_STATE, "away", NOW, { ...OPTIONS, delayMinutes: 5 });
     expect(

@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, WebContentsView } from "electron";
+import { BrowserWindow, ipcMain, powerMonitor, WebContentsView } from "electron";
 import { store } from "../store";
 import {
   hashMasterPassword,
@@ -99,6 +99,16 @@ export function attachSecurityWindowEvents(window: BrowserWindow) {
   window.on("restore", () => handleLockEvent("back"));
   window.on("show", () => handleLockEvent("back"));
   window.on("focus", () => handleLockEvent("back"));
+
+  // Locking the PC locks the workspace with it — no countdown, so whatever is
+  // on screen is already behind the password by the time the machine unlocks.
+  // powerMonitor is unavailable before app-ready on some platforms, and the
+  // lock is a nicety rather than something worth failing startup over.
+  try {
+    powerMonitor.on("lock-screen", () => handleLockEvent("session-locked"));
+  } catch (error) {
+    console.error("Failed to watch the OS lock screen:", error);
+  }
 }
 
 export function registerSecurityIpc(d: SecurityIpcDeps) {
