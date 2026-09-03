@@ -267,6 +267,18 @@ export default function TodoPage({ service }: TodoPageProps) {
     [serviceId, applyResult],
   );
 
+  // Not for today after all: the row collapses out of this day and reappears on
+  // the next one, exactly where the overnight carry-over would have put it.
+  const handleDefer = useCallback(
+    async (task: TodoTask) => {
+      const request = window.electronAPI.todo.defer(serviceId, task.id);
+      await collapseRow(task.id);
+      setTasks((current) => current.filter((t) => t.id !== task.id));
+      applyResult(await request);
+    },
+    [serviceId, applyResult, collapseRow],
+  );
+
   const handleDelete = useCallback(
     async (task: TodoTask) => {
       const request = window.electronAPI.todo.remove(serviceId, task.id);
@@ -413,6 +425,7 @@ export default function TodoPage({ service }: TodoPageProps) {
         reorderable={reorderable}
         onToggle={() => void handleToggle(task)}
         onRename={(text) => void handleRename(task, text)}
+        onDefer={task.done ? undefined : () => void handleDefer(task)}
         onDelete={() => void handleDelete(task)}
         onDragStart={() => setDraggingId(task.id)}
         onDragOver={() => setDropTargetId(task.id)}

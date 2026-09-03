@@ -78,6 +78,16 @@ export function nextOrder(tasks: Task[], date: string): number {
   return existing.length === 0 ? 0 : Math.max(...existing.map((t) => t.order)) + 1;
 }
 
+// The order that puts a task above everything else in its day. One below the
+// current minimum rather than 0-with-a-shift: renumbering the whole day would
+// mark every task dirty and push a Notion update per row for a single add.
+// Negative orders are fine — the list only ever sorts on them, and a drag
+// normalises the day back to 0..n-1.
+export function topOrder(tasks: Task[], date: string): number {
+  const existing = tasks.filter((t) => t.date === date);
+  return existing.length === 0 ? 0 : Math.min(...existing.map((t) => t.order)) - 1;
+}
+
 // Applies a drag-reorder: ids not in `orderedIds` keep their relative position
 // after the ones that are, so a stale list from the renderer can't drop tasks.
 export function reorderTasks(
@@ -143,6 +153,26 @@ export function carryOverPending(
     tasks: tasks.map((t) => moves.get(t.id) ?? t),
     moved: [...moves.keys()],
   };
+}
+
+// Moves one task onto another day, appended after whatever is already there —
+// the same landing spot the carry-over uses, so a task you push to tomorrow by
+// hand and one that rolls over on its own end up in the same place.
+export function moveTaskToDate(
+  tasks: Task[],
+  taskId: string,
+  toDate: string,
+  now: string,
+): { tasks: Task[]; task: Task } | null {
+  const existing = tasks.find((t) => t.id === taskId);
+  if (!existing || existing.date === toDate) return null;
+  const moved: Task = {
+    ...existing,
+    date: toDate,
+    order: nextOrder(tasks, toDate),
+    editedAt: now,
+  };
+  return { tasks: tasks.map((t) => (t.id === taskId ? moved : t)), task: moved };
 }
 
 // --- Sync queue --------------------------------------------------------------

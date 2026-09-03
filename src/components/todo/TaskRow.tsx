@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MdDragIndicator, MdOutlineDeleteOutline } from "react-icons/md";
+import { MdDragIndicator, MdOutlineArrowForward, MdOutlineDeleteOutline } from "react-icons/md";
 import { TodoTask } from "../../types";
 import { buildDissolveWords } from "./dissolve";
 import { parseTaskSegments } from "./links";
@@ -13,6 +13,9 @@ interface TaskRowProps {
   reorderable: boolean;
   onToggle: () => void;
   onRename: (text: string) => void;
+  // Push the task onto the next day. Absent for done rows — finished work has
+  // no tomorrow.
+  onDefer?: () => void;
   onDelete: () => void;
   onDragStart: () => void;
   onDragOver: () => void;
@@ -28,6 +31,7 @@ export default function TaskRow({
   reorderable,
   onToggle,
   onRename,
+  onDefer,
   onDelete,
   onDragStart,
   onDragOver,
@@ -259,6 +263,19 @@ export default function TaskRow({
           </span>
         )}
       </div>
+
+      {onDefer && (
+        <button
+          onClick={onDefer}
+          disabled={dissolving}
+          className="todo-row-action shrink-0 flex items-center justify-center rounded-md cursor-pointer hover:bg-sidebar-hover"
+          style={{ ...actionStyle, color: "var(--text-muted)" }}
+          aria-label="Move to tomorrow"
+          title="Move to tomorrow"
+        >
+          <MdOutlineArrowForward size={16} />
+        </button>
+      )}
 
       <button
         onClick={onDelete}

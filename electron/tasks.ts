@@ -13,13 +13,15 @@ import {
   markDeleted,
   markDirty,
   mergeRemoteTasks,
-  nextOrder,
+  moveTaskToDate,
   normalizeDatabaseId,
   notionDatabaseUrl,
   pendingCount,
   reorderTasks,
   sanitizeTaskText,
+  shiftDateKey,
   tasksForDate,
+  topOrder,
 } from "./tasksLogic";
 
 // Todo: a daily task list with an optional Notion database behind it.
@@ -527,7 +529,9 @@ export function registerTodo(deps: TodoDeps): void {
           text,
           done: false,
           date: dateRaw,
-          order: nextOrder(data.tasks, dateRaw),
+          // Newest first: a task you just typed is the one you're looking at,
+          // so it lands above the day's existing list rather than under it.
+          order: topOrder(data.tasks, dateRaw),
           editedAt: new Date().toISOString(),
         };
         commit(serviceId, [...data.tasks, task], [task.id]);
@@ -575,6 +579,34 @@ export function registerTodo(deps: TodoDeps): void {
       }
     },
   );
+
+  // Push a task onto the next day. The row leaves the day it was on and lands
+  // at the end of tomorrow's list, queued for Notion like any other edit.
+  ipcMain.handle("todo-defer", (_event, serviceIdRaw: unknown, taskIdRaw: unknown) => {
+    try {
+      const serviceId = requireServiceId(serviceIdRaw);
+      if (typeof taskIdRaw !== "string") return { ok: false, error: "Invalid task id." };
+      const data = getData(serviceId);
+      const existing = data.tasks.find((t) => t.id === taskIdRaw);
+      if (!existing) return { ok: false, error: "Task not found." };
+      const from = existing.date;
+      const result = moveTaskToDate(
+        data.tasks,
+        existing.id,
+        shiftDateKey(from, 1),
+        new Date().toISOString(),
+      );
+      if (!result) return { ok: false, error: "Task not found." };
+      commit(serviceId, result.tasks, [result.task.id]);
+      return {
+        ok: true,
+        task: result.task,
+        tasks: tasksForDate(getData(serviceId).tasks, from),
+      };
+    } catch (err) {
+      return { ok: false, error: errorMessage(err) };
+    }
+  });
 
   ipcMain.handle("todo-remove", (_event, serviceIdRaw: unknown, taskIdRaw: unknown) => {
     try {

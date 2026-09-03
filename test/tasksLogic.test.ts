@@ -10,6 +10,7 @@ import {
   markDeleted,
   markDirty,
   mergeRemoteTasks,
+  moveTaskToDate,
   nextOrder,
   normalizeDatabaseId,
   notionDatabaseUrl,
@@ -18,6 +19,7 @@ import {
   shiftDateKey,
   sortTasks,
   tasksForDate,
+  topOrder,
 } from "../electron/tasksLogic";
 
 const NOW = "2026-08-24T10:00:00.000Z";
@@ -76,6 +78,47 @@ describe("ordering and bucketing", () => {
   it("puts a new task after the day's last one", () => {
     expect(nextOrder(tasks, "2026-08-24")).toBe(3);
     expect(nextOrder(tasks, "2026-09-01")).toBe(0);
+  });
+
+  it("puts a topmost task before the day's first one", () => {
+    expect(topOrder(tasks, "2026-08-24")).toBe(-1);
+    expect(topOrder(tasks, "2026-09-01")).toBe(0);
+  });
+
+  it("keeps stacking topmost tasks above the previous one", () => {
+    const first = task({ id: "first", order: topOrder(tasks, "2026-08-24") });
+    const withFirst = [...tasks, first];
+    const second = task({ id: "second", order: topOrder(withFirst, "2026-08-24") });
+    expect(tasksForDate([...withFirst, second], "2026-08-24").map((t) => t.id)).toEqual([
+      "second",
+      "first",
+      "a",
+      "c",
+    ]);
+  });
+});
+
+describe("moveTaskToDate", () => {
+  const tasks = [
+    task({ id: "a", order: 0 }),
+    task({ id: "b", order: 1 }),
+    task({ id: "tomorrow", date: "2026-08-25", order: 0 }),
+  ];
+
+  it("moves the task to the end of the target day", () => {
+    const result = moveTaskToDate(tasks, "a", "2026-08-25", NOW);
+    expect(result?.task).toMatchObject({ date: "2026-08-25", order: 1, editedAt: NOW });
+    expect(tasksForDate(result!.tasks, "2026-08-25").map((t) => t.id)).toEqual(["tomorrow", "a"]);
+    expect(tasksForDate(result!.tasks, "2026-08-24").map((t) => t.id)).toEqual(["b"]);
+  });
+
+  it("lands at the front of an empty day", () => {
+    expect(moveTaskToDate(tasks, "a", "2026-09-01", NOW)?.task.order).toBe(0);
+  });
+
+  it("is a no-op for an unknown task or a move to the same day", () => {
+    expect(moveTaskToDate(tasks, "missing", "2026-08-25", NOW)).toBeNull();
+    expect(moveTaskToDate(tasks, "a", "2026-08-24", NOW)).toBeNull();
   });
 });
 
