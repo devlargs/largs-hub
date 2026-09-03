@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.54] (2026-09-03)
 - **New tasks land at the top of the Todo list.** Typing a task used to drop it at the bottom of the day, under everything already there — on a long list the thing you just added was the one you couldn't see. It now appears directly under the composer, with the rest of the day sliding down to make room. Dragging still puts any task wherever you want it.
 - **Push a task to tomorrow without retyping it.** Every unfinished task has an arrow beside the delete button; clicking it moves the task off today and onto the next day, where it sits at the end of that day's list — the same place the overnight carry-over would have put it. The row collapses out of today as it goes, and the move syncs to Notion like any other edit.
 
