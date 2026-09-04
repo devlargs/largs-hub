@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.55] (2026-09-04)
 - **Locking your PC locks the workspace.** With security controls on, the app used to wait out the **Lock after** countdown even when you had locked Windows and walked away — anyone waking the machine into your session found the workspace open behind it. The app now locks the moment the machine's lock screen appears, so the master password screen is already waiting when you come back.
 
 ## [0.1.54] (2026-09-03)
