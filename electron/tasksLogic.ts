@@ -52,6 +52,14 @@ export function shiftDateKey(key: string, days: number): string {
   return dateKey(new Date(y, m - 1, d + days));
 }
 
+// A day a task can be scheduled onto: a real calendar date, today or later.
+// An earlier day would be pointless — carry-over moves open tasks straight
+// back onto today. The round trip through shiftDateKey rejects "2026-02-30",
+// which the shape check alone lets through.
+export function isSchedulableDate(value: unknown, today: string): value is string {
+  return isDateKey(value) && shiftDateKey(value, 0) === value && value >= today;
+}
+
 // --- Ordering / bucketing ----------------------------------------------------
 
 // Within a day: manual order first, then oldest-first for ties (two tasks can

@@ -7,6 +7,7 @@ import {
   dateKey,
   emptyPending,
   isDateKey,
+  isSchedulableDate,
   markDeleted,
   markDirty,
   mergeRemoteTasks,
@@ -348,6 +349,24 @@ describe("notionDatabaseUrl", () => {
     expect(notionDatabaseUrl("not a database")).toBeNull();
     expect(notionDatabaseUrl(null)).toBeNull();
     expect(notionDatabaseUrl(undefined)).toBeNull();
+  });
+});
+
+describe("isSchedulableDate", () => {
+  it("accepts today and any later day", () => {
+    expect(isSchedulableDate("2026-08-24", "2026-08-24")).toBe(true);
+    expect(isSchedulableDate("2027-01-03", "2026-08-24")).toBe(true);
+  });
+
+  it("rejects earlier days", () => {
+    expect(isSchedulableDate("2026-08-23", "2026-08-24")).toBe(false);
+  });
+
+  it("rejects malformed keys and dates that don't exist", () => {
+    expect(isSchedulableDate("2026-8-30", "2026-08-24")).toBe(false);
+    expect(isSchedulableDate("2027-02-30", "2026-08-24")).toBe(false);
+    expect(isSchedulableDate(20260830, "2026-08-24")).toBe(false);
+    expect(isSchedulableDate(undefined, "2026-08-24")).toBe(false);
   });
 });
 

@@ -11,6 +11,7 @@ import {
   dateKey,
   emptyPending,
   isDateKey,
+  isSchedulableDate,
   markDeleted,
   markDirty,
   mergeRemoteTasks,
@@ -608,7 +609,9 @@ export function registerTodo(deps: TodoDeps): void {
 
   // Push a task onto the next day. The row leaves the day it was on and lands
   // at the end of tomorrow's list, queued for Notion like any other edit.
-  ipcMain.handle("todo-defer", (_event, serviceIdRaw: unknown, taskIdRaw: unknown) => {
+  // Shared by defer (the next day) and schedule (a picked day). The task leaves
+  // the day it was on, so the reply carries that day's remaining list.
+  function moveTask(serviceIdRaw: unknown, taskIdRaw: unknown, toDate: (from: string) => string) {
     try {
       const serviceId = requireServiceId(serviceIdRaw);
       if (typeof taskIdRaw !== "string") return { ok: false, error: "Invalid task id." };
@@ -619,10 +622,11 @@ export function registerTodo(deps: TodoDeps): void {
       const result = moveTaskToDate(
         data.tasks,
         existing.id,
-        shiftDateKey(from, 1),
+        toDate(from),
         new Date().toISOString(),
       );
-      if (!result) return { ok: false, error: "Task not found." };
+      // Already on that day: nothing to move, nothing to sync
+      if (!result) return { ok: true, task: existing, tasks: tasksForDate(data.tasks, from) };
       commit(serviceId, result.tasks, [result.task.id]);
       return {
         ok: true,
@@ -632,7 +636,22 @@ export function registerTodo(deps: TodoDeps): void {
     } catch (err) {
       return { ok: false, error: errorMessage(err) };
     }
-  });
+  }
+
+  ipcMain.handle("todo-defer", (_event, serviceIdRaw: unknown, taskIdRaw: unknown) =>
+    moveTask(serviceIdRaw, taskIdRaw, (from) => shiftDateKey(from, 1)),
+  );
+
+  ipcMain.handle(
+    "todo-schedule",
+    (_event, serviceIdRaw: unknown, taskIdRaw: unknown, dateRaw: unknown) => {
+      if (!isSchedulableDate(dateRaw, dateKey(new Date()))) {
+        return { ok: false, error: "Pick today or a later day." };
+      }
+      const date = dateRaw;
+      return moveTask(serviceIdRaw, taskIdRaw, () => date);
+    },
+  );
 
   ipcMain.handle("todo-remove", (_event, serviceIdRaw: unknown, taskIdRaw: unknown) => {
     try {

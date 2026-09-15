@@ -283,6 +283,22 @@ export default function TodoPage({ service }: TodoPageProps) {
     [serviceId, applyResult, collapseRow],
   );
 
+  // Scheduled for a picked day: the same exit as a defer, to wherever was
+  // chosen. If the move is refused (the day turned over while the picker was
+  // open, say) the row has already gone, so the day is re-read to bring it back.
+  const handleSchedule = useCallback(
+    async (task: TodoTask, toDate: string) => {
+      if (toDate === task.date) return;
+      const request = window.electronAPI.todo.schedule(serviceId, task.id, toDate);
+      await collapseRow(task.id);
+      setTasks((current) => current.filter((t) => t.id !== task.id));
+      const res = await request;
+      applyResult(res);
+      if (!res.ok) void loadDay(date);
+    },
+    [serviceId, date, applyResult, collapseRow, loadDay],
+  );
+
   const handleDelete = useCallback(
     async (task: TodoTask) => {
       const request = window.electronAPI.todo.remove(serviceId, task.id);
@@ -446,6 +462,7 @@ export default function TodoPage({ service }: TodoPageProps) {
         onToggle={() => void handleToggle(task)}
         onRename={(text) => void handleRename(task, text)}
         onDefer={task.done ? undefined : () => void handleDefer(task)}
+        onSchedule={task.done ? undefined : (toDate) => void handleSchedule(task, toDate)}
         onDelete={() => void handleDelete(task)}
         onDragStart={() => setDraggingId(task.id)}
         onDragOver={() => setDropTargetId(task.id)}

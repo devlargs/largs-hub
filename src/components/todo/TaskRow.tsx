@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MdDragIndicator, MdOutlineArrowForward, MdOutlineDeleteOutline } from "react-icons/md";
+import {
+  MdDragIndicator,
+  MdOutlineArrowForward,
+  MdOutlineDeleteOutline,
+  MdOutlineEditCalendar,
+} from "react-icons/md";
 import { TodoTask } from "../../types";
 import { buildDissolveWords } from "./dissolve";
 import { parseTaskSegments } from "./links";
+import SchedulePicker from "./SchedulePicker";
 
 interface TaskRowProps {
   task: TodoTask;
@@ -16,6 +22,8 @@ interface TaskRowProps {
   // Push the task onto the next day. Absent for done rows — finished work has
   // no tomorrow.
   onDefer?: () => void;
+  // Move the task onto a picked day. Absent for done rows, like onDefer.
+  onSchedule?: (date: string) => void;
   onDelete: () => void;
   onDragStart: () => void;
   onDragOver: () => void;
@@ -32,6 +40,7 @@ export default function TaskRow({
   onToggle,
   onRename,
   onDefer,
+  onSchedule,
   onDelete,
   onDragStart,
   onDragOver,
@@ -45,6 +54,8 @@ export default function TaskRow({
   // Runs the one-shot spring class; cleared on animation end so a later toggle
   // can retrigger it.
   const [springing, setSpringing] = useState(false);
+  // The schedule button while its date picker is open, null while closed
+  const [scheduleAnchor, setScheduleAnchor] = useState<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -263,6 +274,35 @@ export default function TaskRow({
           </span>
         )}
       </div>
+
+      {onSchedule && (
+        <button
+          onClick={(e) => {
+            const button = e.currentTarget;
+            setScheduleAnchor((open) => (open ? null : button));
+          }}
+          disabled={dissolving}
+          className="todo-row-action shrink-0 flex items-center justify-center rounded-md cursor-pointer hover:bg-sidebar-hover"
+          style={{ ...actionStyle, color: "var(--text-muted)" }}
+          aria-label="Schedule task"
+          title="Schedule task"
+          aria-haspopup="dialog"
+          aria-expanded={scheduleAnchor !== null}
+        >
+          <MdOutlineEditCalendar size={16} />
+        </button>
+      )}
+      {onSchedule && scheduleAnchor && (
+        <SchedulePicker
+          anchor={scheduleAnchor}
+          currentDate={task.date}
+          onPick={(date) => {
+            setScheduleAnchor(null);
+            onSchedule(date);
+          }}
+          onClose={() => setScheduleAnchor(null)}
+        />
+      )}
 
       {onDefer && (
         <button

@@ -44,6 +44,14 @@ export function monthTotals(days: Record<string, TodoDaySummary>, month: string)
   return totals;
 }
 
+// Weekday names in grid order, Sunday first, in the user's locale.
+// 4 January 2026 is a Sunday.
+export function weekdayLabels(style: "short" | "narrow"): string[] {
+  return Array.from({ length: 7 }, (_, i) =>
+    new Date(2026, 0, 4 + i).toLocaleDateString(undefined, { weekday: style }),
+  );
+}
+
 // The counts half of a day cell's accessible name.
 export function summaryPhrase(day: TodoDaySummary | undefined): string {
   if (!day || (day.done === 0 && day.pending === 0)) return "no tasks";

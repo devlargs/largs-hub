@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+- **Read what's new without leaving the app.** A new icon beside the settings gear in the title bar opens a **Changelog** page with every release's notes, newest first. The version you have installed is marked, and links open in your browser.
+- **Schedule a task for any day.** Every unfinished task has a calendar button beside the move-to-tomorrow arrow. It opens a small date picker; pick a day and the task leaves the list and lands at the end of that day's list, syncing to Notion like any other edit. The day the task is on now is highlighted and earlier days are greyed out, since an unfinished task on a past day would just roll straight back onto today. The arrow keys move around the picker, Page Up and Page Down change month, and Escape closes it.
 
 ## [0.1.56] (2026-09-15)
 - **See your Todo list by the month.** A calendar button beside the day's controls swaps the list for a month grid. Every day shows how many tasks were done on it and how many are still pending, with the month's totals above the grid. Step between months, jump back to this one with **Today**, or click any day to open its list. Unfinished work always moves onto today, so earlier days show what got done and today onwards shows what's still to do.

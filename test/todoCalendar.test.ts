@@ -7,6 +7,7 @@ import {
   monthTotals,
   shiftMonth,
   summaryPhrase,
+  weekdayLabels,
 } from "../src/components/todo/calendar";
 
 describe("months", () => {
@@ -58,6 +59,18 @@ describe("monthTotals", () => {
       "2026-10-01": { done: 0, pending: 4 },
     };
     expect(monthTotals(days, "2026-09-01")).toEqual({ done: 3, pending: 4 });
+  });
+});
+
+describe("weekdayLabels", () => {
+  it("lists seven days starting on Sunday", () => {
+    const labels = weekdayLabels("short");
+    expect(labels).toHaveLength(7);
+    // 1 February 2026 is a Sunday, 7 February a Saturday
+    const name = (day: number) =>
+      new Date(2026, 1, day).toLocaleDateString(undefined, { weekday: "short" });
+    expect(labels[0]).toBe(name(1));
+    expect(labels[6]).toBe(name(7));
   });
 });
 

@@ -535,6 +535,120 @@
   color: var(--text-muted);
 }
 
+/* --- Schedule picker: a small month to move a task onto ------------------ */
+
+/* Portaled to <body> so the list's scroll box can't clip it, which also puts it
+   outside .todo-page — hence its own face and focus ring below. */
+.todo-picker {
+  position: fixed;
+  z-index: 50;
+  padding: var(--space-xs);
+  font-family: var(--font-ui);
+  background: var(--context-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  animation: todo-done-open var(--dur-short) var(--ease-out);
+}
+
+.todo-picker :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.todo-picker-head {
+  margin-bottom: var(--space-2xs);
+}
+
+.todo-picker-month {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.todo-picker-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    color var(--dur-micro) var(--ease-out),
+    background-color var(--dur-micro) var(--ease-out);
+}
+
+.todo-picker-nav:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--sidebar-hover) 60%, transparent);
+}
+
+.todo-picker-nav:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.todo-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.todo-picker-weekdays {
+  margin-bottom: 2px;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.todo-picker-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color var(--dur-micro) var(--ease-out);
+}
+
+.todo-picker-day:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--sidebar-hover) 60%, transparent);
+}
+
+.todo-picker-day:disabled {
+  color: var(--text-muted);
+  opacity: 0.35;
+  cursor: default;
+}
+
+.todo-picker-day-outside:not(:disabled) {
+  color: var(--text-muted);
+}
+
+.todo-picker-day-today {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.todo-picker-day-current,
+.todo-picker-day-current:hover:not(:disabled) {
+  color: var(--surface);
+  background: var(--accent);
+}
+
+/* The row's schedule button stays put while its picker is open, even though
+   the pointer has left the row for the panel. */
+.todo-row-action[aria-expanded="true"] {
+  opacity: 1;
+}
+
 /* --- Button states ------------------------------------------------------- */
 
 /* Eight-state discipline: default and hover are per-component, but press and
@@ -613,7 +727,10 @@
   .todo-row-action,
   .todo-composer,
   .todo-composer-hint,
-  .todo-progress-fill {
+  .todo-progress-fill,
+  .todo-cal-day,
+  .todo-picker-nav,
+  .todo-picker-day {
     transition: none !important;
   }
 
@@ -630,7 +747,8 @@
   .todo-day-next,
   .todo-day-prev,
   .todo-done-list,
-  .todo-pill-syncing {
+  .todo-pill-syncing,
+  .todo-picker {
     animation: none !important;
   }
 

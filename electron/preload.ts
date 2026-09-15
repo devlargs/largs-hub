@@ -251,6 +251,8 @@ const api = {
     ): Promise<TodoTaskResult> => ipcRenderer.invoke("todo-update", serviceId, taskId, patch),
     defer: (serviceId: string, taskId: string): Promise<TodoTaskResult> =>
       ipcRenderer.invoke("todo-defer", serviceId, taskId),
+    schedule: (serviceId: string, taskId: string, date: string): Promise<TodoTaskResult> =>
+      ipcRenderer.invoke("todo-schedule", serviceId, taskId, date),
     remove: (serviceId: string, taskId: string): Promise<TodoTaskResult> =>
       ipcRenderer.invoke("todo-remove", serviceId, taskId),
     reorder: (serviceId: string, date: string, taskIds: string[]): Promise<TodoTaskResult> =>

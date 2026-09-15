@@ -6,6 +6,7 @@ import {
   IoArrowBack,
   IoArrowForward,
   IoReload,
+  IoDocumentTextOutline,
   IoSettingsSharp,
   IoFlashOutline,
 } from "react-icons/io5";
@@ -19,6 +20,7 @@ interface TitlebarProps {
   onGoBack: () => void;
   onGoForward: () => void;
   onOpenSettings: () => void;
+  onOpenChangelog: () => void;
   showAutomation: boolean;
   automationActive: boolean;
   onOpenAutomation: () => void;
@@ -32,6 +34,7 @@ export default function Titlebar({
   onGoBack,
   onGoForward,
   onOpenSettings,
+  onOpenChangelog,
   showAutomation,
   automationActive,
   onOpenAutomation,
@@ -138,6 +141,15 @@ export default function Titlebar({
             )}
           </button>
         )}
+        <button
+          onClick={onOpenChangelog}
+          className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors"
+          style={{ height: TITLEBAR_HEIGHT, color: "var(--text-muted)" }}
+          aria-label="Changelog"
+          title="Changelog"
+        >
+          <IoDocumentTextOutline size={15} />
+        </button>
         <button
           onClick={onOpenSettings}
           className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors"

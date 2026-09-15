@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { MdChevronLeft, MdChevronRight, MdOutlineChecklist } from "react-icons/md";
 import { TodoDaySummary } from "../../types";
-import { inMonth, monthGrid, monthStart, monthTotals, shiftMonth, summaryPhrase } from "./calendar";
+import {
+  inMonth,
+  monthGrid,
+  monthStart,
+  monthTotals,
+  shiftMonth,
+  summaryPhrase,
+  weekdayLabels,
+} from "./calendar";
 import { parseDateKey, todayKey } from "./dates";
 
 interface TodoCalendarProps {
@@ -12,10 +20,7 @@ interface TodoCalendarProps {
   onClose: () => void;
 }
 
-// 4 January 2026 is a Sunday; the grid's weeks start on Sunday too.
-const WEEKDAYS = Array.from({ length: 7 }, (_, i) =>
-  new Date(2026, 0, 4 + i).toLocaleDateString(undefined, { weekday: "short" }),
-);
+const WEEKDAYS = weekdayLabels("short");
 
 const chromeButton = {
   width: 30,

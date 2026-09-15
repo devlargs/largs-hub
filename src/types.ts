@@ -132,6 +132,7 @@ export interface ElectronAPI {
       patch: { text?: string; done?: boolean },
     ) => Promise<TodoTaskResult>;
     defer: (serviceId: string, taskId: string) => Promise<TodoTaskResult>;
+    schedule: (serviceId: string, taskId: string, date: string) => Promise<TodoTaskResult>;
     remove: (serviceId: string, taskId: string) => Promise<TodoTaskResult>;
     reorder: (serviceId: string, date: string, taskIds: string[]) => Promise<TodoTaskResult>;
     syncState: (serviceId: string) => Promise<TodoSyncState | null>;
