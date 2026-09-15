@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { lazy, Suspense, useEffect, useState, useCallback, useRef } from "react";
 import { AutomationTask, isInternalService, Service } from "./types";
 import Sidebar from "./components/Sidebar";
 import Titlebar from "./components/Titlebar";
@@ -14,6 +14,10 @@ import RetiredNoteTakerScreen from "./components/RetiredNoteTakerScreen";
 import LockScreen from "./components/LockScreen";
 import ConfirmDialog, { ConfirmTone } from "./components/ui/ConfirmDialog";
 import { useNotificationStore } from "./store/notifications";
+
+// The whole CHANGELOG.md rides along with this page, so it loads on first open
+// rather than in the startup bundle.
+const ChangelogPage = lazy(() => import("./components/ChangelogPage"));
 
 // Mirrors the main process's hostname-based Messenger detection (main.ts)
 function isMessengerService(service: Service | null | undefined): boolean {
@@ -40,7 +44,8 @@ function App() {
   const [activeServiceId, setActiveServiceId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
-  const [showSettingsPage, setShowSettingsPage] = useState(false);
+  // Full-pane app pages, shown while no service is active
+  const [appPage, setAppPage] = useState<"settings" | "changelog" | null>(null);
   const [linkPreviewUrl, setLinkPreviewUrl] = useState<string | null>(null);
   const [showAutomationPanel, setShowAutomationPanel] = useState(false);
   // Find bar: the service it is searching, or null when closed.
@@ -124,7 +129,7 @@ function App() {
     // (fired when a service WebContentsView has focus)
     const unsubSwitched = window.electronAPI.onServiceSwitched((serviceId) => {
       setActiveServiceId(serviceId);
-      setShowSettingsPage(false);
+      setAppPage(null);
     });
 
     // Listen for context menu actions that need renderer handling
@@ -168,10 +173,10 @@ function App() {
         });
       } else if (action === "show-service") {
         setActiveServiceId(serviceId);
-        setShowSettingsPage(false);
+        setAppPage(null);
         window.electronAPI.showService(serviceId);
       } else if (action === "show-update-page") {
-        setShowSettingsPage(true);
+        setAppPage("settings");
         setActiveServiceId(null);
         window.electronAPI.hideService();
       }
@@ -224,7 +229,7 @@ function App() {
 
   const handleSelectService = useCallback((serviceId: string) => {
     setActiveServiceId(serviceId);
-    setShowSettingsPage(false);
+    setAppPage(null);
     setServices((current) => {
       const svc = current.find((s) => s.id === serviceId);
       if (isInternalService(svc) || svc?.enabled === false) {
@@ -386,7 +391,12 @@ function App() {
         onGoForward={handleGoForward}
         onOpenSettings={async () => {
           setActiveServiceId(null);
-          setShowSettingsPage(true);
+          setAppPage("settings");
+          await window.electronAPI?.hideService();
+        }}
+        onOpenChangelog={async () => {
+          setActiveServiceId(null);
+          setAppPage("changelog");
           await window.electronAPI?.hideService();
         }}
         zoomFactor={activeServiceId ? (zoomFactors[activeServiceId] ?? 1) : 1}
@@ -405,20 +415,25 @@ function App() {
           onAddService={async () => {
             setEditingService(null);
             setActiveServiceId(null);
-            setShowSettingsPage(false);
+            setAppPage(null);
             await window.electronAPI?.hideService();
           }}
           onReorderServices={handleReorderServices}
         />
         {/* BrowserView renders natively on top of this area */}
         <div className="flex-1 relative">
-          {!activeServiceId && !showSettingsPage && (
+          {!activeServiceId && !appPage && (
             <WelcomeScreen
               onAddService={() => setShowAddModal(true)}
               hasServices={services.length > 0}
             />
           )}
-          {showSettingsPage && !activeServiceId && <SettingsPage />}
+          {appPage === "settings" && !activeServiceId && <SettingsPage />}
+          {appPage === "changelog" && !activeServiceId && (
+            <Suspense fallback={null}>
+              <ChangelogPage />
+            </Suspense>
+          )}
           {activeService?.type === "todo" && activeService.enabled !== false && (
             <TodoPage key={activeService.id} service={activeService} />
           )}
