@@ -1,6 +1,7 @@
 import { ipcMain, safeStorage, WebContentsView } from "electron";
 import { randomUUID } from "crypto";
 import {
+  MAX_CALENDAR_DAYS,
   PendingSync,
   RemoteTask,
   Task,
@@ -20,6 +21,7 @@ import {
   reorderTasks,
   sanitizeTaskText,
   shiftDateKey,
+  summarizeDays,
   tasksForDate,
   topOrder,
 } from "./tasksLogic";
@@ -492,6 +494,30 @@ export function registerTodo(deps: TodoDeps): void {
       return { ok: false, error: errorMessage(err) };
     }
   });
+
+  // Per-day done/pending counts for the calendar view, from the local store.
+  // Today's backlog is swept first so an open task isn't counted as pending on
+  // a past day it is about to leave. Days never opened while connected to
+  // Notion only count what has been pulled so far.
+  ipcMain.handle(
+    "todo-calendar",
+    (_event, serviceIdRaw: unknown, fromRaw: unknown, toRaw: unknown) => {
+      try {
+        const serviceId = requireServiceId(serviceIdRaw);
+        if (!isDateKey(fromRaw) || !isDateKey(toRaw) || fromRaw > toRaw) {
+          return { ok: false, error: "Invalid date range." };
+        }
+        // A month grid is at most six weeks; anything wider is a bad caller
+        if (shiftDateKey(fromRaw, MAX_CALENDAR_DAYS) < toRaw) {
+          return { ok: false, error: "Date range too long." };
+        }
+        carryIntoToday(serviceId, dateKey(new Date()));
+        return { ok: true, days: summarizeDays(getData(serviceId).tasks, fromRaw, toRaw) };
+      } catch (err) {
+        return { ok: false, error: errorMessage(err) };
+      }
+    },
+  );
 
   // Force a pull for a day (mount refresh / the Refresh button).
   ipcMain.handle("todo-refresh", async (_event, serviceIdRaw: unknown, dateRaw: unknown) => {

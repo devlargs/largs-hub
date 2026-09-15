@@ -73,6 +73,28 @@ export function bucketByDate(tasks: Task[]): Record<string, Task[]> {
   return buckets;
 }
 
+// The widest range the calendar may ask counts for: a month grid is six weeks.
+export const MAX_CALENDAR_DAYS = 42;
+
+// Done / pending counts per day for the calendar view, limited to days from
+// `from` through `to` inclusive. Days with no tasks are left out. A done task
+// stays on the day it was finished and open tasks are carried onto today, so
+// past days read as "what got done" and today onwards as "what's still owed".
+export function summarizeDays(
+  tasks: Task[],
+  from: string,
+  to: string,
+): Record<string, { done: number; pending: number }> {
+  const days: Record<string, { done: number; pending: number }> = {};
+  for (const task of tasks) {
+    if (task.date < from || task.date > to) continue;
+    const day = (days[task.date] ||= { done: 0, pending: 0 });
+    if (task.done) day.done++;
+    else day.pending++;
+  }
+  return days;
+}
+
 export function nextOrder(tasks: Task[], date: string): number {
   const existing = tasks.filter((t) => t.date === date);
   return existing.length === 0 ? 0 : Math.max(...existing.map((t) => t.order)) + 1;

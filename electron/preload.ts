@@ -5,6 +5,7 @@ import type {
   AutoStopUpdate,
   AutomationTask,
   ListGroupsResult,
+  TodoCalendarResult,
   TodoConnectResult,
   MessageListGroup,
   NoticeReason,
@@ -237,6 +238,8 @@ const api = {
       ipcRenderer.invoke("todo-database-url", serviceId),
     list: (serviceId: string, date: string): Promise<TodoListResult> =>
       ipcRenderer.invoke("todo-list", serviceId, date),
+    calendar: (serviceId: string, from: string, to: string): Promise<TodoCalendarResult> =>
+      ipcRenderer.invoke("todo-calendar", serviceId, from, to),
     refresh: (serviceId: string, date: string): Promise<TodoListResult> =>
       ipcRenderer.invoke("todo-refresh", serviceId, date),
     create: (serviceId: string, date: string, text: string): Promise<TodoTaskResult> =>

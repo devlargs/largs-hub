@@ -431,6 +431,110 @@
   animation: todo-pulse 1.4s var(--ease-in-out) infinite;
 }
 
+/* --- Calendar: a month of days, each with its done / pending tally ------- */
+
+.todo-cal-weekdays,
+.todo-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-3xs);
+}
+
+.todo-cal-weekdays {
+  margin-bottom: var(--space-2xs);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Cells are tinted hairline boxes, not cards — the counts are the content. */
+.todo-cal-day {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3xs);
+  min-width: 0;
+  min-height: 64px;
+  padding: var(--space-2xs);
+  text-align: left;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border) 35%, transparent);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-micro) var(--ease-out),
+    border-color var(--dur-micro) var(--ease-out);
+}
+
+.todo-cal-day:hover {
+  background: color-mix(in srgb, var(--sidebar-hover) 45%, transparent);
+}
+
+/* The neighbouring months' days pad the grid; they recede but stay clickable */
+.todo-cal-day-outside {
+  opacity: 0.4;
+}
+
+.todo-cal-day-selected {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.todo-cal-date {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.7em;
+  height: 1.7em;
+  font-size: var(--text-xs);
+  border-radius: 999px;
+}
+
+.todo-cal-day-today .todo-cal-date {
+  color: var(--surface);
+  background: var(--accent);
+}
+
+.todo-cal-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--space-2xs);
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+}
+
+.todo-cal-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.todo-cal-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 999px;
+}
+
+.todo-cal-dot-done {
+  background: var(--success);
+}
+
+/* Hollow: pending is work not yet filled in */
+.todo-cal-dot-pending {
+  border: 1.5px solid var(--warning);
+}
+
+.todo-cal-legend {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
 /* --- Button states ------------------------------------------------------- */
 
 /* Eight-state discipline: default and hover are per-component, but press and

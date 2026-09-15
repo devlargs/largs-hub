@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **See your Todo list by the month.** A calendar button beside the day's controls swaps the list for a month grid. Every day shows how many tasks were done on it and how many are still pending, with the month's totals above the grid. Step between months, jump back to this one with **Today**, or click any day to open its list. Unfinished work always moves onto today, so earlier days show what got done and today onwards shows what's still to do.
 
 ## [0.1.55] (2026-09-04)
 - **Locking your PC locks the workspace.** With security controls on, the app used to wait out the **Lock after** countdown even when you had locked Windows and walked away — anyone waking the machine into your session found the workspace open behind it. The app now locks the moment the machine's lock screen appears, so the master password screen is already waiting when you come back.

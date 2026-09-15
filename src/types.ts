@@ -16,6 +16,7 @@ import type {
   ListGroupsResult,
   MessageListGroup,
   NoticeReason,
+  TodoCalendarResult,
   TodoConnectResult,
   TodoConnectionState,
   TodoListResult,
@@ -122,6 +123,7 @@ export interface ElectronAPI {
     disconnect: (serviceId: string) => Promise<void>;
     databaseUrl: (serviceId: string) => Promise<string | null>;
     list: (serviceId: string, date: string) => Promise<TodoListResult>;
+    calendar: (serviceId: string, from: string, to: string) => Promise<TodoCalendarResult>;
     refresh: (serviceId: string, date: string) => Promise<TodoListResult>;
     create: (serviceId: string, date: string, text: string) => Promise<TodoTaskResult>;
     update: (

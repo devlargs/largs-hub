@@ -111,6 +111,19 @@ export interface TodoListResult {
   sync?: TodoSyncState;
 }
 
+// One day's tally for the Todo calendar view
+export interface TodoDaySummary {
+  done: number;
+  pending: number;
+}
+
+export interface TodoCalendarResult {
+  ok: boolean;
+  error?: string;
+  // Keyed YYYY-MM-DD; days with no tasks are absent
+  days?: Record<string, TodoDaySummary>;
+}
+
 export interface TodoTaskResult {
   ok: boolean;
   error?: string;

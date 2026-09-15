@@ -4,6 +4,7 @@ import {
   MdChevronLeft,
   MdChevronRight,
   MdExpandMore,
+  MdOutlineCalendarMonth,
   MdOutlineSettings,
   MdRefresh,
 } from "react-icons/md";
@@ -11,6 +12,7 @@ import { Service, TodoConnectionState, TodoSyncState, TodoTask } from "../../typ
 import NotionTaskSetup from "./NotionTaskSetup";
 import { dissolveDurationMs } from "./dissolve";
 import TaskRow from "./TaskRow";
+import TodoCalendar from "./TodoCalendar";
 import { formatDayLabel, formatFullDate, shiftDateKey, todayKey } from "./dates";
 import "./todo.css";
 
@@ -37,6 +39,8 @@ export default function TodoPage({ service }: TodoPageProps) {
   const [slide, setSlide] = useState<"next" | "prev" | null>(null);
   const [connection, setConnection] = useState<"loading" | TodoConnectionState>("loading");
   const [showSetup, setShowSetup] = useState(false);
+  // The month grid replaces the whole list page while it's open
+  const [view, setView] = useState<"list" | "calendar">("list");
   const [tasks, setTasks] = useState<TodoTask[]>([]);
   const [sync, setSync] = useState<TodoSyncState | null>(null);
   const [draft, setDraft] = useState("");
@@ -362,6 +366,22 @@ export default function TodoPage({ service }: TodoPageProps) {
     );
   }
 
+  // --- calendar --------------------------------------------------------------
+
+  if (view === "calendar") {
+    return (
+      <TodoCalendar
+        serviceId={serviceId}
+        selectedDate={date}
+        onPickDay={(picked) => {
+          if (picked !== date) goToDay(picked, picked < date ? "prev" : "next");
+          setView("list");
+        }}
+        onClose={() => setView("list")}
+      />
+    );
+  }
+
   // --- list ------------------------------------------------------------------
 
   const chromeButton = {
@@ -510,6 +530,15 @@ export default function TodoPage({ service }: TodoPageProps) {
                 aria-label="Next day"
               >
                 <MdChevronRight size={18} />
+              </button>
+              <button
+                onClick={() => setView("calendar")}
+                className="todo-daynav flex items-center justify-center rounded-full cursor-pointer hover:bg-sidebar-hover"
+                style={chromeButton}
+                title="Calendar"
+                aria-label="Calendar"
+              >
+                <MdOutlineCalendarMonth size={15} />
               </button>
               <button
                 onClick={() => void pullDay(date)}

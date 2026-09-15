@@ -18,6 +18,7 @@ import {
   sanitizeTaskText,
   shiftDateKey,
   sortTasks,
+  summarizeDays,
   tasksForDate,
   topOrder,
 } from "../electron/tasksLogic";
@@ -347,5 +348,31 @@ describe("notionDatabaseUrl", () => {
     expect(notionDatabaseUrl("not a database")).toBeNull();
     expect(notionDatabaseUrl(null)).toBeNull();
     expect(notionDatabaseUrl(undefined)).toBeNull();
+  });
+});
+
+describe("summarizeDays", () => {
+  it("counts done and pending per day inside the range", () => {
+    const tasks = [
+      task({ id: "a", date: "2026-08-23", done: true }),
+      task({ id: "b", date: "2026-08-24", done: true }),
+      task({ id: "c", date: "2026-08-24", done: false }),
+      task({ id: "d", date: "2026-08-24", done: false }),
+      task({ id: "e", date: "2026-09-01", done: false }),
+    ];
+    expect(summarizeDays(tasks, "2026-08-24", "2026-08-31")).toEqual({
+      "2026-08-24": { done: 1, pending: 2 },
+    });
+  });
+
+  it("includes both ends of the range and leaves empty days out", () => {
+    const tasks = [
+      task({ id: "a", date: "2026-08-01", done: true }),
+      task({ id: "b", date: "2026-08-31", done: false }),
+    ];
+    expect(summarizeDays(tasks, "2026-08-01", "2026-08-31")).toEqual({
+      "2026-08-01": { done: 1, pending: 0 },
+      "2026-08-31": { done: 0, pending: 1 },
+    });
   });
 });
