@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.56] (2026-09-15)
 - **See your Todo list by the month.** A calendar button beside the day's controls swaps the list for a month grid. Every day shows how many tasks were done on it and how many are still pending, with the month's totals above the grid. Step between months, jump back to this one with **Today**, or click any day to open its list. Unfinished work always moves onto today, so earlier days show what got done and today onwards shows what's still to do.
 
 ## [0.1.55] (2026-09-04)
