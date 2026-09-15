@@ -27,6 +27,8 @@ interface ServiceViewDeps {
   getMainWindow(): BrowserWindow | null;
   getUiView(): WebContentsView | null;
   openLinkPreview(url: string, partition: string): void;
+  // Every key a service view sees, for the Ctrl shortcut hints
+  onKeyInput(input: Electron.Input): void;
 }
 
 let deps: ServiceViewDeps | null = null;
@@ -1046,6 +1048,7 @@ function createServiceView(service: Service): WebContentsView {
   // Browser shortcuts have to be intercepted here too — a service view with
   // focus never lets these reach the renderer's window keydown handler.
   view.webContents.on("before-input-event", (event, input) => {
+    deps?.onKeyInput(input);
     if (input.type === "keyDown" && input.key === "Escape" && findBarOpen) {
       event.preventDefault();
       deps?.getUiView()?.webContents.send("close-find-bar");

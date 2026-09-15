@@ -12,6 +12,7 @@ import { initTray, isQuitting, isTrayAvailable, refreshTray, syncTray, destroyTr
 import { windowCloseAction, windowMinimizeAction } from "./trayMenu";
 import { linkPreviewBounds } from "./shared/layout";
 import { spoofedUserAgent } from "./userAgent";
+import { createShortcutHintTracker } from "./shortcutHints";
 import { registerSettingsIpc } from "./ipc/settings";
 import { attachSecurityWindowEvents, registerSecurityIpc } from "./ipc/security";
 import { registerListGroupsIpc } from "./ipc/listGroups";
@@ -132,6 +133,9 @@ function createWindow() {
   });
 
   uiView.setBackgroundColor("#00000000");
+  uiView.webContents.on("before-input-event", (_event, input) => {
+    shortcutHints.handleInput(input);
+  });
   mainWindow.contentView.addChildView(uiView);
 
   const resizeUiView = () => {
@@ -172,6 +176,7 @@ function createWindow() {
 
   mainWindow.on("blur", () => {
     handleWindowBlur();
+    shortcutHints.reset();
   });
 
   mainWindow.on("minimize", () => setDownloadToastsVisible(false));
@@ -290,6 +295,7 @@ function openLinkPreview(url: string, partition: string) {
   });
 
   view.webContents.on("before-input-event", (event, input) => {
+    shortcutHints.handleInput(input);
     if (input.type === "keyDown" && input.key === "Escape") {
       event.preventDefault();
       closeLinkPreview();
@@ -332,10 +338,18 @@ initDownloads({
   getMainWindow: () => mainWindow,
 });
 
+// Numbers on the sidebar while Ctrl is held. Every view that can hold keyboard
+// focus feeds it: the UI view and link preview in createWindow/openLinkPreview,
+// the service views through their deps below.
+const shortcutHints = createShortcutHintTracker({
+  onChange: (visible) => uiView?.webContents.send("shortcut-hints-changed", visible),
+});
+
 initServiceViews({
   getMainWindow: () => mainWindow,
   getUiView: () => uiView,
   openLinkPreview,
+  onKeyInput: (input) => shortcutHints.handleInput(input),
 });
 
 registerServicesIpc({

@@ -72,6 +72,11 @@ const api = {
     ipcRenderer.on("service-switched", handler);
     return () => ipcRenderer.removeListener("service-switched", handler);
   },
+  onShortcutHintsChanged: (callback: (visible: boolean) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, visible: boolean) => callback(visible);
+    ipcRenderer.on("shortcut-hints-changed", handler);
+    return () => ipcRenderer.removeListener("shortcut-hints-changed", handler);
+  },
   reloadService: (serviceId: string): void => ipcRenderer.send("reload-service", serviceId),
   goBack: (serviceId: string): void => ipcRenderer.send("go-back", serviceId),
   goForward: (serviceId: string): void => ipcRenderer.send("go-forward", serviceId),

@@ -66,6 +66,10 @@ function App() {
     onConfirm: () => void;
   } | null>(null);
   const [locked, setLocked] = useState(false);
+  // Ctrl held down: the sidebar numbers its first nine services (main decides
+  // when, since a focused service view never passes keys to this window).
+  const [shortcutHints, setShortcutHints] = useState(false);
+  useEffect(() => window.electronAPI?.onShortcutHintsChanged(setShortcutHints), []);
   const lockedRef = useRef(false);
   lockedRef.current = locked;
   // Read inside window-level key handlers, which are registered once and must
@@ -411,6 +415,7 @@ function App() {
         <Sidebar
           services={services}
           activeServiceId={activeServiceId}
+          showShortcutHints={shortcutHints && !locked}
           onSelectService={handleSelectService}
           onAddService={async () => {
             setEditingService(null);

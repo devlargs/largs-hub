@@ -53,6 +53,8 @@ export interface ElectronAPI {
     callback: (data: { action: string; serviceId: string }) => void,
   ) => () => void;
   onServiceSwitched: (callback: (serviceId: string) => void) => () => void;
+  // True while Ctrl is held long enough to show the Ctrl+1-9 numbers
+  onShortcutHintsChanged: (callback: (visible: boolean) => void) => () => void;
   reloadService: (serviceId: string) => void;
   goBack: (serviceId: string) => void;
   goForward: (serviceId: string) => void;

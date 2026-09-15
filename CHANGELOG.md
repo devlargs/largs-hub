@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **See which number opens which service.** Ctrl+1 to Ctrl+9 already jumped between services, but nothing showed which number was which. Hold **Ctrl** on its own for two seconds and the first nine services in the sidebar get their number. Keep holding Ctrl and press a number to hop; the numbers go away when you let go. A quick Ctrl+C or any other Ctrl shortcut won't bring them up, and it works wherever the keyboard is: inside a service or anywhere else in the app.
 - **Read what's new without leaving the app.** A new icon beside the settings gear in the title bar opens a **Changelog** page with every release's notes, newest first. The version you have installed is marked, and links open in your browser.
 - **Schedule a task for any day.** Every unfinished task has a calendar button beside the move-to-tomorrow arrow. It opens a small date picker; pick a day and the task leaves the list and lands at the end of that day's list, syncing to Notion like any other edit. The day the task is on now is highlighted and earlier days are greyed out, since an unfinished task on a past day would just roll straight back onto today. The arrow keys move around the picker, Page Up and Page Down change month, and Escape closes it.
 

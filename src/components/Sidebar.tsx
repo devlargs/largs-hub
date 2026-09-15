@@ -9,6 +9,8 @@ import { serviceLabel } from "../lib/serviceLabel";
 interface SidebarProps {
   services: Service[];
   activeServiceId: string | null;
+  // Ctrl is held: number the services Ctrl+1-9 would switch to
+  showShortcutHints: boolean;
   onSelectService: (id: string) => void;
   onAddService: () => void;
   onReorderServices: (serviceIds: string[]) => void;
@@ -17,6 +19,7 @@ interface SidebarProps {
 export default function Sidebar({
   services,
   activeServiceId,
+  showShortcutHints,
   onSelectService,
   onAddService,
   onReorderServices,
@@ -179,9 +182,12 @@ export default function Sidebar({
           <IoHome size={22} />
         </button>
 
-        {services.map((service) => (
+        {services.map((service, index) => (
           <button
             key={service.id}
+            // Ctrl+N picks the Nth service in sidebar order, disabled ones
+            // included — the same lookup main and App.tsx use.
+            aria-keyshortcuts={index < 9 ? `Control+${index + 1}` : undefined}
             draggable={dragEnabled && draggedId === service.id}
             onClick={() => {
               if (!didDrag.current) onSelectService(service.id);
@@ -241,6 +247,22 @@ export default function Sidebar({
                 {(notificationCounts[service.id] || 0) > 99
                   ? "99+"
                   : notificationCounts[service.id]}
+              </span>
+            )}
+
+            {/* Shortcut number, while Ctrl is held. Bottom-right so it never
+                covers the notification count in the top-right. */}
+            {showShortcutHints && index < 9 && (
+              <span
+                aria-hidden="true"
+                className="absolute -bottom-1 -right-1 rounded-md min-w-[18px] h-[18px] flex items-center justify-center px-1 text-[11px] font-bold tabular-nums"
+                style={{
+                  color: "var(--sidebar)",
+                  background: "var(--text-primary)",
+                  boxShadow: "0 0 0 2px var(--sidebar)",
+                }}
+              >
+                {index + 1}
               </span>
             )}
 
