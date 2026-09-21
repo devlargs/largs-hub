@@ -153,7 +153,9 @@ const api = {
     return () => ipcRenderer.removeListener("link-preview-navigated", handler);
   },
 
-  // Window controls
+  // Window controls. macOS uses its native traffic lights instead of the
+  // custom buttons, so the titlebar needs to know which platform it's on.
+  platform: process.platform,
   minimize: (): void => ipcRenderer.send("window-minimize"),
   maximize: (): void => ipcRenderer.send("window-maximize"),
   close: (): void => ipcRenderer.send("window-close"),

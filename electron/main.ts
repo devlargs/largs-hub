@@ -10,7 +10,7 @@ import { registerServicesIpc } from "./ipc/services";
 import { sweepOrphanedPartitions } from "./partitions";
 import { initTray, isQuitting, isTrayAvailable, refreshTray, syncTray, destroyTray } from "./tray";
 import { windowCloseAction, windowMinimizeAction } from "./trayMenu";
-import { linkPreviewBounds } from "./shared/layout";
+import { linkPreviewBounds, MAC_TRAFFIC_LIGHT_POSITION } from "./shared/layout";
 import { spoofedUserAgent } from "./userAgent";
 import { createShortcutHintTracker } from "./shortcutHints";
 import { registerSettingsIpc } from "./ipc/settings";
@@ -107,6 +107,9 @@ function createWindow() {
     minHeight: 600,
     frame: false,
     titleBarStyle: "hidden",
+    // macOS keeps its native close/minimize/zoom buttons; line them up with the
+    // custom titlebar. Windows draws its own buttons in React.
+    ...(process.platform === "darwin" ? { trafficLightPosition: MAC_TRAFFIC_LIGHT_POSITION } : {}),
     backgroundColor: "#181825",
     ...(process.env.NODE_ENV !== "development" && !process.argv.includes("--dev")
       ? { icon: path.join(__dirname, "../assets/ico/icon.ico") }

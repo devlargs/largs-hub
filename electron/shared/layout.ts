@@ -17,6 +17,18 @@ export const SIDEBAR_WIDTH = 68;
 /** Height of the custom (frameless) titlebar. */
 export const TITLEBAR_HEIGHT = 46;
 
+/** Size of one macOS traffic-light button. */
+const MAC_TRAFFIC_LIGHT_SIZE = 14;
+
+/** Left inset of the macOS traffic lights, vertically centred in the titlebar. */
+export const MAC_TRAFFIC_LIGHT_POSITION = {
+  x: 16,
+  y: Math.round((TITLEBAR_HEIGHT - MAC_TRAFFIC_LIGHT_SIZE) / 2),
+};
+
+/** Titlebar space the macOS traffic lights take up; content starts after it. */
+export const MAC_TRAFFIC_LIGHTS_WIDTH = 84;
+
 /** Height of the find-in-page strip, when open, below the titlebar. */
 export const FIND_BAR_HEIGHT = 44;
 

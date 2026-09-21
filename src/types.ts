@@ -83,6 +83,7 @@ export interface ElectronAPI {
   onLinkPreviewOpen: (callback: (url: string) => void) => () => void;
   onLinkPreviewClosed: (callback: () => void) => () => void;
   onLinkPreviewNavigated: (callback: (url: string) => void) => () => void;
+  platform: string;
   minimize: () => void;
   maximize: () => void;
   close: () => void;

@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Mac-style window buttons on macOS.** On a Mac the title bar uses the native red, yellow and green buttons at the top left, lined up with the rest of the bar, instead of the Windows-style minimize, maximize and close buttons on the right. Windows keeps its buttons as they were.
 
 ## [0.1.59] (2026-09-21)
 - **Largs Hub runs on macOS.** Every release now includes a Mac download, one for Apple Silicon and one for Intel. Open the `.dmg` and drag Largs Hub into Applications. The app isn't notarized by Apple yet, so the first time you open it, approve it under **System Settings → Privacy & Security → Open Anyway**. When there's an update, the Mac app downloads and opens the new `.dmg` for you to drag in, instead of offering the Windows installer.
