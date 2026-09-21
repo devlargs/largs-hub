@@ -68,6 +68,20 @@ That link always gives you the newest version. Once it downloads:
 2. If Windows shows a "Windows protected your PC" prompt, click **More info → Run anyway** (this appears because the app isn't code-signed yet).
 3. Follow the installer — that's it.
 
+**If the installer won't run:** Windows marks files downloaded from the internet, and SmartScreen or your antivirus may block the installer, sometimes without showing **Run anyway**. Remove the mark instead, either way:
+
+- Right-click **`Largs Hub Setup.exe`** → **Properties**, tick **Unblock** at the bottom of the **General** tab, and click **OK**.
+- Or run this in PowerShell, from the folder you downloaded it to:
+
+  ```powershell
+  Unblock-File -Path ".\Largs Hub Setup.exe"
+  ```
+
+Then open the installer again. You only need to do this once: in-app updates are downloaded by the app itself and install without the prompt.
+
+> [!IMPORTANT]
+> These warnings appear because the installer isn't code-signed, not because anything is wrong with it. They go away for everyone only once the app is signed with a code-signing certificate.
+
 Prefer to see all versions and release notes? Browse the [**Releases**](https://github.com/devlargs/largs-hub/releases/latest) page. The installer is `Largs Hub Setup.exe` (NSIS), and it keeps itself up to date in-app.
 
 ### Download (macOS)
@@ -81,6 +95,17 @@ Once it downloads:
 
 1. Open the `.dmg` and drag **Largs Hub** into **Applications**.
 2. Open Largs Hub from Applications. The app isn't notarized by Apple yet, so macOS blocks it the first time. Go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to the Largs Hub message. (On macOS 14 and earlier you can right-click the app and choose **Open** instead.)
+
+**If macOS says "Largs Hub" Not Opened** ("Apple could not verify 'Largs Hub' is free of malware…"), click **Done**, not **Move to Trash**. Then either use **Open Anyway** as in step 2, or run this once in Terminal:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Largs Hub.app"
+```
+
+This removes the "downloaded from the internet" flag, so the app opens normally. You only need to do this once. In-app updates download without that flag, so they won't hit this dialog again.
+
+> [!IMPORTANT]
+> This dialog appears because the app isn't signed and notarized by Apple, not because anything is wrong with it. It goes away for everyone only once the app is signed with an Apple Developer ID and notarized, which needs a paid Apple Developer account. Until then, use one of the steps above.
 
 When an update is available, the app downloads the new `.dmg` and opens it. Drag Largs Hub into Applications again to replace the old version.
 
