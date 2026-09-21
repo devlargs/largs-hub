@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.63] (2026-09-21)
 - **Unread counts show up on battery.** On a laptop running on battery, services you weren't looking at stopped checking for new messages, so Messenger and WhatsApp showed no count in the sidebar at all. They now keep checking on battery, once a minute instead of every 20 seconds, and the service on screen still updates right away. This was most noticeable on MacBooks, but applied to Windows laptops too. Minimizing the window also no longer stops the checks, so the unread count on the Dock or taskbar keeps up while the window is minimized.
 
 ## [0.1.62] (2026-09-21)
