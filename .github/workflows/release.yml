@@ -24,12 +24,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Works out the next patch version once, so the Windows and macOS builds stamp
-  # the same number. Nothing is committed until both builds have succeeded.
+  # Works out the next patch version and release date once, so the Windows and
+  # macOS builds stamp the same number and changelog heading. Nothing is
+  # committed until both builds have succeeded.
   version:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      date: ${{ steps.version.outputs.date }}
     steps:
       - uses: actions/checkout@v4
 
@@ -39,6 +41,7 @@ jobs:
           CURRENT=$(node -p "require('./package.json').version")
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
           echo "version=$MAJOR.$MINOR.$((PATCH + 1))" >> "$GITHUB_OUTPUT"
+          echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
 
   build:
     needs: version
@@ -72,6 +75,11 @@ jobs:
         shell: bash
         run: npm version "${{ needs.version.outputs.version }}" --no-git-tag-version
 
+      # The in-app Changelog page bundles CHANGELOG.md, so it has to carry this
+      # version's heading before the build, not only in the commit afterwards.
+      - name: Stamp changelog
+        run: node scripts/stamp-changelog.cjs "${{ needs.version.outputs.version }}" "${{ needs.version.outputs.date }}"
+
       - name: Install dependencies
         run: npm ci
 
@@ -94,6 +102,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.version.outputs.version }}
+      RELEASE_DATE: ${{ needs.version.outputs.date }}
 
     steps:
       - uses: actions/checkout@v4
@@ -131,14 +140,9 @@ jobs:
             release/latest.yml
             release/*.dmg
 
+      # Same stamp the builds applied, so the committed file matches what shipped
       - name: Update CHANGELOG.md
-        run: |
-          if grep -q '^## \[Unreleased\]' CHANGELOG.md; then
-            DATE=$(date -u +%Y-%m-%d)
-            sed -i "s/^## \[Unreleased\]/## [$VERSION] ($DATE)/" CHANGELOG.md
-            awk 'NR==1{print; print ""; print "## [Unreleased]"; next}1' CHANGELOG.md > CHANGELOG.tmp
-            mv CHANGELOG.tmp CHANGELOG.md
-          fi
+        run: node scripts/stamp-changelog.cjs "$VERSION" "$RELEASE_DATE"
 
       - name: Commit changelog
         run: |

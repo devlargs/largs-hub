@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **The Changelog page shows each release under its version number.** The changes in the version you have installed were listed as **Unreleased**, because the version heading was only added to the changelog after the app had been built. Builds now include it.
 
 ## [0.1.61] (2026-09-21)
 - **Disabling a service ends its Messenger automation, after asking.** If the service has automation running, unticking **Enabled** now asks you to confirm first. Once you confirm, its scheduled messages, interval messages, emoji bursts, call cycles and auto-stop timer all stop at once, and the automation indicator goes away. Before, a task only noticed on its next run, so a message scheduled for later stayed listed, and still counted as running, until then. Removing a service does the same.
