@@ -347,12 +347,10 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
           // confirm. Reads the service now, not the copy the menu opened with.
           const current = store.get("services").find((s) => s.id === serviceId);
           if (current && enableToggleNeedsConfirm(current, hasAutomationForService(serviceId))) {
-            deps
-              .getUiView()
-              ?.webContents.send("context-menu-action", {
-                action: "confirm-disable-service",
-                serviceId,
-              });
+            deps.getUiView()?.webContents.send("context-menu-action", {
+              action: "confirm-disable-service",
+              serviceId,
+            });
             return;
           }
           const updated = toggleEnabled(serviceId);
