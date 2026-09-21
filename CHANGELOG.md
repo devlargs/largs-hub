@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.61] (2026-09-21)
 - **Disabling a service ends its Messenger automation, after asking.** If the service has automation running, unticking **Enabled** now asks you to confirm first. Once you confirm, its scheduled messages, interval messages, emoji bursts, call cycles and auto-stop timer all stop at once, and the automation indicator goes away. Before, a task only noticed on its next run, so a message scheduled for later stayed listed, and still counted as running, until then. Removing a service does the same.
 - **Removing a service's custom icon sticks.** Clicking **Remove** on an uploaded icon while editing a service and then saving left the old icon in place. The file was deleted, but the service still pointed at it. The service now goes back to its built-in icon (a service still named **Messenger** gets the Messenger icon again), or its initial if it has none, and the uploaded file is deleted from disk when you save. Cancelling the edit keeps the original icon, which used to break.
 
