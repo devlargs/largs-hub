@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.62] (2026-09-21)
 - **The Changelog page shows each release under its version number.** The changes in the version you have installed were listed as **Unreleased**, because the version heading was only added to the changelog after the app had been built. Builds now include it.
 
 ## [0.1.61] (2026-09-21)
