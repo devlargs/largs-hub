@@ -4,7 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Largs Hub is an open-source Rambox alternative: an Electron workspace browser that hosts multiple web apps (Gmail, Slack, Messenger, …) as isolated services in one window. Windows is the primary target platform.
+Largs Hub is an open-source Rambox alternative: an Electron workspace browser that hosts multiple web apps (Gmail, Slack, Messenger, …) as isolated services in one window. Windows is the primary target platform, and macOS ships too (arm64 + x64 DMGs from `release.yml`).
+
+## Think about both platforms
+
+Every change has to work on **Windows and macOS**. When a bug is reported on one of them, check how the same code path behaves on the other before calling it fixed. Fix it for both, or say plainly why only one is affected. The same goes for new features. Things that usually differ:
+
+- **Window chrome:** custom minimize/maximize/close buttons on Windows, native traffic lights on macOS (`window.electronAPI.platform`, `MAC_TRAFFIC_LIGHT_POSITION`).
+- **App lifecycle:** `window-all-closed`, `activate` (Dock clicks), tray (notification area on Windows, menu bar on macOS).
+- **Files:** path separators and drive letters (use `path`, never string concatenation), Windows file locks (`EBUSY`/`EPERM` while a file is open), `%TEMP%` vs `/var/folders`.
+- **Keyboard:** Ctrl on Windows vs Cmd on macOS.
+- **Installers and updates:** the NSIS `.exe` on Windows, a `.dmg` on macOS (`pickUpdateAsset` in `electron/updater.ts`). Both are unsigned.
+- **Icons and badges:** `.ico`/taskbar overlay on Windows, `.icns`/Dock on macOS.
+
+Say which platforms you reasoned about when you hand work back.
 
 ## Commands
 
