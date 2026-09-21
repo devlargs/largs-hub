@@ -1,7 +1,7 @@
 # Changelog
 
 ## [Unreleased]
-- **Removing a service's custom icon sticks.** Clicking **Remove** on an uploaded icon while editing a service and then saving left the old icon in place. The file was deleted, but the service still pointed at it. The service now falls back to its built-in icon, or its initial, and the uploaded file is deleted from disk when you save. Cancelling the edit keeps the original icon, which used to break.
+- **Removing a service's custom icon sticks.** Clicking **Remove** on an uploaded icon while editing a service and then saving left the old icon in place. The file was deleted, but the service still pointed at it. The service now goes back to its built-in icon (a service still named **Messenger** gets the Messenger icon again), or its initial if it has none, and the uploaded file is deleted from disk when you save. Cancelling the edit keeps the original icon, which used to break.
 
 ## [0.1.60] (2026-09-21)
 - **Help for installers that won't open.** The README now covers what to do when Windows blocks the installer (unblock it from **Properties** or with `Unblock-File`) or macOS says the app "Not Opened" (**Open Anyway**, or one Terminal command), and why these warnings appear.

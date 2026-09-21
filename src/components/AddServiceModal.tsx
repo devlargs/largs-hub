@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { InternalServiceType, Service } from "../types";
 import { normalizeServiceUrl, serviceNameFromUrl } from "../lib/serviceUrl";
 import { sortByName } from "../lib/serviceOrder";
-import { uploadToDiscard } from "../lib/iconEdit";
+import { builtInIconForName, uploadToDiscard } from "../lib/iconEdit";
 import Modal from "./ui/Modal";
 import IconCropper from "./IconCropper";
 import { v4 as uuidv4 } from "uuid";
@@ -59,10 +59,10 @@ export default function AddServiceModal({
   const [editUrl, setEditUrl] = useState(editingService?.url || "");
   const [editIcon, setEditIcon] = useState(editingService?.icon || "");
   const [iconPreview, setIconPreview] = useState<string | null>(() => {
-    if (editingService?.icon) {
-      return resolveIcon(editingService.icon, editingService.name) || null;
-    }
-    return null;
+    if (!editingService) return null;
+    // Resolve even an empty icon: the sidebar shows the built-in icon for the
+    // name then, and the preview should match it.
+    return resolveIcon(editingService.icon ?? "", editingService.name) || null;
   });
   const [urlError, setUrlError] = useState<string | null>(null);
   // Add mode has two faces: pick a preset, or fill in the same name/URL/icon
@@ -143,9 +143,11 @@ export default function AddServiceModal({
       await window.electronAPI.deleteCustomIcon(discard);
       sessionUploads.current = sessionUploads.current.filter((f) => f !== discard);
     }
-    setEditIcon("");
-    // Preview what the service falls back to: its built-in icon, or the initial.
-    setIconPreview(resolveIcon("", editName) || null);
+    // Back to the built-in icon for the name (a "Messenger" gets messenger.png),
+    // or no icon, which shows the initial.
+    const fallback = builtInIconForName(editName);
+    setEditIcon(fallback);
+    setIconPreview(resolveIcon(fallback, editName) || null);
   };
 
   const handleConfirm = () => {
@@ -187,8 +189,8 @@ export default function AddServiceModal({
         ...editingService!,
         name: editName.trim(),
         url,
-        // Empty means the icon was removed: save it empty, never fall back to
-        // the old one.
+        // Never fall back to the old icon: after Remove it's the built-in icon
+        // for the name, or empty.
         icon: editIcon,
       });
     } else {

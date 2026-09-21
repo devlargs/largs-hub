@@ -10,6 +10,7 @@ import linkedin from "./images/linkedin.png";
 import messenger from "./images/messenger.png";
 import googlechat from "./images/googlechat.svg";
 import todo from "./images/todo.svg";
+import { builtInIconForName } from "../lib/iconEdit";
 
 const serviceIcons: Record<string, string> = {
   "gmail.png": gmail,
@@ -28,29 +29,14 @@ const serviceIcons: Record<string, string> = {
   "pomodoro.svg": todo,
 };
 
-// Map service names to icons so older stored services (with emoji icons) still resolve
-const serviceIconsByName: Record<string, string> = {
-  gmail: gmail,
-  slack: slack,
-  discord: discord,
-  whatsapp: whatsapp,
-  telegram: telegram,
-  notion: notion,
-  "twitter / x": x,
-  reddit: reddit,
-  linkedin: linkedin,
-  messenger: messenger,
-  "google chat": googlechat,
-  todo: todo,
-  pomodoro: todo,
-};
-
 export function resolveIcon(icon: string, name: string): string | undefined {
   if (icon.startsWith("custom:")) {
     const fileName = icon.slice(7);
     return `custom-icon://${encodeURIComponent(fileName)}`;
   }
-  return serviceIcons[icon] || serviceIconsByName[name.toLowerCase()];
+  // Stored icons that aren't a built-in file (older emoji icons, or none after
+  // a custom icon was removed) fall back to the built-in icon for the name.
+  return serviceIcons[icon] || serviceIcons[builtInIconForName(name)];
 }
 
 export default serviceIcons;

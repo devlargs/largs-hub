@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { uploadToDiscard } from "../src/lib/iconEdit";
+import { builtInIconForName, uploadToDiscard } from "../src/lib/iconEdit";
 
 describe("uploadToDiscard", () => {
   it("discards an icon uploaded in this editing session", () => {
@@ -16,5 +16,18 @@ describe("uploadToDiscard", () => {
   it("has nothing to discard for a built-in or empty icon", () => {
     expect(uploadToDiscard("gmail.png", ["gmail.png"])).toBeNull();
     expect(uploadToDiscard("", [])).toBeNull();
+  });
+});
+
+describe("builtInIconForName", () => {
+  it("finds the built-in icon for a preset's name", () => {
+    expect(builtInIconForName("Messenger")).toBe("messenger.png");
+    expect(builtInIconForName("Google Chat")).toBe("googlechat.svg");
+    expect(builtInIconForName("  gmail ")).toBe("gmail.png");
+  });
+
+  it("has none for a name that isn't a preset", () => {
+    expect(builtInIconForName("Messenger - Work")).toBe("");
+    expect(builtInIconForName("")).toBe("");
   });
 });
