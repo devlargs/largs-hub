@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.60] (2026-09-21)
 - **Help for installers that won't open.** The README now covers what to do when Windows blocks the installer (unblock it from **Properties** or with `Unblock-File`) or macOS says the app "Not Opened" (**Open Anyway**, or one Terminal command), and why these warnings appear.
 - **Mac-style window buttons on macOS.** On a Mac the title bar uses the native red, yellow and green buttons at the top left, lined up with the rest of the bar, instead of the Windows-style minimize, maximize and close buttons on the right. Windows keeps its buttons as they were.
 
