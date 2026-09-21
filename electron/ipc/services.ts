@@ -24,6 +24,7 @@ import { forgetTodoService } from "../tasks";
 import { clearServiceSessionData } from "../partitions";
 import { deleteCustomIconFile } from "../customIcons";
 import { supersededIconFile } from "../iconCleanup";
+import { stopAutomationForService } from "../messengerAutomation";
 import {
   applyServicePatch,
   nextBlurWhenInactive,
@@ -67,8 +68,10 @@ function patchService(
 function toggleEnabled(serviceId: string): Service[] | null {
   const updated = patchService(serviceId, nextEnabled);
   if (!updated) return null;
-  // Disabling frees the view (and its badge); enabling just lets it be recreated.
+  // Disabling frees the view (and its badge) and ends the service's Messenger
+  // automation; enabling just lets the view be recreated.
   if (updated.find((s) => s.id === serviceId)?.enabled === false) {
+    stopAutomationForService(serviceId);
     destroyServiceView(serviceId, { clearCounts: true });
   }
   return updated;
@@ -138,7 +141,9 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     const orphanedIcon = supersededIconFile(removed?.icon, null, services);
     if (orphanedIcon) deleteCustomIconFile(orphanedIcon);
 
-    // Clean up the view
+    // End its automation now rather than when a task next runs, then clean up
+    // the view.
+    stopAutomationForService(serviceId);
     destroyServiceView(serviceId, { clearCounts: true });
 
     // Wipe the service's session partition. Removing a service means forgetting

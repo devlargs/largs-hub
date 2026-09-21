@@ -90,6 +90,9 @@ const tasks = new Map<string, InternalTask>();
 // Set by registerMessengerAutomation so main can trigger the restore once the
 // service views it needs to inject into actually exist.
 let restoreAll: () => void = () => {};
+// Set by registerMessengerAutomation; ends every task and auto-stop for a
+// service when it's disabled or removed.
+let stopAllFor: (serviceId: string) => void = () => {};
 // Services that already have a webContents "destroyed" cleanup hook attached
 // serviceId -> armed auto-stop (state + its timer). At most one per service.
 const autoStops = new Map<string, AutoStopState & { timer: NodeJS.Timeout }>();
@@ -834,6 +837,8 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
     },
   );
 
+  stopAllFor = stopAllForService;
+
   restoreAll = () => {
     restorePersistedTasks();
     restorePersistedAutoStops();
@@ -888,6 +893,16 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
  */
 export function restoreAutomationState(): void {
   restoreAll();
+}
+
+/**
+ * End all automation for a service straight away. Disabling or removing a
+ * service means "stop doing things with this account", so its tasks and
+ * auto-stop end now. Without this, a task only noticed on its next run, which
+ * for a scheduled message could be hours later.
+ */
+export function stopAutomationForService(serviceId: string): void {
+  stopAllFor(serviceId);
 }
 
 /**
