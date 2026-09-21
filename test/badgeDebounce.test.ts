@@ -72,4 +72,19 @@ describe("shouldAcceptCount", () => {
     expect(report(10, 7)).toBe(false);
     expect(report(10, 7)).toBe(true);
   });
+
+  it("applies a trusted decrease at once — a feed reading isn't a page blip", () => {
+    expect(shouldAcceptCount(pending, "s", 5, 2, DECREASE_THRESHOLD, true).accept).toBe(true);
+    expect(pending.has("s")).toBe(false);
+  });
+
+  it("clears a scraped decrease still waiting when a trusted reading lands", () => {
+    expect(report(5, 0)).toBe(false);
+    expect(shouldAcceptCount(pending, "s", 5, 3, DECREASE_THRESHOLD, true).accept).toBe(true);
+    expect(pending.has("s")).toBe(false);
+  });
+
+  it("still ignores an unchanged trusted reading", () => {
+    expect(shouldAcceptCount(pending, "s", 4, 4, DECREASE_THRESHOLD, true).accept).toBe(false);
+  });
 });

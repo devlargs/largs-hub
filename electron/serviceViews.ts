@@ -6,6 +6,7 @@ import { hookDownloadSession, hasActiveDownload } from "./downloads";
 import { hasAutomationForService } from "./messengerAutomation";
 import { shouldHibernate } from "./hibernationPolicy";
 import { pollIntervalChanged, pollIntervalMs } from "./pollPolicy";
+import { createFetchTrigger } from "./fetchTrigger";
 import { findBadgeAdapter, buildPollScript, parseTitleCount } from "./badge-adapters";
 import { messengerAdapter } from "./badge-adapters/messenger";
 import {
@@ -968,7 +969,27 @@ function createServiceView(service: Service): WebContentsView {
   const DIRECT_FETCH_FRESH_MS = DIRECT_FETCH_INTERVAL_MS * 3;
   const directFetchIsFresh = () => Date.now() - lastDirectFetch < DIRECT_FETCH_FRESH_MS;
 
+  // Main-process count source (no DOM involved). Read on a slow timer as a
+  // backstop, and on demand whenever the page title changes — Gmail rewrites
+  // its title the moment the unread count moves, so that's when the feed has
+  // news (fetchTrigger.ts). Its readings skip the decrease debounce: a feed
+  // doesn't blip to 0 mid-render the way a scraped page does.
+  let fetchDirect: (() => Promise<void>) | null = null;
+  if (adapter?.fetchCount) {
+    const fetchCount = adapter.fetchCount.bind(adapter);
+    fetchDirect = async () => {
+      if (view.webContents.isDestroyed()) return;
+      const count = await fetchCount(view.webContents.session);
+      if (count !== null && !view.webContents.isDestroyed()) {
+        lastDirectFetch = Date.now();
+        reportNotificationCount(service.id, count, true);
+      }
+    };
+  }
+  const directFetchTrigger = fetchDirect ? createFetchTrigger(() => void fetchDirect?.()) : null;
+
   view.webContents.on("page-title-updated", (_event, title) => {
+    directFetchTrigger?.trigger();
     if (directFetchIsFresh()) return;
     reportNotificationCount(service.id, parseTitleCount(title));
   });
@@ -1018,23 +1039,15 @@ function createServiceView(service: Service): WebContentsView {
   applyPollRate();
   pollRateListeners.add(applyPollRate);
 
-  // Main-process count source (no DOM involved), polled less aggressively
-  // since it hits the network rather than the local page.
+  // The backstop timer, polled less aggressively since it hits the network
+  // rather than the local page.
   let directFetchInterval: ReturnType<typeof setInterval> | null = null;
-  if (adapter?.fetchCount) {
-    const fetchCount = adapter.fetchCount.bind(adapter);
-    const fetchDirect = async () => {
-      if (view.webContents.isDestroyed()) return;
-      const count = await fetchCount(view.webContents.session);
-      if (count !== null && !view.webContents.isDestroyed()) {
-        lastDirectFetch = Date.now();
-        reportNotificationCount(service.id, count);
-      }
-    };
-    directFetchInterval = setInterval(() => void fetchDirect(), DIRECT_FETCH_INTERVAL_MS);
+  if (fetchDirect) {
+    const run = fetchDirect;
+    directFetchInterval = setInterval(() => void run(), DIRECT_FETCH_INTERVAL_MS);
     // Prime once the page loads (login cookies present) instead of waiting a
     // full interval for the first accurate badge.
-    view.webContents.once("did-finish-load", () => void fetchDirect());
+    view.webContents.once("did-finish-load", () => void run());
   }
 
   // Clear the polls as soon as the view is torn down instead of waiting for
@@ -1043,6 +1056,7 @@ function createServiceView(service: Service): WebContentsView {
     if (pollTimer) clearInterval(pollTimer);
     pollRateListeners.delete(applyPollRate);
     if (directFetchInterval) clearInterval(directFetchInterval);
+    directFetchTrigger?.dispose();
   });
 
   // Browser shortcuts have to be intercepted here too — a service view with

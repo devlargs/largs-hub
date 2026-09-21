@@ -28,6 +28,11 @@ export type DebounceDecision =
  * `pending` is the caller's per-service debounce map; this function mutates the
  * entry for `serviceId` the way the real one does, so the caller only has to
  * act on the decision.
+ *
+ * `trusted` marks a reading from a server-side source (Gmail's Atom feed). The
+ * blips this debounce guards against come from scraping a page mid-render; a
+ * feed never reports a transient 0, so its decreases apply at once instead of
+ * waiting a second full fetch interval to be confirmed.
  */
 export function shouldAcceptCount(
   pending: Map<string, PendingDecrease>,
@@ -35,6 +40,7 @@ export function shouldAcceptCount(
   previous: number,
   next: number,
   threshold: number = DECREASE_THRESHOLD,
+  trusted = false,
 ): DebounceDecision {
   // Unchanged: nothing to do, and any in-flight decrease is stale.
   if (next === previous) {
@@ -42,8 +48,9 @@ export function shouldAcceptCount(
     return { accept: false };
   }
 
-  // An increase is always trusted, and clears a pending decrease.
-  if (next > previous) {
+  // An increase is always trusted, and clears a pending decrease. So is any
+  // change from a trusted source.
+  if (next > previous || trusted) {
     pending.delete(serviceId);
     return { accept: true };
   }

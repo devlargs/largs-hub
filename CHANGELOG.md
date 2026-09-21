@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Gmail's badge keeps up with your inbox.** The unread count came from Gmail's feed on a fixed 20-second timer, so a new email could take that long to appear on the badge — and reading one took up to 40 seconds to clear it, because a lower count had to be seen twice before the badge believed it. The badge now checks the feed the moment Gmail's own count changes, with a second look a few seconds later in case the feed is lagging, and a count from the feed drops straight away. The 20-second check stays as a backstop.
 
 ## [0.1.57] (2026-09-15)
 - **See which number opens which service.** Ctrl+1 to Ctrl+9 already jumped between services, but nothing showed which number was which. Hold **Ctrl** on its own for two seconds and the first nine services in the sidebar get their number. Keep holding Ctrl and press a number to hop; the numbers go away when you let go. A quick Ctrl+C or any other Ctrl shortcut won't bring them up, and it works wherever the keyboard is: inside a service or anywhere else in the app.

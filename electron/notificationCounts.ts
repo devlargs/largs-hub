@@ -30,15 +30,17 @@ export function initNotificationCounts(d: NotificationCountDeps) {
 
 // Single entry point for every extraction source. Applies the per-service
 // notifications toggle and the decrease debounce, then propagates the change
-// to the sidebar (IPC) and the Windows taskbar overlay.
-export function reportNotificationCount(serviceId: string, count: number) {
+// to the sidebar (IPC) and the Windows taskbar overlay. `trusted` readings
+// (server-side fetchers, never page scrapes) skip the decrease debounce.
+export function reportNotificationCount(serviceId: string, count: number, trusted = false) {
   if (!deps) return;
   if (!deps.isServiceNotificationsEnabled(serviceId)) {
     count = 0;
   }
 
   const prev = counts.get(serviceId) || 0;
-  if (!shouldAcceptCount(pendingDecrease, serviceId, prev, count).accept) return;
+  if (!shouldAcceptCount(pendingDecrease, serviceId, prev, count, undefined, trusted).accept)
+    return;
 
   const wasIncrease = count > prev;
   counts.set(serviceId, count);
