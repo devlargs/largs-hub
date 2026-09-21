@@ -28,6 +28,15 @@ export function applyServicePatch(
 
 export const nextEnabled = (s: Service): Partial<Service> => ({ enabled: s.enabled === false });
 
+/**
+ * Whether flipping `enabled` needs the user to confirm first: only when it
+ * would disable a service that has Messenger automation, since disabling ends
+ * all of it. Enabling, or disabling a service with nothing running, just
+ * happens.
+ */
+export const enableToggleNeedsConfirm = (s: Service, hasAutomation: boolean): boolean =>
+  s.enabled !== false && hasAutomation;
+
 export const nextMuted = (s: Service): Partial<Service> => ({ muted: !s.muted });
 
 export const nextNotificationsEnabled = (s: Service): Partial<Service> => ({

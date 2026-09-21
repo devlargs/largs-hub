@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyServicePatch,
+  enableToggleNeedsConfirm,
   nextBlurWhenInactive,
   nextEnabled,
   nextMuted,
@@ -101,5 +102,20 @@ describe("flag toggles", () => {
   it("returns only the field it owns", () => {
     expect(Object.keys(nextMuted(service()))).toEqual(["muted"]);
     expect(Object.keys(nextEnabled(service()))).toEqual(["enabled"]);
+  });
+});
+
+describe("enableToggleNeedsConfirm", () => {
+  it("asks before disabling a service with automation, since disabling ends it", () => {
+    expect(enableToggleNeedsConfirm(service(), true)).toBe(true);
+    expect(enableToggleNeedsConfirm(service({ enabled: true }), true)).toBe(true);
+  });
+
+  it("disables without asking when nothing is running", () => {
+    expect(enableToggleNeedsConfirm(service(), false)).toBe(false);
+  });
+
+  it("never asks when enabling", () => {
+    expect(enableToggleNeedsConfirm(service({ enabled: false }), true)).toBe(false);
   });
 });

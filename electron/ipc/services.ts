@@ -24,9 +24,10 @@ import { forgetTodoService } from "../tasks";
 import { clearServiceSessionData } from "../partitions";
 import { deleteCustomIconFile } from "../customIcons";
 import { supersededIconFile } from "../iconCleanup";
-import { stopAutomationForService } from "../messengerAutomation";
+import { hasAutomationForService, stopAutomationForService } from "../messengerAutomation";
 import {
   applyServicePatch,
+  enableToggleNeedsConfirm,
   nextBlurWhenInactive,
   nextEnabled,
   nextMuted,
@@ -341,6 +342,19 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
         type: "checkbox",
         checked: service.enabled !== false,
         click: () => {
+          // Disabling ends the service's Messenger automation, so with any
+          // running the renderer asks first and calls toggleServiceEnabled on
+          // confirm. Reads the service now, not the copy the menu opened with.
+          const current = store.get("services").find((s) => s.id === serviceId);
+          if (current && enableToggleNeedsConfirm(current, hasAutomationForService(serviceId))) {
+            deps
+              .getUiView()
+              ?.webContents.send("context-menu-action", {
+                action: "confirm-disable-service",
+                serviceId,
+              });
+            return;
+          }
           const updated = toggleEnabled(serviceId);
           if (!updated) return;
           sendUpdated();

@@ -161,6 +161,21 @@ function App() {
           }
           return current;
         });
+      } else if (action === "confirm-disable-service") {
+        setServices((current) => {
+          const svc = current.find((s) => s.id === serviceId);
+          if (svc) {
+            setConfirm({
+              title: `Disable ${svc.name}?`,
+              body: "Disabling this service stops all of its Messenger automation: scheduled and interval messages, emoji bursts, call cycles and the auto-stop timer. You can enable the service again later, but the automation won't restart.",
+              confirmLabel: "Disable",
+              tone: "danger",
+              onConfirm: () =>
+                void window.electronAPI.toggleServiceEnabled(serviceId).then(setServices),
+            });
+          }
+          return current;
+        });
       } else if (action === "confirm-clear-data") {
         setServices((current) => {
           const svc = current.find((s) => s.id === serviceId);
