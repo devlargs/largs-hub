@@ -15,7 +15,13 @@
 export const POLL_ACTIVE_MS = 3_000;
 /** A background view, or the active one while the window is unfocused. */
 export const POLL_BACKGROUND_MS = 20_000;
-/** Minimized, suspended, or on battery: stop entirely and catch up on resume. */
+/**
+ * The same views on battery. Slower, but never stopped: pausing them left every
+ * DOM-scraped badge (Messenger, WhatsApp) blank on an unplugged laptop, since
+ * the service you'd want to hear from is exactly the one not on screen.
+ */
+export const POLL_BATTERY_MS = 60_000;
+/** Minimized or suspended: stop entirely and catch up on resume. */
 export const POLL_PAUSED = null;
 
 export interface PollConditions {
@@ -39,15 +45,12 @@ export interface PollConditions {
  * could see the result.
  */
 export function pollIntervalMs(conditions: PollConditions): number | null {
-  // Nothing on screen to update, and on battery the cost isn't worth paying.
+  // Nothing on screen to update.
   if (conditions.systemSuspended || conditions.windowMinimized) return POLL_PAUSED;
-  // On battery a background view isn't worth waking the renderer for; the
-  // active one still updates so the app doesn't feel frozen.
-  if (conditions.onBattery && !(conditions.isActive && conditions.windowFocused)) {
-    return POLL_PAUSED;
-  }
   if (conditions.isActive && conditions.windowFocused) return POLL_ACTIVE_MS;
-  return POLL_BACKGROUND_MS;
+  // On battery, background views still poll so their badges keep up, just
+  // less often than on mains.
+  return conditions.onBattery ? POLL_BATTERY_MS : POLL_BACKGROUND_MS;
 }
 
 /** Whether a change in conditions means the running timer must be re-armed. */

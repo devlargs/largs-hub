@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   POLL_ACTIVE_MS,
   POLL_BACKGROUND_MS,
+  POLL_BATTERY_MS,
   PollConditions,
   pollIntervalChanged,
   pollIntervalMs,
@@ -40,15 +41,17 @@ describe("pollIntervalMs", () => {
     expect(pollIntervalMs(conditions({ isActive: true, systemSuspended: true }))).toBeNull();
   });
 
-  it("keeps the active view alive on battery, but pauses the rest", () => {
+  it("keeps the active view at full speed on battery", () => {
     expect(pollIntervalMs(conditions({ isActive: true, onBattery: true }))).toBe(POLL_ACTIVE_MS);
-    expect(pollIntervalMs(conditions({ onBattery: true }))).toBeNull();
   });
 
-  it("pauses the active view on battery once the window is unfocused", () => {
+  // Pausing these left every scraped badge blank on an unplugged laptop
+  it("slows background views on battery instead of stopping them", () => {
+    expect(pollIntervalMs(conditions({ onBattery: true }))).toBe(POLL_BATTERY_MS);
     expect(
       pollIntervalMs(conditions({ isActive: true, windowFocused: false, onBattery: true })),
-    ).toBeNull();
+    ).toBe(POLL_BATTERY_MS);
+    expect(POLL_BATTERY_MS).toBeGreaterThan(POLL_BACKGROUND_MS);
   });
 
   it("lets suspend and minimize win over everything else", () => {
