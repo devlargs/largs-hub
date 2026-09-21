@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { InternalServiceType, Service } from "../types";
 import { normalizeServiceUrl, serviceNameFromUrl } from "../lib/serviceUrl";
 import { sortByName } from "../lib/serviceOrder";
+import { uploadToDiscard } from "../lib/iconEdit";
 import Modal from "./ui/Modal";
 import IconCropper from "./IconCropper";
 import { v4 as uuidv4 } from "uuid";
@@ -133,14 +134,18 @@ export default function AddServiceModal({
     if (derived) setEditName(derived);
   };
 
+  // Removing only deletes a file uploaded in this session. The service's saved
+  // icon stays on disk until the edit is saved (main deletes it then), so
+  // Cancel still brings it back.
   const handleDeleteIcon = async () => {
-    if (editIcon.startsWith("custom:")) {
-      const fileName = editIcon.slice(7);
-      await window.electronAPI.deleteCustomIcon(fileName);
-      sessionUploads.current = sessionUploads.current.filter((f) => f !== fileName);
+    const discard = uploadToDiscard(editIcon, sessionUploads.current);
+    if (discard) {
+      await window.electronAPI.deleteCustomIcon(discard);
+      sessionUploads.current = sessionUploads.current.filter((f) => f !== discard);
     }
     setEditIcon("");
-    setIconPreview(null);
+    // Preview what the service falls back to: its built-in icon, or the initial.
+    setIconPreview(resolveIcon("", editName) || null);
   };
 
   const handleConfirm = () => {
@@ -182,7 +187,9 @@ export default function AddServiceModal({
         ...editingService!,
         name: editName.trim(),
         url,
-        icon: editIcon || editingService!.icon,
+        // Empty means the icon was removed: save it empty, never fall back to
+        // the old one.
+        icon: editIcon,
       });
     } else {
       if (selectedIndex === null || !filtered[selectedIndex]) {
