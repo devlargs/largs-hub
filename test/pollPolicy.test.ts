@@ -32,9 +32,15 @@ describe("pollIntervalMs", () => {
     );
   });
 
-  it("pauses entirely while minimized — nobody can see the badge change", () => {
-    expect(pollIntervalMs(conditions({ isActive: true, windowMinimized: true }))).toBeNull();
-    expect(pollIntervalMs(conditions({ windowMinimized: true }))).toBeNull();
+  // The Dock / taskbar badge is what you watch while minimized
+  it("keeps polling at the background rate while minimized", () => {
+    expect(pollIntervalMs(conditions({ isActive: true, windowMinimized: true }))).toBe(
+      POLL_BACKGROUND_MS,
+    );
+    expect(pollIntervalMs(conditions({ windowMinimized: true }))).toBe(POLL_BACKGROUND_MS);
+    expect(pollIntervalMs(conditions({ windowMinimized: true, onBattery: true }))).toBe(
+      POLL_BATTERY_MS,
+    );
   });
 
   it("pauses entirely while the machine is suspended", () => {
@@ -54,7 +60,7 @@ describe("pollIntervalMs", () => {
     expect(POLL_BATTERY_MS).toBeGreaterThan(POLL_BACKGROUND_MS);
   });
 
-  it("lets suspend and minimize win over everything else", () => {
+  it("lets suspend win over everything else", () => {
     const worst = conditions({
       isActive: true,
       windowFocused: true,

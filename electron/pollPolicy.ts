@@ -21,7 +21,7 @@ export const POLL_BACKGROUND_MS = 20_000;
  * the service you'd want to hear from is exactly the one not on screen.
  */
 export const POLL_BATTERY_MS = 60_000;
-/** Minimized or suspended: stop entirely and catch up on resume. */
+/** Suspended: stop entirely and catch up on resume. */
 export const POLL_PAUSED = null;
 
 export interface PollConditions {
@@ -29,7 +29,7 @@ export interface PollConditions {
   isActive: boolean;
   /** The app window has OS focus. */
   windowFocused: boolean;
-  /** The window is minimized (or otherwise not visible at all). */
+  /** The window is minimized: nothing polls at the active rate. */
   windowMinimized: boolean;
   /** The machine has suspended since the last check. */
   systemSuspended: boolean;
@@ -40,16 +40,17 @@ export interface PollConditions {
 /**
  * The interval to poll at, or null to pause polling entirely.
  *
- * Pausing is safe because the caller does one catch-up poll when the condition
- * lifts — nothing is permanently missed, it just isn't scraped while nobody
- * could see the result.
+ * Only a suspended machine pauses. That is safe because the caller does one
+ * catch-up poll on resume — nothing is permanently missed.
  */
 export function pollIntervalMs(conditions: PollConditions): number | null {
-  // Nothing on screen to update.
-  if (conditions.systemSuspended || conditions.windowMinimized) return POLL_PAUSED;
-  if (conditions.isActive && conditions.windowFocused) return POLL_ACTIVE_MS;
-  // On battery, background views still poll so their badges keep up, just
-  // less often than on mains.
+  if (conditions.systemSuspended) return POLL_PAUSED;
+  if (conditions.isActive && conditions.windowFocused && !conditions.windowMinimized) {
+    return POLL_ACTIVE_MS;
+  }
+  // Everything else is a background view. Minimized still counts: the Dock and
+  // taskbar badge are what you watch then, so they have to keep up. On battery
+  // they poll less often than on mains, but never stop.
   return conditions.onBattery ? POLL_BATTERY_MS : POLL_BACKGROUND_MS;
 }
 

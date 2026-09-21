@@ -1,7 +1,7 @@
 # Changelog
 
 ## [Unreleased]
-- **Unread counts show up on battery.** On a laptop running on battery, services you weren't looking at stopped checking for new messages, so Messenger and WhatsApp showed no count in the sidebar at all. They now keep checking on battery, once a minute instead of every 20 seconds, and the service on screen still updates right away. This was most noticeable on MacBooks, but applied to Windows laptops too.
+- **Unread counts show up on battery.** On a laptop running on battery, services you weren't looking at stopped checking for new messages, so Messenger and WhatsApp showed no count in the sidebar at all. They now keep checking on battery, once a minute instead of every 20 seconds, and the service on screen still updates right away. This was most noticeable on MacBooks, but applied to Windows laptops too. Minimizing the window also no longer stops the checks, so the unread count on the Dock or taskbar keeps up while the window is minimized.
 - **The Changelog page shows each release under its version number.** The changes in the version you have installed were listed as **Unreleased**, because the version heading was only added to the changelog after the app had been built. Builds now include it.
 
 ## [0.1.61] (2026-09-21)

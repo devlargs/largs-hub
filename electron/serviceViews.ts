@@ -67,7 +67,7 @@ export function refreshPollRates() {
   for (const listener of pollRateListeners) listener();
 }
 
-/** Window minimize/restore changes whether polling is worth doing at all. */
+/** Window minimize/restore moves the active view between fast and background polling. */
 export function setWindowMinimized(minimized: boolean) {
   if (windowMinimized === minimized) return;
   windowMinimized = minimized;
