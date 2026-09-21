@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.58] (2026-09-21)
 - **Gmail's badge keeps up with your inbox.** The unread count came from Gmail's feed on a fixed 20-second timer, so a new email could take that long to appear on the badge — and reading one took up to 40 seconds to clear it, because a lower count had to be seen twice before the badge believed it. The badge now checks the feed the moment Gmail's own count changes, with a second look a few seconds later in case the feed is lagging, and a count from the feed drops straight away. The 20-second check stays as a backstop.
 
 ## [0.1.57] (2026-09-15)
