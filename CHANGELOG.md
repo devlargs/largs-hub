@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Largs Hub runs on macOS.** Every release now includes a Mac download, one for Apple Silicon and one for Intel. Open the `.dmg` and drag Largs Hub into Applications. The app isn't notarized by Apple yet, so the first time you open it, approve it under **System Settings → Privacy & Security → Open Anyway**. When there's an update, the Mac app downloads and opens the new `.dmg` for you to drag in, instead of offering the Windows installer.
 
 ## [0.1.58] (2026-09-21)
 - **Gmail's badge keeps up with your inbox.** The unread count came from Gmail's feed on a fixed 20-second timer, so a new email could take that long to appear on the badge — and reading one took up to 40 seconds to clear it, because a lower count had to be seen twice before the badge believed it. The badge now checks the feed the moment Gmail's own count changes, with a second look a few seconds later in case the feed is lagging, and a count from the feed drops straight away. The 20-second check stays as a backstop.

@@ -24,8 +24,76 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Works out the next patch version once, so the Windows and macOS builds stamp
+  # the same number. Nothing is committed until both builds have succeeded.
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute next patch version
+        id: version
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          echo "version=$MAJOR.$MINOR.$((PATCH + 1))" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: version
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+            files: |
+              release/*.exe
+              release/*.exe.blockmap
+              release/latest.yml
+          # One DMG per CPU (arm64 for Apple Silicon, x64 for Intel), built on
+          # the Apple Silicon runner. The in-app updater picks the one matching
+          # the Mac it runs on.
+          - os: macos-latest
+            platform: mac
+            files: |
+              release/*.dmg
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set version
+        shell: bash
+        run: npm version "${{ needs.version.outputs.version }}" --no-git-tag-version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and package
+        run: npm run electron:build -- --${{ matrix.platform }} --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No Apple Developer ID: don't go looking for one in the keychain.
+          # The afterPack hook ad-hoc signs the macOS app instead.
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+
   release:
-    runs-on: windows-latest
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -35,61 +103,47 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
-      - name: Bump patch version
-        id: version
-        shell: bash
-        run: |
-          CURRENT=$(node -p "require('./package.json').version")
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
-          npm version "$NEW_VERSION" --no-git-tag-version
-          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build and package
-        run: npm run electron:build -- --publish never
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release
+          merge-multiple: true
 
       - name: Commit version bump
-        shell: bash
         run: |
+          npm version "$VERSION" --no-git-tag-version
           git config user.name "Ralph Largo"
           git config user.email "devlargs@gmail.com"
           git add package.json package-lock.json
-          git commit -m "chore: bump version to v${{ steps.version.outputs.version }}"
+          git commit -m "chore: bump version to v$VERSION"
           git push
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: v${{ steps.version.outputs.version }}
+          tag_name: v${{ env.VERSION }}
+          name: v${{ env.VERSION }}
           generate_release_notes: true
           files: |
             release/*.exe
-            release/*.blockmap
+            release/*.exe.blockmap
             release/latest.yml
+            release/*.dmg
 
       - name: Update CHANGELOG.md
-        shell: bash
         run: |
           if grep -q '^## \[Unreleased\]' CHANGELOG.md; then
             DATE=$(date -u +%Y-%m-%d)
-            sed -i "s/^## \[Unreleased\]/## [${{ steps.version.outputs.version }}] ($DATE)/" CHANGELOG.md
+            sed -i "s/^## \[Unreleased\]/## [$VERSION] ($DATE)/" CHANGELOG.md
             awk 'NR==1{print; print ""; print "## [Unreleased]"; next}1' CHANGELOG.md > CHANGELOG.tmp
             mv CHANGELOG.tmp CHANGELOG.md
           fi
 
       - name: Commit changelog
-        shell: bash
         run: |
           git add CHANGELOG.md
           if ! git diff --cached --quiet; then
-            git commit -m "docs: update changelog for v${{ steps.version.outputs.version }}"
+            git commit -m "docs: update changelog for v$VERSION"
             git push
           fi

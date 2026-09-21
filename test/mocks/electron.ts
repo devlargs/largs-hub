@@ -16,6 +16,10 @@ export const safeStorage = {
 // time and need no runtime counterpart.
 export type Session = unknown;
 
+export const shell = {
+  openPath: async () => "",
+};
+
 export const app = {
   getPath: () => "",
 };

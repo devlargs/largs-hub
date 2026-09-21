@@ -77,11 +77,26 @@
       "sign": false,
       "icon": "assets/ico/icon.ico"
     },
+    "afterPack": "scripts/mac-adhoc-sign.cjs",
     "nsis": {
       "artifactName": "${productName} Setup.${ext}"
     },
     "mac": {
-      "target": "dmg"
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icns/icon.icns",
+      "category": "public.app-category.productivity",
+      "identity": null
+    },
+    "dmg": {
+      "artifactName": "Largs-Hub-${arch}.${ext}"
     },
     "linux": {
       "target": "AppImage"

@@ -24,6 +24,12 @@ export default tseslint.config(
     },
   },
   {
+    // electron-builder hooks are loaded with require(), so they stay CommonJS.
+    files: ["scripts/**/*.cjs"],
+    languageOptions: { globals: globals.node, sourceType: "commonjs" },
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+  {
     files: ["electron/**/*.ts"],
     languageOptions: { globals: globals.node },
   },

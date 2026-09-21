@@ -10,6 +10,7 @@ A free, privacy-friendly alternative to [Rambox](https://rambox.app/). Keep Gmai
 [![Downloads](https://img.shields.io/github/downloads/devlargs/largs-hub/total?logo=github)](https://github.com/devlargs/largs-hub/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/download-Windows-0078D6?logo=windows&logoColor=white)](#installation)
+[![Platform](https://img.shields.io/badge/download-macOS-000000?logo=apple&logoColor=white)](#download-macos)
 [![Built with Electron](https://img.shields.io/badge/built%20with-Electron-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 
 ### 👉 [Download Largs Hub for Windows](https://github.com/devlargs/largs-hub/releases/latest/download/Largs%20Hub%20Setup.exe)
@@ -37,21 +38,21 @@ Juggling a dozen browser tabs for the apps you use all day is noisy and easy to 
 
 ## Features
 
-|                                 |                                                                                                                                                                |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🗂️ **Unified workspace**        | Add any web app by URL and switch between them from a clean sidebar. Reorder services by drag-and-drop.                                                        |
-| 🔒 **Isolated sessions**        | Every service runs in its own Chromium session partition, so logins and cookies never mix — sign in to two accounts of the same app without conflict.          |
-| 🔔 **Real unread badges**       | Per-service notification detection (Gmail's feed, Messenger/WhatsApp DOM, and window-title counts) surfaces accurate unread counts on the sidebar and taskbar. |
-| 💤 **Service hibernation**      | Optionally unload idle services to reclaim RAM; they reload on next click and stay logged in. Great for lower-memory machines.                                 |
-| 🔎 **In-app link preview**      | Open links in a lightweight in-app popup via the "View Link" context action instead of losing your place or leaving the app.                                   |
-| 🖥️ **Native desktop feel**      | Frameless custom titlebar with back/forward/reload, persistent window size & position, native context menus, and light/dark themes.                            |
-| ⌨️ **Keyboard shortcuts**       | Jump between services with `Ctrl`+`1`–`9`, even while a web app has focus.                                                                                     |
-| 📥 **Download handling**        | Configurable download location and completion notifications.                                                                                                   |
-| 🔕 **Focus options**            | Per-service mute and optional blur-when-inactive for privacy.                                                                                                  |
-| ✅ **Todo**                     | Built-in daily task list. Add and check off tasks, carry unfinished work forward. Works offline, and can optionally sync to a Notion database you own.         |
-| 🤖 **Messenger automation**     | Optional automation panel for Messenger: scheduled and interval messages, emoji bursts, and automated in-app call cycles.                                      |
-| ⬆️ **Auto-updates** _(Windows)_ | Checks GitHub Releases and installs the latest version in-app.                                                                                                 |
-| 🕵️ **Private by design**        | No account, no tracking, no cloud. All data lives in a local `electron-store` file on your machine.                                                            |
+|                             |                                                                                                                                                                |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🗂️ **Unified workspace**    | Add any web app by URL and switch between them from a clean sidebar. Reorder services by drag-and-drop.                                                        |
+| 🔒 **Isolated sessions**    | Every service runs in its own Chromium session partition, so logins and cookies never mix — sign in to two accounts of the same app without conflict.          |
+| 🔔 **Real unread badges**   | Per-service notification detection (Gmail's feed, Messenger/WhatsApp DOM, and window-title counts) surfaces accurate unread counts on the sidebar and taskbar. |
+| 💤 **Service hibernation**  | Optionally unload idle services to reclaim RAM; they reload on next click and stay logged in. Great for lower-memory machines.                                 |
+| 🔎 **In-app link preview**  | Open links in a lightweight in-app popup via the "View Link" context action instead of losing your place or leaving the app.                                   |
+| 🖥️ **Native desktop feel**  | Frameless custom titlebar with back/forward/reload, persistent window size & position, native context menus, and light/dark themes.                            |
+| ⌨️ **Keyboard shortcuts**   | Jump between services with `Ctrl`+`1`–`9`, even while a web app has focus.                                                                                     |
+| 📥 **Download handling**    | Configurable download location and completion notifications.                                                                                                   |
+| 🔕 **Focus options**        | Per-service mute and optional blur-when-inactive for privacy.                                                                                                  |
+| ✅ **Todo**                 | Built-in daily task list. Add and check off tasks, carry unfinished work forward. Works offline, and can optionally sync to a Notion database you own.         |
+| 🤖 **Messenger automation** | Optional automation panel for Messenger: scheduled and interval messages, emoji bursts, and automated in-app call cycles.                                      |
+| ⬆️ **Auto-updates**         | Checks GitHub Releases and installs the latest version in-app (on macOS it downloads the new `.dmg` for you to drag in).                                       |
+| 🕵️ **Private by design**    | No account, no tracking, no cloud. All data lives in a local `electron-store` file on your machine.                                                            |
 
 ## Installation
 
@@ -69,7 +70,21 @@ That link always gives you the newest version. Once it downloads:
 
 Prefer to see all versions and release notes? Browse the [**Releases**](https://github.com/devlargs/largs-hub/releases/latest) page. The installer is `Largs Hub Setup.exe` (NSIS), and it keeps itself up to date in-app.
 
-> **macOS & Linux:** There are no prebuilt macOS or Linux downloads yet. The packaging config includes `.dmg` and `.AppImage` targets, so you can [build them from source](#development) on those platforms — but they're currently unofficial, untested, and don't receive auto-updates. Contributions to harden cross-platform support are very welcome.
+### Download (macOS)
+
+Pick the build for your Mac:
+
+- **Apple Silicon (M1 and later):** [⬇️ `Largs-Hub-arm64.dmg`](https://github.com/devlargs/largs-hub/releases/latest/download/Largs-Hub-arm64.dmg)
+- **Intel:** [⬇️ `Largs-Hub-x64.dmg`](https://github.com/devlargs/largs-hub/releases/latest/download/Largs-Hub-x64.dmg)
+
+Once it downloads:
+
+1. Open the `.dmg` and drag **Largs Hub** into **Applications**.
+2. Open Largs Hub from Applications. The app isn't notarized by Apple yet, so macOS blocks it the first time. Go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to the Largs Hub message. (On macOS 14 and earlier you can right-click the app and choose **Open** instead.)
+
+When an update is available, the app downloads the new `.dmg` and opens it. Drag Largs Hub into Applications again to replace the old version.
+
+> **Linux:** There is no prebuilt Linux download yet. The packaging config includes an `.AppImage` target, so you can [build it from source](#development), but it's unofficial and untested.
 
 ## Getting Started
 

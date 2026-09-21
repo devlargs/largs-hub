@@ -1,4 +1,4 @@
-import { app, ipcMain, WebContentsView } from "electron";
+import { app, ipcMain, shell, WebContentsView } from "electron";
 import path from "path";
 import fs from "fs";
 import https from "https";
@@ -6,7 +6,8 @@ import crypto from "crypto";
 import { spawn } from "child_process";
 
 // In-app updater: checks the latest GitHub release for devlargs/largs-hub and
-// downloads + launches the NSIS installer. Pending update info is kept in the
+// downloads + launches the NSIS installer on Windows, or downloads and opens the
+// DMG on macOS (the app is unsigned, so it can't replace itself in place). Pending update info is kept in the
 // main process; the renderer only gets a boolean + version string and can
 // never influence what gets downloaded.
 
@@ -23,9 +24,40 @@ let pendingUpdate: { url: string; sha256: string | null } | null = null;
 // which is still reading the file — so it's cleaned up on the next launch
 // instead (issue #65).
 export const UPDATE_INSTALLER_NAME = "largs-hub-update.exe";
+export const MAC_UPDATE_INSTALLER_NAME = "largs-hub-update.dmg";
 
-export function updateInstallerPath(): string {
-  return path.join(app.getPath("temp"), UPDATE_INSTALLER_NAME);
+export function updateInstallerPath(platform: NodeJS.Platform = process.platform): string {
+  return path.join(
+    app.getPath("temp"),
+    platform === "darwin" ? MAC_UPDATE_INSTALLER_NAME : UPDATE_INSTALLER_NAME,
+  );
+}
+
+export interface ReleaseAsset {
+  name: string;
+  browser_download_url?: string;
+  digest?: string;
+}
+
+/**
+ * Picks the release asset this machine should install: the NSIS `.exe` on
+ * Windows, or the DMG built for this CPU on macOS (the release ships one per
+ * arch, named `…-arm64.dmg` / `…-x64.dmg`). Anything else gets no update.
+ */
+export function pickUpdateAsset(
+  assets: unknown,
+  platform: NodeJS.Platform,
+  arch: string,
+): ReleaseAsset | null {
+  if (!Array.isArray(assets)) return null;
+  const named = assets.filter(
+    (a): a is ReleaseAsset => typeof a?.name === "string" && !a.name.endsWith(".blockmap"),
+  );
+  if (platform === "win32") return named.find((a) => a.name.endsWith(".exe")) ?? null;
+  if (platform === "darwin") {
+    return named.find((a) => a.name.endsWith(`-${arch}.dmg`)) ?? null;
+  }
+  return null;
 }
 
 export interface InstallerCleanupFs {
@@ -122,9 +154,7 @@ export function registerUpdater(deps: UpdaterDeps) {
       const latest = (data.tag_name || "").replace(/^v/, "");
       const current = app.getVersion();
       if (isNewerVersion(latest, current)) {
-        const asset = data.assets?.find(
-          (a: { name: string }) => a.name.endsWith(".exe") && !a.name.endsWith(".blockmap"),
-        );
+        const asset = pickUpdateAsset(data.assets, process.platform, process.arch);
         const downloadUrl: string | undefined = asset?.browser_download_url;
         if (!downloadUrl || !isAllowedUpdateUrl(downloadUrl)) {
           return { updateAvailable: false };
@@ -202,6 +232,20 @@ export function registerUpdater(deps: UpdaterDeps) {
                 if (expectedSha256 && actualSha256 !== expectedSha256) {
                   fs.unlink(tmpPath, () => {});
                   reject(new Error("Update rejected: checksum mismatch"));
+                  return;
+                }
+                if (process.platform === "darwin") {
+                  // Mount the DMG in Finder so the user can drag the new app
+                  // over the old one, then quit so the old copy isn't in use.
+                  void shell.openPath(tmpPath).then((err) => {
+                    if (err) {
+                      reject(new Error(`Could not open the update: ${err}`));
+                      return;
+                    }
+                    resolve();
+                    app.quit();
+                    setTimeout(() => app.exit(0), 2000);
+                  });
                   return;
                 }
                 // Launch the NSIS installer silently in a fully detached process.
