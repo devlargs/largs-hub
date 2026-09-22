@@ -4,12 +4,15 @@ import fs from "fs";
 import https from "https";
 import crypto from "crypto";
 import { spawn } from "child_process";
+import { MAC_UPDATE_SCRIPT, MAC_UPDATE_SCRIPT_NAME, macAppBundlePath } from "./macUpdate";
 
 // In-app updater: checks the latest GitHub release for devlargs/largs-hub and
-// downloads + launches the NSIS installer on Windows, or downloads and opens the
-// DMG on macOS (the app is unsigned, so it can't replace itself in place). Pending update info is kept in the
-// main process; the renderer only gets a boolean + version string and can
-// never influence what gets downloaded.
+// downloads + launches the NSIS installer on Windows. On macOS it downloads the
+// DMG and hands it to a script that swaps the new app in and relaunches it
+// (see macUpdate.ts), falling back to opening the DMG in Finder when the app
+// can't replace itself. Pending update info is kept in the main process; the
+// renderer only gets a boolean + version string and can never influence what
+// gets downloaded.
 
 interface UpdaterDeps {
   getUiView(): WebContentsView | null;
@@ -134,6 +137,40 @@ function isAllowedUpdateUrl(rawUrl: string): boolean {
   }
 }
 
+// The bundle to replace on macOS, or null when this copy can't replace itself:
+// macAppBundlePath rules out dev runs, the DMG and translocated copies, and the
+// bundle and the folder it sits in have to be writable for the swap.
+function macReplaceableBundle(): string | null {
+  const bundle = macAppBundlePath(app.getPath("exe"));
+  if (!bundle) return null;
+  try {
+    fs.accessSync(bundle, fs.constants.W_OK);
+    fs.accessSync(path.dirname(bundle), fs.constants.W_OK);
+    return bundle;
+  } catch {
+    return null;
+  }
+}
+
+// Starts the macOS update script, fully detached so it outlives this process.
+// Its output goes to a log next to it in the temp folder, the only trace of an
+// update that went wrong after the app had already quit.
+function spawnMacUpdate(dmgPath: string, bundle: string): void {
+  const dir = app.getPath("temp");
+  const scriptPath = path.join(dir, MAC_UPDATE_SCRIPT_NAME);
+  fs.writeFileSync(scriptPath, MAC_UPDATE_SCRIPT, { mode: 0o755 });
+  const log = fs.openSync(path.join(dir, "largs-hub-update.log"), "w");
+  try {
+    const child = spawn("/bin/bash", [scriptPath, String(process.pid), dmgPath, bundle], {
+      detached: true,
+      stdio: ["ignore", log, log],
+    });
+    child.unref();
+  } finally {
+    fs.closeSync(log);
+  }
+}
+
 export function registerUpdater(deps: UpdaterDeps) {
   // Clear last update's installer out of %TEMP%. Deferred rather than done at
   // startup so it doesn't race the installer that just relaunched the app, and
@@ -235,8 +272,26 @@ export function registerUpdater(deps: UpdaterDeps) {
                   return;
                 }
                 if (process.platform === "darwin") {
-                  // Mount the DMG in Finder so the user can drag the new app
-                  // over the old one, then quit so the old copy isn't in use.
+                  // Replace the app in place and relaunch it, like Windows.
+                  const bundle = macReplaceableBundle();
+                  if (bundle) {
+                    try {
+                      spawnMacUpdate(tmpPath, bundle);
+                    } catch (err) {
+                      reject(err instanceof Error ? err : new Error(String(err)));
+                      return;
+                    }
+                    setTimeout(() => {
+                      resolve();
+                      app.quit();
+                      setTimeout(() => app.exit(0), 2000);
+                    }, 1000);
+                    return;
+                  }
+                  // Can't replace this copy (running from the DMG, translocated,
+                  // or Applications isn't writable): mount the DMG in Finder so
+                  // the user can drag the new app over the old one, then quit so
+                  // the old copy isn't in use.
                   void shell.openPath(tmpPath).then((err) => {
                     if (err) {
                       reject(new Error(`Could not open the update: ${err}`));

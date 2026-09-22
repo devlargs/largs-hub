@@ -51,7 +51,7 @@ Juggling a dozen browser tabs for the apps you use all day is noisy and easy to 
 | 🔕 **Focus options**        | Per-service mute and optional blur-when-inactive for privacy.                                                                                                  |
 | ✅ **Todo**                 | Daily task list backed by Notion. The Todo service is the [Tasks](https://tasks.ralphlargo.com) web app, so it matches the phone version.                      |
 | 🤖 **Messenger automation** | Optional automation panel for Messenger: scheduled and interval messages, emoji bursts, and automated in-app call cycles.                                      |
-| ⬆️ **Auto-updates**         | Checks GitHub Releases and installs the latest version in-app (on macOS it downloads the new `.dmg` for you to drag in).                                       |
+| ⬆️ **Auto-updates**         | Checks GitHub Releases, then downloads and installs the latest version and reopens the app, on Windows and macOS.                                              |
 | 🕵️ **Private by design**    | No account, no tracking, no cloud. All data lives in a local `electron-store` file on your machine.                                                            |
 
 ## Installation
@@ -107,7 +107,7 @@ This removes the "downloaded from the internet" flag, so the app opens normally.
 > [!IMPORTANT]
 > This dialog appears because the app isn't signed and notarized by Apple, not because anything is wrong with it. It goes away for everyone only once the app is signed with an Apple Developer ID and notarized, which needs a paid Apple Developer account. Until then, use one of the steps above.
 
-When an update is available, the app downloads the new `.dmg` and opens it. Drag Largs Hub into Applications again to replace the old version.
+When an update is available, the app downloads it, closes, replaces the old version in Applications and reopens, the same as on Windows. If it can't replace itself (for example, it's still running from the `.dmg`, or you don't have permission to change the Applications folder), it opens the new `.dmg` instead so you can drag Largs Hub into Applications.
 
 > **Linux:** There is no prebuilt Linux download yet. The packaging config includes an `.AppImage` target, so you can [build it from source](#development), but it's unofficial and untested.
 
