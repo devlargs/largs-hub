@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Turning a service's Notifications off now stops its pop-ups.** The switch only hid the unread count, so the service kept sending native notifications (Notification Center on macOS, toasts on Windows). The service's page is now refused permission to notify while the switch is off, and allowed again when you turn it back on, without reloading.
 
 ## [0.1.64] (2026-09-22)
 - **Todo is now the Tasks web app.** The Todo service loads [tasks.ralphlargo.com](https://tasks.ralphlargo.com) like any other web service, so it's the same list you use from your phone. It gets updates when the site does, without an app release. Your existing Todo service switches over by itself. Sign in once with the site's password. Tasks already in your Notion database are all there. The app's own copy of the list and its saved Notion connection are removed, so a Todo list that was never connected to Notion doesn't carry over.

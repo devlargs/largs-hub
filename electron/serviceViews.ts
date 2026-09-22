@@ -18,6 +18,7 @@ import {
 import { DEFAULT_ZOOM, nextZoom, sanitizeZoom } from "./zoom";
 import { computeAutomationLayout } from "./automationLayout";
 import { SIDEBAR_WIDTH, TITLEBAR_HEIGHT, FIND_BAR_HEIGHT } from "./shared/layout";
+import { isPermissionAllowed } from "./servicePermissions";
 import { spoofedUserAgent, withChromeIdentityHeaders } from "./userAgent";
 
 // Service-view lifecycle: creation (with UA spoofing, permission policy,
@@ -754,29 +755,18 @@ function createServiceView(service: Service): WebContentsView {
     });
   });
 
-  // Deny-by-default permission policy. Without a handler Electron grants
-  // whatever the page asks for (camera, mic, geolocation, clipboard, ...).
-  // Setting the handler is idempotent per session, so calling it again on
-  // view recreation is safe.
-  const allowedPermissions = new Set<string>([
-    "notifications",
-    "fullscreen",
-    "clipboard-sanitized-write",
-  ]);
-  try {
-    const host = new URL(service.url).hostname;
-    // Messenger / WhatsApp need camera+mic for calls
-    if (/(^|\.)messenger\.com$|(^|\.)facebook\.com$|(^|\.)whatsapp\.com$/.test(host)) {
-      allowedPermissions.add("media");
-    }
-  } catch {
-    // invalid URL — keep the restrictive default
-  }
+  // Deny-by-default permission policy (servicePermissions.ts). Both handlers
+  // read the service from the store on every call rather than this captured
+  // copy, so flipping its Notifications toggle takes effect at once: Chromium
+  // asks the check handler before it shows each notification. Setting the
+  // handlers is idempotent per session, so calling it again on view
+  // recreation is safe.
+  const liveService = () => store.get("services").find((s) => s.id === service.id);
   view.webContents.session.setPermissionRequestHandler((_wc, permission, callback) => {
-    callback(allowedPermissions.has(permission));
+    callback(isPermissionAllowed(liveService(), permission));
   });
   view.webContents.session.setPermissionCheckHandler((_wc, permission) =>
-    allowedPermissions.has(permission),
+    isPermissionAllowed(liveService(), permission),
   );
 
   // Messenger/Facebook calls: Meta's web client opens an about:blank popup and
