@@ -37,6 +37,8 @@ CI runs `typecheck`, `lint`, and `test` on every push and PR, so all three must 
 
 **Update `CHANGELOG.md` with every change you make.** Add a short, user-facing bullet under the `## [Unreleased]` section (create it at the top if missing), matching the existing style. When a version is released, the `[Unreleased]` bullets move under a `## [x.y.z] (date)` heading.
 
+**Update `README.md` with every significant change, in the same commit.** A significant change is anything that makes the README wrong or incomplete: a feature added, removed or reworked, a platform-specific behaviour (install, update, shortcuts, window chrome, badges), a setting, a download or install step, a script, a dependency named in the Tech Stack, or a file shown in the Architecture tree. Check every claim the change touches on both Windows and macOS, and say "Windows only" or "macOS only" where it applies. Bug fixes that don't change what the README describes don't need it.
+
 Three TypeScript projects: `tsconfig.json` covers `src/` (renderer), `tsconfig.electron.json` covers `electron/` (main + preload, CommonJS, emits to `dist-electron/`), and `tsconfig.test.json` covers `test/`. `npm run typecheck` runs all three.
 
 ## Architecture

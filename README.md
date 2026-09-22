@@ -9,13 +9,13 @@ A free, privacy-friendly alternative to [Rambox](https://rambox.app/). Keep Gmai
 [![Latest release](https://img.shields.io/github/v/release/devlargs/largs-hub?label=download&logo=github)](https://github.com/devlargs/largs-hub/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/devlargs/largs-hub/total?logo=github)](https://github.com/devlargs/largs-hub/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/download-Windows-0078D6?logo=windows&logoColor=white)](#installation)
+[![Platform](https://img.shields.io/badge/download-Windows-0078D6?logo=windows&logoColor=white)](#download-windows)
 [![Platform](https://img.shields.io/badge/download-macOS-000000?logo=apple&logoColor=white)](#download-macos)
 [![Built with Electron](https://img.shields.io/badge/built%20with-Electron-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 
-### 👉 [Download Largs Hub for Windows](https://github.com/devlargs/largs-hub/releases/latest/download/Largs%20Hub%20Setup.exe)
+### 👉 Download: [Windows](https://github.com/devlargs/largs-hub/releases/latest/download/Largs%20Hub%20Setup.exe) · [macOS (Apple Silicon)](https://github.com/devlargs/largs-hub/releases/latest/download/Largs-Hub-arm64.dmg) · [macOS (Intel)](https://github.com/devlargs/largs-hub/releases/latest/download/Largs-Hub-x64.dmg)
 
-_Click the link above to download the installer, run it, and you're done — no setup required._
+_Windows: run the installer. macOS: open the `.dmg` and drag Largs Hub into Applications. See [Installation](#installation) if your system warns you on first launch._
 
 </div>
 
@@ -38,21 +38,23 @@ Juggling a dozen browser tabs for the apps you use all day is noisy and easy to 
 
 ## Features
 
-|                             |                                                                                                                                                                |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🗂️ **Unified workspace**    | Add any web app by URL and switch between them from a clean sidebar. Reorder services by drag-and-drop.                                                        |
-| 🔒 **Isolated sessions**    | Every service runs in its own Chromium session partition, so logins and cookies never mix — sign in to two accounts of the same app without conflict.          |
-| 🔔 **Real unread badges**   | Per-service notification detection (Gmail's feed, Messenger/WhatsApp DOM, and window-title counts) surfaces accurate unread counts on the sidebar and taskbar. |
-| 💤 **Service hibernation**  | Optionally unload idle services to reclaim RAM; they reload on next click and stay logged in. Great for lower-memory machines.                                 |
-| 🔎 **In-app link preview**  | Open links in a lightweight in-app popup via the "View Link" context action instead of losing your place or leaving the app.                                   |
-| 🖥️ **Native desktop feel**  | Frameless custom titlebar with back/forward/reload, persistent window size & position, native context menus, and light/dark themes.                            |
-| ⌨️ **Keyboard shortcuts**   | Jump between services with `Ctrl`+`1`–`9`, even while a web app has focus.                                                                                     |
-| 📥 **Download handling**    | Configurable download location and completion notifications.                                                                                                   |
-| 🔕 **Focus options**        | Per-service mute and optional blur-when-inactive for privacy.                                                                                                  |
-| ✅ **Todo**                 | Daily task list backed by Notion. The Todo service is the [Tasks](https://tasks.ralphlargo.com) web app, so it matches the phone version.                      |
-| 🤖 **Messenger automation** | Optional automation panel for Messenger: scheduled and interval messages, emoji bursts, and automated in-app call cycles.                                      |
-| ⬆️ **Auto-updates**         | Checks GitHub Releases, then downloads and installs the latest version and reopens the app, on Windows and macOS.                                              |
-| 🕵️ **Private by design**    | No account, no tracking, no cloud. All data lives in a local `electron-store` file on your machine.                                                            |
+|                             |                                                                                                                                                                                                     |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🗂️ **Unified workspace**    | Add any web app by URL, or pick from presets like Gmail, Slack, Discord, WhatsApp and Messenger. Reorder by drag-and-drop or `Alt`+`↑`/`↓`, and give any service a custom icon.                     |
+| 🔒 **Isolated sessions**    | Every service runs in its own Chromium session partition, so logins and cookies never mix. Sign in to two accounts of the same app without conflict.                                                |
+| 🔔 **Real unread badges**   | Per-service detection (Gmail's feed, Messenger and WhatsApp page counts, and window-title counts) shows unread counts in the sidebar, on the Windows taskbar, and on the tray icon.                 |
+| 💤 **Service hibernation**  | Optionally unload idle services to reclaim RAM. They reload on the next click and stay signed in.                                                                                                   |
+| 🔎 **Link preview & find**  | Open a link in an in-app popup with **View Link** from the right-click menu, and search a page with `Ctrl`+`F`.                                                                                     |
+| 🖥️ **Native desktop feel**  | Back/forward/reload in the title bar, per-service zoom, remembered window size and position, native menus, and light/dark themes. Custom window buttons on Windows, native traffic lights on macOS. |
+| ⌨️ **Keyboard shortcuts**   | `Ctrl`+`1`–`9` jumps between services (hold `Ctrl` to see the numbers), even while a web app has focus. `Ctrl` is the Control key on macOS too.                                                     |
+| 📥 **Download handling**    | Choose a download folder, and optionally open the file or folder and get an alert when a download finishes.                                                                                         |
+| 🕶️ **Privacy & focus**      | Per-service sound and notification switches, blur when inactive, and a privacy cover that hides part of a service's page.                                                                           |
+| 🔐 **Workspace lock**       | Optional master password that locks the workspace after it has been minimized for a while.                                                                                                          |
+| 🧺 **Tray & startup**       | Close or minimize to the system tray (the menu bar on macOS), with a menu that jumps to any service, and launch at login.                                                                           |
+| ✅ **Todo**                 | A daily task list that carries unfinished work forward. The Todo service is the [Tasks](https://tasks.ralphlargo.com) web app, which keeps tasks on the device or in a Notion database you connect. |
+| 🤖 **Messenger automation** | Optional automation panel for Messenger: scheduled and interval messages, emoji bursts, and automated in-app call cycles.                                                                           |
+| ⬆️ **Auto-updates**         | Checks GitHub Releases, then downloads and installs the latest version and reopens the app, on Windows and macOS.                                                                                   |
+| 🕵️ **Private by design**    | No account and no telemetry. Your services and settings live in a local `electron-store` file, and each service's login stays in its own session on your machine.                                   |
 
 ## Installation
 
@@ -114,9 +116,11 @@ When an update is available, the app downloads it, closes, replaces the old vers
 ## Getting Started
 
 1. Launch Largs Hub.
-2. Click **＋ Add Service** in the sidebar.
-3. Give it a name and the web app's URL (e.g. `https://mail.google.com`), then save.
-4. Sign in once — your session is remembered and isolated from every other service.
+2. Click **Add Your First Service** (later, the **Home** button at the top of the sidebar brings you back to **Add Service**).
+3. Pick a preset, or choose **Custom** and enter a name and the web app's address (e.g. `https://mail.google.com`), then save.
+4. Sign in once. Your session is remembered and isolated from every other service.
+
+Right-click a service in the sidebar for its options (enable, sound, notifications, privacy, edit, clear data, remove). App-wide settings are behind the gear icon in the title bar.
 
 Repeat for each app you want in your workspace.
 
@@ -124,8 +128,9 @@ Repeat for each app you want in your workspace.
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 18 or newer
+- [Node.js](https://nodejs.org/) 22 (the version CI uses; the test runner needs 20 or newer)
 - npm
+- To package the macOS app: a Mac (the build ad-hoc signs the bundle with `codesign`)
 
 ### Setup
 
@@ -145,17 +150,19 @@ Starts the Vite dev server, the Electron TypeScript watcher, and Electron itself
 
 ### Common scripts
 
-| Script                                    | Description                                            |
-| ----------------------------------------- | ------------------------------------------------------ |
-| `npm run dev`                             | Run the app in development with hot reload             |
-| `npm run build`                           | Type-check and build the renderer + Electron bundles   |
-| `npm run electron:build`                  | Build and package a platform installer into `release/` |
-| `npm run typecheck`                       | Type-check the renderer, Electron, and test projects   |
-| `npm run lint` / `npm run lint:fix`       | Lint with ESLint                                       |
-| `npm run format` / `npm run format:check` | Format with Prettier                                   |
-| `npm test`                                | Run the Vitest unit suite                              |
+| Script                                    | Description                                                |
+| ----------------------------------------- | ---------------------------------------------------------- |
+| `npm run dev`                             | Run the app in development with hot reload                 |
+| `npm run build`                           | Type-check and build the renderer + Electron bundles       |
+| `npm run electron:build`                  | Build and package an installer for this OS into `release/` |
+| `npm run typecheck`                       | Type-check the renderer, Electron, and test projects       |
+| `npm run lint` / `npm run lint:fix`       | Lint with ESLint                                           |
+| `npm run format` / `npm run format:check` | Format with Prettier                                       |
+| `npm test`                                | Run the Vitest unit suite                                  |
 
 > **Windows packaging note:** If you hit symlink errors during `electron:build`, enable **Developer Mode** in _Settings → System → For developers_.
+>
+> **macOS packaging note:** `electron:build` on a Mac produces both DMGs (Apple Silicon and Intel). Releases build the Windows installer and both DMGs in GitHub Actions (`release.yml`).
 
 ## Tech Stack
 
@@ -165,8 +172,10 @@ Starts the Vite dev server, the Electron TypeScript watcher, and Electron itself
 - **[Tailwind CSS 4](https://tailwindcss.com/)** — styling with Catppuccin-style theme variables
 - **[Zustand](https://github.com/pmndrs/zustand)** — lightweight renderer state (notification counts)
 - **[electron-store](https://github.com/sindresorhus/electron-store)** — local persistence for services and preferences
-- **[electron-builder](https://www.electron.build/)** — packaging and auto-updates
-- **[Vitest](https://vitest.dev/)** + **ESLint** + **Prettier** — testing and code quality, run in CI on every PR
+- **[electron-builder](https://www.electron.build/)** — packaging (NSIS installer on Windows, DMG on macOS)
+- **[Vitest](https://vitest.dev/)** + **ESLint** + **Prettier** — testing and code quality, run in CI on every push and PR
+
+Updates don't use electron-updater: `electron/updater.ts` checks GitHub Releases itself and runs the installer (Windows) or swaps the app bundle in place (macOS, `electron/macUpdate.ts`), since neither build is code-signed.
 
 ## Architecture
 
@@ -174,32 +183,36 @@ Largs Hub is built on a three-layer `WebContentsView` stack hosted in a single f
 
 - **UI view** — the React app (sidebar, titlebar, modals, settings), rendered transparently over the full window.
 - **Service views** — one `WebContentsView` per enabled service, each with its own `persist:service-<id>` session partition for isolated logins. Only the active one is visible.
-- **Overlay views** — the link-preview and call popups, layered on top.
+- **Overlay views** — the link preview, layered on top. (Messenger calls open in their own window.)
 
-The main process owns all persistence, native menus, notification detection (via pluggable per-service **badge adapters**), download handling, and the auto-updater. The renderer holds only runtime UI state and communicates through a typed IPC bridge (`main.ts` handler ⇄ `preload.ts` API ⇄ `types.ts` interface).
+The main process owns all persistence, native menus, notification detection (via pluggable per-service **badge adapters**), download handling, and the auto-updater. The renderer holds only runtime UI state and communicates through a typed IPC bridge (a handler in `main.ts` or `electron/ipc/` ⇄ the `preload.ts` API ⇄ the `src/types.ts` interface). Payload types are declared once, in `electron/shared/types.ts`.
 
 ```
 largs-hub/
-├── electron/               # Main process & preload
-│   ├── main.ts             # Window + layered view orchestration
-│   ├── preload.ts          # Typed contextBridge API
-│   ├── serviceViews.ts     # Service-view lifecycle, calls, hibernation
-│   ├── store.ts            # electron-store schema & helpers
-│   ├── downloads.ts        # Download session handling
-│   ├── updater.ts          # GitHub Releases auto-updater
-│   ├── notificationCounts.ts
+├── electron/                 # Main process & preload
+│   ├── main.ts               # Window, UI layer and overlay orchestration
+│   ├── preload.ts            # Typed contextBridge API
+│   ├── serviceViews.ts       # Service-view lifecycle, calls, hibernation
+│   ├── store.ts              # electron-store schema & migrations
+│   ├── downloads.ts          # Download session handling
+│   ├── updater.ts            # GitHub Releases auto-updater
+│   ├── macUpdate.ts          # In-place app replacement on macOS
+│   ├── notificationCounts.ts # Badge state, Windows taskbar badge
+│   ├── tray.ts               # Tray / menu bar icon and menu
 │   ├── messengerAutomation.ts
-│   ├── notionNotes.ts
-│   ├── badge-adapters/     # Per-service unread-count detection
-│   └── ipc/                # services & settings IPC handlers
-├── src/                    # React renderer
-│   ├── components/         # UI components
-│   ├── store/              # Zustand stores
-│   ├── types.ts            # Shared IPC/types
+│   ├── badge-adapters/       # Per-service unread-count detection
+│   ├── ipc/                  # services, settings, security & list-group IPC handlers
+│   └── shared/               # Types and layout constants shared with the renderer
+├── src/                      # React renderer
+│   ├── components/           # UI components
+│   ├── lib/                  # Pure renderer helpers
+│   ├── store/                # Zustand stores
+│   ├── types.ts              # The window.electronAPI interface
 │   ├── App.tsx
 │   └── index.css
-├── test/                   # Vitest unit tests
-└── assets/                 # App & service icons
+├── scripts/                  # Build helpers (macOS ad-hoc signing, changelog stamping)
+├── test/                     # Vitest unit tests
+└── assets/                   # App & service icons
 ```
 
 ## Contributing
@@ -209,16 +222,17 @@ Contributions are welcome!
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feat/your-feature`)
 3. Make your changes
-4. Verify locally: `npm run typecheck`, `npm run lint`, and `npm test`
+4. Verify locally: `npm run typecheck`, `npm run lint`, `npm run format:check`, and `npm test` (CI runs all four)
 5. Commit with a descriptive message (`git commit -m "feat: add your feature"`)
 6. Push and open a Pull Request
 
 ### Guidelines
 
 - Follow the existing style — TypeScript throughout, functional React components, Tailwind + CSS-variable theming.
-- Keep the main / preload / renderer layers cleanly separated; add IPC in all three places (`main.ts`, `preload.ts`, `types.ts`).
+- Keep the main / preload / renderer layers cleanly separated; add IPC in all three places (a main-process handler, `preload.ts`, `src/types.ts`).
+- Make changes work on both Windows and macOS, or say why only one is affected.
 - Keep PRs focused — one feature or fix each.
-- Update `CHANGELOG.md` with a short, user-facing note for your change.
+- Update `CHANGELOG.md` with a short, user-facing note for your change, and this README when the change affects what it describes.
 
 ## License
 
