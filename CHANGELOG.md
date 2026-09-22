@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.64] (2026-09-22)
 - **Todo is now the Tasks web app.** The Todo service loads [tasks.ralphlargo.com](https://tasks.ralphlargo.com) like any other web service, so it's the same list you use from your phone. It gets updates when the site does, without an app release. Your existing Todo service switches over by itself. Sign in once with the site's password. Tasks already in your Notion database are all there. The app's own copy of the list and its saved Notion connection are removed, so a Todo list that was never connected to Notion doesn't carry over.
 - **A shorter menu for Todo.** Right-clicking the Todo service no longer offers **Sound**, **Notifications**, **Blur when inactive** or **Privacy mode**, which don't do anything for a task list. If any of them was switched on for Todo, it's switched back off.
 - **Sidebar icons no longer stay faded after a drag.** Holding the mouse on a service icon, or dragging one and letting go outside the sidebar, could leave the icon faded and shrunk as if it were disabled, until you dragged something else. This happened most on macOS, where a slightly long click on the trackpad was enough. The icon now goes back to normal as soon as you let go.
