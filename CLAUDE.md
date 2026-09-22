@@ -65,7 +65,7 @@ Adding any main↔renderer capability touches three places, which must be kept c
 2. `electron/preload.ts` — method on the `api` object exposed as `window.electronAPI`
 3. `src/types.ts` — matching signature on the `ElectronAPI` interface
 
-**Payload types are not duplicated.** `Service`, the Todo types, `TaskSpec`, `AutomationTask` and friends live once in `electron/shared/types.ts`; `store.ts` re-exports them, preload imports them from `./shared/types`, and `src/types.ts` re-exports them via `@shared/types`. Add or change a field there and both tsconfig projects fail until every caller agrees — so declare new payload shapes in the shared module, never in the layer that happens to need them first.
+**Payload types are not duplicated.** `Service`, `TaskSpec`, `AutomationTask` and friends live once in `electron/shared/types.ts`; `store.ts` re-exports them, preload imports them from `./shared/types`, and `src/types.ts` re-exports them via `@shared/types`. Add or change a field there and both tsconfig projects fail until every caller agrees — so declare new payload shapes in the shared module, never in the layer that happens to need them first.
 
 ### Service view behaviors (createServiceView in main.ts)
 
@@ -122,7 +122,7 @@ Act as an expert in TypeScript, Electron, and desktop app development.
 - Use electron-builder (already configured) for packaging and updates; extend it rather than hand-rolling deployment.
 - Implement comprehensive error handling: try-catch around fallible main-process work, proper logging, and error boundaries in React where applicable.
 - Document non-obvious code and architectural decisions to facilitate future development and debugging.
-- Tests are Vitest, in `test/`, one suite per module. Add coverage for pure logic you write or change — that is how `tasksLogic`, `badgeAdapters`, `badgeImage`, `taskLinks`, and `customIcons` are covered. When the logic worth testing is buried in a module that imports Electron, extract it to a pure module and test that (the pattern `badgeImage.ts` and `customIcons.ts` follow).
+- Tests are Vitest, in `test/`, one suite per module. Add coverage for pure logic you write or change — that is how `serviceSchema`, `badgeAdapters`, `badgeImage`, and `customIcons` are covered. When the logic worth testing is buried in a module that imports Electron, extract it to a pure module and test that (the pattern `badgeImage.ts` and `customIcons.ts` follow).
 - Tests are the only way to verify behaviour here, since the app is never launched (see Commands above). A change to pure logic with no test is unverified.
 
 ### Key Conventions

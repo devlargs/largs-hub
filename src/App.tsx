@@ -9,7 +9,6 @@ import MessengerAutomationPanel from "./components/MessengerAutomationPanel";
 import WelcomeScreen from "./components/WelcomeScreen";
 import SettingsPage from "./components/SettingsPage";
 import DisabledServiceScreen from "./components/DisabledServiceScreen";
-import TodoPage from "./components/todo/TodoPage";
 import RetiredNoteTakerScreen from "./components/RetiredNoteTakerScreen";
 import LockScreen from "./components/LockScreen";
 import ConfirmDialog, { ConfirmTone } from "./components/ui/ConfirmDialog";
@@ -453,9 +452,6 @@ function App() {
             <Suspense fallback={null}>
               <ChangelogPage />
             </Suspense>
-          )}
-          {activeService?.type === "todo" && activeService.enabled !== false && (
-            <TodoPage key={activeService.id} service={activeService} />
           )}
           {activeService?.type === "notion-notes" && activeService.enabled !== false && (
             <RetiredNoteTakerScreen

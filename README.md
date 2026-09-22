@@ -49,7 +49,7 @@ Juggling a dozen browser tabs for the apps you use all day is noisy and easy to 
 | ⌨️ **Keyboard shortcuts**   | Jump between services with `Ctrl`+`1`–`9`, even while a web app has focus.                                                                                     |
 | 📥 **Download handling**    | Configurable download location and completion notifications.                                                                                                   |
 | 🔕 **Focus options**        | Per-service mute and optional blur-when-inactive for privacy.                                                                                                  |
-| ✅ **Todo**                 | Built-in daily task list. Add and check off tasks, carry unfinished work forward. Works offline, and can optionally sync to a Notion database you own.         |
+| ✅ **Todo**                 | Daily task list backed by Notion. The Todo service is the [Tasks](https://tasks.ralphlargo.com) web app, so it matches the phone version.                      |
 | 🤖 **Messenger automation** | Optional automation panel for Messenger: scheduled and interval messages, emoji bursts, and automated in-app call cycles.                                      |
 | ⬆️ **Auto-updates**         | Checks GitHub Releases and installs the latest version in-app (on macOS it downloads the new `.dmg` for you to drag in).                                       |
 | 🕵️ **Private by design**    | No account, no tracking, no cloud. All data lives in a local `electron-store` file on your machine.                                                            |

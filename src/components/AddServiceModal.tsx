@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { InternalServiceType, Service } from "../types";
+import { InternalServiceType, Service, TASKS_URL } from "../types";
 import { normalizeServiceUrl, serviceNameFromUrl } from "../lib/serviceUrl";
 import { sortByName } from "../lib/serviceOrder";
 import { builtInIconForName, uploadToDiscard } from "../lib/iconEdit";
@@ -24,12 +24,7 @@ const POPULAR_SERVICES: {
   { name: "WhatsApp", url: "https://web.whatsapp.com", icon: "whatsapp.png" },
   { name: "Telegram", url: "https://web.telegram.org", icon: "telegram.png" },
   { name: "Notion", url: "https://www.notion.so", icon: "notion.png" },
-  {
-    name: "Todo",
-    url: "todo://internal",
-    icon: "todo.svg",
-    type: "todo",
-  },
+  { name: "Todo", url: TASKS_URL, icon: "todo.svg" },
   { name: "Twitter / X", url: "https://x.com", icon: "x.png" },
   { name: "Reddit", url: "https://reddit.com", icon: "reddit.png" },
   { name: "LinkedIn", url: "https://linkedin.com", icon: "linkedin.png" },
@@ -175,7 +170,7 @@ export default function AddServiceModal({
         submitted.current = false;
         return;
       }
-      // Internal services (Todo) carry a non-http URL that is never edited
+      // Internal services (the retired Note Taker) carry a URL that is never edited
       const url = editingService!.type ? editingService!.url : normalizeServiceUrl(editUrl);
       if (!url) {
         // The main process would reject this and hand back the unchanged list,

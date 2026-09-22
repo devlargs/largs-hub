@@ -16,13 +16,6 @@ import type {
   ListGroupsResult,
   MessageListGroup,
   NoticeReason,
-  TodoCalendarResult,
-  TodoConnectResult,
-  TodoConnectionState,
-  TodoListResult,
-  TodoSyncState,
-  TodoTask,
-  TodoTaskResult,
   SecurityResult,
   SecurityState,
   Service,
@@ -118,33 +111,6 @@ export interface ElectronAPI {
   downloadAndInstallUpdate: () => Promise<void>;
   onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
   onDownloadComplete: (callback: (fileName: string) => void) => () => void;
-  todo: {
-    getState: (serviceId: string) => Promise<TodoConnectionState>;
-    connect: (serviceId: string, apiKey: string, databaseId: string) => Promise<TodoConnectResult>;
-    resetDatabase: (serviceId: string) => Promise<{ ok: boolean; error?: string }>;
-    adoptDatabase: (serviceId: string) => Promise<{ ok: boolean; error?: string }>;
-    disconnect: (serviceId: string) => Promise<void>;
-    databaseUrl: (serviceId: string) => Promise<string | null>;
-    list: (serviceId: string, date: string) => Promise<TodoListResult>;
-    calendar: (serviceId: string, from: string, to: string) => Promise<TodoCalendarResult>;
-    refresh: (serviceId: string, date: string) => Promise<TodoListResult>;
-    create: (serviceId: string, date: string, text: string) => Promise<TodoTaskResult>;
-    update: (
-      serviceId: string,
-      taskId: string,
-      patch: { text?: string; done?: boolean },
-    ) => Promise<TodoTaskResult>;
-    defer: (serviceId: string, taskId: string) => Promise<TodoTaskResult>;
-    schedule: (serviceId: string, taskId: string, date: string) => Promise<TodoTaskResult>;
-    remove: (serviceId: string, taskId: string) => Promise<TodoTaskResult>;
-    reorder: (serviceId: string, date: string, taskIds: string[]) => Promise<TodoTaskResult>;
-    syncState: (serviceId: string) => Promise<TodoSyncState | null>;
-    retrySync: (serviceId: string) => Promise<TodoSyncState | null>;
-    onSyncUpdated: (callback: (state: TodoSyncState) => void) => () => void;
-    onTasksUpdated: (
-      callback: (data: { serviceId: string; tasks: TodoTask[] }) => void,
-    ) => () => void;
-  };
   messengerAutomation: {
     start: (serviceId: string, spec: TaskSpec) => Promise<StartResult>;
     stop: (taskId: string) => Promise<AutomationTask[]>;

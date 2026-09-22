@@ -20,7 +20,6 @@ import {
   getAutomationPanelWidth,
 } from "../serviceViews";
 import { getNotificationCounts } from "../notificationCounts";
-import { forgetTodoService } from "../tasks";
 import { clearServiceSessionData } from "../partitions";
 import { deleteCustomIconFile } from "../customIcons";
 import { supersededIconFile } from "../iconCleanup";
@@ -151,9 +150,6 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     // the account, and the id is gone from the store, so its cookies, storage
     // and cache would otherwise be unreachable on disk forever.
     await clearServiceSessionData(serviceId);
-
-    // Drop the Todo service's tasks, queue, and Notion credentials
-    forgetTodoService(store, serviceId);
 
     return services;
   });

@@ -4,6 +4,7 @@ import {
   migrateLegacyServiceShape,
   sanitizeService,
 } from "../electron/serviceSchema";
+import { TASKS_URL } from "../electron/shared/types";
 
 describe("isSafeServiceUrl", () => {
   it("accepts http and https", () => {
@@ -102,24 +103,33 @@ describe("sanitizeService", () => {
   });
 
   it("allows an internal service to have no URL at all", () => {
-    const todo = sanitizeService({ id: "p", name: "Todo", type: "todo" });
-    expect(todo).toMatchObject({ type: "todo", url: "" });
     const retired = sanitizeService({ id: "n", name: "Notes", type: "notion-notes" });
-    expect(retired).toMatchObject({ type: "notion-notes" });
+    expect(retired).toMatchObject({ type: "notion-notes", url: "" });
   });
 
-  // Services stored before the Pomodoro service became a plain Todo list still
-  // carry the old type, name and icon — they have to survive the rename.
-  it("migrates a stored Pomodoro service onto the todo type", () => {
-    expect(
-      sanitizeService({ id: "p", name: "Pomodoro", type: "pomodoro", icon: "pomodoro.svg" }),
-    ).toMatchObject({ type: "todo", name: "Todo", icon: "todo.svg" });
+  // The built-in Todo list (and the Pomodoro service before it) became the
+  // tasks web app: stored services on those types turn into a web service.
+  it("turns a stored built-in Todo service into the tasks web app", () => {
+    const todo = sanitizeService({ id: "p", name: "Todo", type: "todo", url: "todo://internal" });
+    expect(todo).toMatchObject({ id: "p", name: "Todo", url: TASKS_URL });
+    expect(todo).not.toHaveProperty("type");
+  });
+
+  it("migrates a stored Pomodoro service onto the tasks web app", () => {
+    const pomodoro = sanitizeService({
+      id: "p",
+      name: "Pomodoro",
+      type: "pomodoro",
+      icon: "pomodoro.svg",
+    });
+    expect(pomodoro).toMatchObject({ name: "Todo", icon: "todo.svg", url: TASKS_URL });
+    expect(pomodoro).not.toHaveProperty("type");
   });
 
   it("keeps a renamed Pomodoro service's own name", () => {
     expect(
       sanitizeService({ id: "p", name: "My list", type: "pomodoro", icon: "custom:a.png" }),
-    ).toMatchObject({ type: "todo", name: "My list", icon: "custom:a.png" });
+    ).toMatchObject({ name: "My list", icon: "custom:a.png", url: TASKS_URL });
   });
 
   it("drops an unrecognised type rather than trusting it", () => {
@@ -143,21 +153,33 @@ describe("sanitizeService", () => {
 // The blank-pane bug: get-services returns the stored list untouched, so a
 // service left on the old type never reaches a renderer that recognises it.
 describe("migrateLegacyServiceShape", () => {
-  it("folds a stored Pomodoro service onto the todo type", () => {
-    expect(
-      migrateLegacyServiceShape({
-        id: "p",
-        name: "Pomodoro",
-        type: "pomodoro",
-        icon: "pomodoro.svg",
-      }),
-    ).toMatchObject({ type: "todo", name: "Todo", icon: "todo.svg" });
+  it("folds a stored Pomodoro service onto the tasks web app", () => {
+    const migrated = migrateLegacyServiceShape({
+      id: "p",
+      name: "Pomodoro",
+      type: "pomodoro",
+      icon: "pomodoro.svg",
+    });
+    expect(migrated).toMatchObject({ name: "Todo", icon: "todo.svg", url: TASKS_URL });
+    expect(migrated).not.toHaveProperty("type");
+  });
+
+  it("folds a stored built-in Todo service onto the tasks web app", () => {
+    const migrated = migrateLegacyServiceShape({
+      id: "t",
+      name: "Todo",
+      type: "todo",
+      icon: "todo.svg",
+      url: "todo://internal",
+    });
+    expect(migrated).toMatchObject({ id: "t", name: "Todo", icon: "todo.svg", url: TASKS_URL });
+    expect(migrated).not.toHaveProperty("type");
   });
 
   it("keeps a name and icon the user chose", () => {
     expect(
-      migrateLegacyServiceShape({ id: "p", name: "My list", type: "pomodoro", icon: "custom:a" }),
-    ).toMatchObject({ type: "todo", name: "My list", icon: "custom:a" });
+      migrateLegacyServiceShape({ id: "p", name: "My list", type: "todo", icon: "custom:a" }),
+    ).toMatchObject({ name: "My list", icon: "custom:a", url: TASKS_URL });
   });
 
   it("carries every other field across untouched", () => {
@@ -175,7 +197,6 @@ describe("migrateLegacyServiceShape", () => {
       color: "#abcdef",
       muted: true,
       privacyMode: true,
-      url: "pomodoro://internal",
     });
   });
 
@@ -183,7 +204,7 @@ describe("migrateLegacyServiceShape", () => {
   // tells them apart by identity.
   it("returns the very same object when there is nothing to migrate", () => {
     for (const input of [
-      { id: "a", name: "A", type: "todo" },
+      { id: "a", name: "A", url: TASKS_URL },
       { id: "b", name: "B", url: "https://example.com" },
       { id: "c", name: "C", type: "notion-notes" },
       null,

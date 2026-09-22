@@ -49,11 +49,15 @@ export interface SecurityResult {
   error?: string;
 }
 
-export type InternalServiceType = "todo" | "notion-notes";
+export type InternalServiceType = "notion-notes";
 
 export function isInternalService(service: { type?: string } | null | undefined): boolean {
-  return service?.type === "todo" || service?.type === "notion-notes";
+  return service?.type === "notion-notes";
 }
+
+// The Todo service is the tasks web app (the devlargs/tasks repo), hosted as an
+// ordinary web service so it's only ever changed in one place.
+export const TASKS_URL = "https://tasks.ralphlargo.com";
 
 export interface Service {
   id: string;
@@ -69,73 +73,10 @@ export interface Service {
   // Covers the top half of the service page so only the bottom 50% is visible
   privacyMode?: boolean;
   // Internal services render as React pages instead of getting a
-  // WebContentsView in the main process. "notion-notes" is retired (the Note
-  // Taker was replaced by Todo) and only renders a migration notice.
+  // WebContentsView in the main process. The only one left is "notion-notes",
+  // which is retired (the Note Taker was replaced by Todo) and only renders a
+  // migration notice.
   type?: InternalServiceType;
-}
-
-// --- Todo (internal "todo" service) -----------------------------------------
-
-export interface TodoTask {
-  id: string;
-  text: string;
-  done: boolean;
-  // The day this task belongs to, YYYY-MM-DD in local time
-  date: string;
-  order: number;
-  // Notion page id, present once the task has been pushed
-  pageId?: string;
-  editedAt: string;
-}
-
-// Notion connection state for the service (not the same as sync health)
-export type TodoConnectionState = "local" | "pending" | "pending-adoptable" | "ready";
-
-export type TodoSyncStatus = "local" | "synced" | "syncing" | "offline";
-
-export interface TodoSyncState {
-  serviceId: string;
-  status: TodoSyncStatus;
-  pending: number;
-  error?: string;
-}
-
-export interface TodoListResult {
-  ok: boolean;
-  error?: string;
-  tasks?: TodoTask[];
-  // Ids of tasks just moved onto this day from an earlier one, so the UI can
-  // show them arriving rather than having them appear out of nowhere.
-  carried?: string[];
-  pulledAt?: number;
-  sync?: TodoSyncState;
-}
-
-// One day's tally for the Todo calendar view
-export interface TodoDaySummary {
-  done: number;
-  pending: number;
-}
-
-export interface TodoCalendarResult {
-  ok: boolean;
-  error?: string;
-  // Keyed YYYY-MM-DD; days with no tasks are absent
-  days?: Record<string, TodoDaySummary>;
-}
-
-export interface TodoTaskResult {
-  ok: boolean;
-  error?: string;
-  task?: TodoTask;
-  tasks?: TodoTask[];
-}
-
-export interface TodoConnectResult {
-  ok: boolean;
-  error?: string;
-  needsReset?: boolean;
-  adoptable?: boolean;
 }
 
 export type TaskSpec =

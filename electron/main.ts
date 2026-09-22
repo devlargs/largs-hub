@@ -4,7 +4,6 @@ import { pathToFileURL } from "url";
 import { customIconsDir, resolveCustomIconPath, sweepOrphanedIcons } from "./customIcons";
 import { store, StoreSchema } from "./store";
 import { registerMessengerAutomation, restoreAutomationState } from "./messengerAutomation";
-import { registerTodo } from "./tasks";
 import { registerUpdater } from "./updater";
 import { registerServicesIpc } from "./ipc/services";
 import { sweepOrphanedPartitions } from "./partitions";
@@ -54,7 +53,6 @@ import {
 // Entry point: owns the frameless window and the React UI layer (uiView), the
 // link-preview overlay, and z-order IPC. Everything else lives in modules:
 //   store.ts              persistent state + stored-shape validation
-//   tasks.ts              Todo tasks: local store + optional Notion sync
 //   serviceViews.ts       service view lifecycle, switching, hibernation
 //   downloads.ts          per-session download handling + completion toast
 //   notificationCounts.ts badge state, debounce, taskbar overlay
@@ -374,12 +372,6 @@ registerListGroupsIpc();
 
 registerUpdater({
   getMainWindow: () => mainWindow,
-  getUiView: () => uiView,
-});
-
-// Todo (internal "todo" service): daily tasks, optionally synced to Notion.
-registerTodo({
-  store,
   getUiView: () => uiView,
 });
 

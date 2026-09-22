@@ -59,6 +59,8 @@ describe("sortByName", () => {
   });
 
   it("keeps the rest of each entry intact", () => {
-    expect(sortByName([{ name: "Todo", type: "todo" }])).toEqual([{ name: "Todo", type: "todo" }]);
+    expect(sortByName([{ name: "Notes", type: "notion-notes" }])).toEqual([
+      { name: "Notes", type: "notion-notes" },
+    ]);
   });
 });

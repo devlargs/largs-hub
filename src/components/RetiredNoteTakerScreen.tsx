@@ -43,8 +43,7 @@ export default function RetiredNoteTakerScreen({ service, onRemove }: RetiredNot
           }}
         >
           “{service.name}” was a Notion Note Taker service, which has been replaced by{" "}
-          <strong>Todo</strong> — a daily task list, which can sync to a Notion database in the same
-          way.
+          <strong>Todo</strong> — a daily task list kept in a Notion database.
         </p>
         <p
           style={{

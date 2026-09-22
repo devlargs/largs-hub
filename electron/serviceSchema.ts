@@ -1,4 +1,4 @@
-import type { InternalServiceType, Service } from "./shared/types";
+import { TASKS_URL, type InternalServiceType, type Service } from "./shared/types";
 
 // Runtime validation for service shapes coming off IPC or out of the store.
 //
@@ -17,20 +17,22 @@ export function isSafeServiceUrl(url: unknown): url is string {
   }
 }
 
-// The Pomodoro service became the Todo service. Stored services still carry
-// the old type, name and icon, and nothing downstream recognises "pomodoro" any
-// more — the page renders blank and the main process treats it as a web view.
-// Folding them forward has to happen on *every* read of the store, not just on
-// the write paths that go through sanitizeService, so the rule lives here on
-// its own. Returns the same object when there is nothing to change, which is
-// what lets a caller tell whether the stored list needs rewriting.
+// The Todo service used to be built in: first as "pomodoro", then as the
+// internal "todo" type rendered by a React page. It's now the tasks web app at
+// TASKS_URL, loaded like any other web service, so stored services on either
+// old type become a plain web service pointed there. Folding them forward has
+// to happen on *every* read of the store, not just on the write paths that go
+// through sanitizeService, so the rule lives here on its own. Returns the same
+// object when there is nothing to change, which is what lets a caller tell
+// whether the stored list needs rewriting.
 export function migrateLegacyServiceShape(raw: unknown): unknown {
   if (typeof raw !== "object" || raw === null) return raw;
   const s = raw as Record<string, unknown>;
-  if (s.type !== "pomodoro") return raw;
+  if (s.type !== "pomodoro" && s.type !== "todo") return raw;
+  const { type: _legacyType, ...rest } = s;
   return {
-    ...s,
-    type: "todo",
+    ...rest,
+    url: TASKS_URL,
     // Only the untouched default name is replaced — a list the user renamed
     // keeps the name they gave it.
     name: s.name === "Pomodoro" ? "Todo" : s.name,
@@ -44,8 +46,7 @@ export function sanitizeService(raw: unknown): Service | null {
   const s = migrated as Record<string, unknown>;
   if (typeof s.id !== "string" || s.id.length === 0) return null;
   if (typeof s.name !== "string" || s.name.length === 0) return null;
-  const type: InternalServiceType | undefined =
-    s.type === "todo" || s.type === "notion-notes" ? s.type : undefined;
+  const type: InternalServiceType | undefined = s.type === "notion-notes" ? s.type : undefined;
   if (!type && !isSafeServiceUrl(s.url)) return null;
   return {
     id: s.id,

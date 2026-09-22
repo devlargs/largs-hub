@@ -5,15 +5,8 @@ import type {
   AutoStopUpdate,
   AutomationTask,
   ListGroupsResult,
-  TodoCalendarResult,
-  TodoConnectResult,
   MessageListGroup,
   NoticeReason,
-  TodoConnectionState,
-  TodoListResult,
-  TodoSyncState,
-  TodoTask,
-  TodoTaskResult,
   SecurityResult,
   SecurityState,
   Service,
@@ -227,60 +220,6 @@ const api = {
     const handler = (_event: Electron.IpcRendererEvent, fileName: string) => callback(fileName);
     ipcRenderer.on("download-complete", handler);
     return () => ipcRenderer.removeListener("download-complete", handler);
-  },
-
-  // Todo (internal service): the daily task list
-  todo: {
-    getState: (serviceId: string): Promise<TodoConnectionState> =>
-      ipcRenderer.invoke("todo-get-state", serviceId),
-    connect: (serviceId: string, apiKey: string, databaseId: string): Promise<TodoConnectResult> =>
-      ipcRenderer.invoke("todo-connect", serviceId, apiKey, databaseId),
-    resetDatabase: (serviceId: string): Promise<{ ok: boolean; error?: string }> =>
-      ipcRenderer.invoke("todo-reset-database", serviceId),
-    adoptDatabase: (serviceId: string): Promise<{ ok: boolean; error?: string }> =>
-      ipcRenderer.invoke("todo-adopt-database", serviceId),
-    disconnect: (serviceId: string): Promise<void> =>
-      ipcRenderer.invoke("todo-disconnect", serviceId),
-    databaseUrl: (serviceId: string): Promise<string | null> =>
-      ipcRenderer.invoke("todo-database-url", serviceId),
-    list: (serviceId: string, date: string): Promise<TodoListResult> =>
-      ipcRenderer.invoke("todo-list", serviceId, date),
-    calendar: (serviceId: string, from: string, to: string): Promise<TodoCalendarResult> =>
-      ipcRenderer.invoke("todo-calendar", serviceId, from, to),
-    refresh: (serviceId: string, date: string): Promise<TodoListResult> =>
-      ipcRenderer.invoke("todo-refresh", serviceId, date),
-    create: (serviceId: string, date: string, text: string): Promise<TodoTaskResult> =>
-      ipcRenderer.invoke("todo-create", serviceId, date, text),
-    update: (
-      serviceId: string,
-      taskId: string,
-      patch: { text?: string; done?: boolean },
-    ): Promise<TodoTaskResult> => ipcRenderer.invoke("todo-update", serviceId, taskId, patch),
-    defer: (serviceId: string, taskId: string): Promise<TodoTaskResult> =>
-      ipcRenderer.invoke("todo-defer", serviceId, taskId),
-    schedule: (serviceId: string, taskId: string, date: string): Promise<TodoTaskResult> =>
-      ipcRenderer.invoke("todo-schedule", serviceId, taskId, date),
-    remove: (serviceId: string, taskId: string): Promise<TodoTaskResult> =>
-      ipcRenderer.invoke("todo-remove", serviceId, taskId),
-    reorder: (serviceId: string, date: string, taskIds: string[]): Promise<TodoTaskResult> =>
-      ipcRenderer.invoke("todo-reorder", serviceId, date, taskIds),
-    syncState: (serviceId: string): Promise<TodoSyncState | null> =>
-      ipcRenderer.invoke("todo-sync-state", serviceId),
-    retrySync: (serviceId: string): Promise<TodoSyncState | null> =>
-      ipcRenderer.invoke("todo-retry-sync", serviceId),
-    onSyncUpdated: (callback: (state: TodoSyncState) => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, state: TodoSyncState) => callback(state);
-      ipcRenderer.on("todo-sync-updated", handler);
-      return () => ipcRenderer.removeListener("todo-sync-updated", handler);
-    },
-    onTasksUpdated: (callback: (data: { serviceId: string; tasks: TodoTask[] }) => void) => {
-      const handler = (
-        _event: Electron.IpcRendererEvent,
-        data: { serviceId: string; tasks: TodoTask[] },
-      ) => callback(data);
-      ipcRenderer.on("todo-tasks-updated", handler);
-      return () => ipcRenderer.removeListener("todo-tasks-updated", handler);
-    },
   },
 
   messengerAutomation: {

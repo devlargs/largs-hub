@@ -1,6 +1,5 @@
 import Store from "electron-store";
 import { migrateLegacyServiceShape } from "./serviceSchema";
-import { TodoData, TodoNotionConfig } from "./tasks";
 import { MessageListGroup } from "./messageLists";
 import type { MasterPasswordCredential } from "./masterPassword";
 import type { AutoStopState, AutomationTask, Service } from "./shared/types";
@@ -72,10 +71,6 @@ export interface StoreSchema {
   masterPasswordCredential: MasterPasswordCredential | null;
   // Minutes the window may sit minimized before the workspace locks
   lockDelayMinutes: number;
-  // Todo service: local task state (the source of truth for writes) and
-  // the optional Notion connection behind it, both keyed by service id
-  todoTasks: Record<string, TodoData>;
-  todoNotion: Record<string, TodoNotionConfig>;
 }
 
 export const store = new Store<StoreSchema>({
@@ -106,8 +101,6 @@ export const store = new Store<StoreSchema>({
     securityControlsEnabled: false,
     masterPasswordCredential: null,
     lockDelayMinutes: 10,
-    todoTasks: {},
-    todoNotion: {},
   },
 });
 
@@ -124,12 +117,12 @@ if (legacyStore.has("notionNotes")) {
   legacyStore.delete("notionNotes");
 }
 
-// One-time migration: stored services still carry `type: "pomodoro"`. Nothing
-// reads that type any more, so until it is rewritten the service renders as a
-// blank pane and the main process treats it as an ordinary web view. This runs
-// at module load, before main.ts touches the store, so every later reader —
-// including the get-services IPC handler, which returns the stored list as-is —
-// sees the migrated shape.
+// One-time migration: stored services may still carry `type: "pomodoro"` or
+// `type: "todo"`. Nothing reads either type any more — the Todo service is now
+// the tasks web app — so until they are rewritten with its URL they have no
+// page to show. This runs at module load, before main.ts touches the store, so
+// every later reader — including the get-services IPC handler, which returns
+// the stored list as-is — sees the migrated shape.
 const storedServices = store.get("services") as unknown[];
 if (Array.isArray(storedServices)) {
   const migratedServices = storedServices.map(migrateLegacyServiceShape);
@@ -140,25 +133,20 @@ if (Array.isArray(storedServices)) {
   }
 }
 
-// The Pomodoro service became a plain Todo list, so its stored keys move across
-// under the new names. Tasks and Notion credentials
-// are user data — dropping them on the rename would lose the list.
-for (const [from, to] of [
-  ["pomodoroTasks", "todoTasks"],
-  ["pomodoroNotion", "todoNotion"],
-] as const) {
-  if (legacyStore.has(from)) {
-    const existing = legacyStore.get(to) as Record<string, unknown> | undefined;
-    if (!existing || Object.keys(existing).length === 0) {
-      legacyStore.set(to, legacyStore.get(from));
-    }
-    legacyStore.delete(from);
-  }
-}
-
-// The focus timer is gone with it — its lengths and persisted session are dead
-// weight now.
-for (const key of ["pomodoroFocusMinutes", "pomodoroBreakMinutes", "pomodoroTimer"]) {
+// The built-in Todo list is gone: the Todo service now loads the tasks web app,
+// which reads and writes the Notion database directly. Its local task copies
+// and stored Notion connections (an encrypted integration token) are dead
+// weight — drop them, along with the Pomodoro-era keys they replaced and the
+// old focus timer's settings.
+for (const key of [
+  "todoTasks",
+  "todoNotion",
+  "pomodoroTasks",
+  "pomodoroNotion",
+  "pomodoroFocusMinutes",
+  "pomodoroBreakMinutes",
+  "pomodoroTimer",
+]) {
   if (legacyStore.has(key)) legacyStore.delete(key);
 }
 
