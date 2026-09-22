@@ -27,8 +27,12 @@ export default function Sidebar({
   const notificationCounts = useNotificationStore((s) => s.counts);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
-  // Drag and drop state
-  const [dragEnabled, setDragEnabled] = useState(false);
+  // Drag and drop state. A 300ms long-press only *arms* a service for dragging
+  // (armedId, which makes it draggable); it isn't draggedId — and doesn't fade —
+  // until a drag has actually started. Arming it straight into the dragged
+  // state left the icon faded for good whenever the press ended without a
+  // drag, since no dragend ever comes to clear it.
+  const [armedId, setArmedId] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -41,21 +45,27 @@ export default function Sidebar({
     }
   }, []);
 
-  const handlePointerDown = useCallback((serviceId: string) => {
-    didDrag.current = false;
-    longPressTimer.current = setTimeout(() => {
-      setDragEnabled(true);
-      setDraggedId(serviceId);
-    }, 300);
+  const resetDrag = useCallback(() => {
+    setArmedId(null);
+    setDraggedId(null);
+    setDropTargetId(null);
   }, []);
 
+  const handlePointerDown = useCallback((serviceId: string) => {
+    didDrag.current = false;
+    longPressTimer.current = setTimeout(() => setArmedId(serviceId), 300);
+  }, []);
+
+  // A press that ends without a drag disarms, so the next plain click doesn't
+  // start from a draggable button.
   const handlePointerUp = useCallback(() => {
     clearLongPress();
+    setArmedId(null);
   }, [clearLongPress]);
 
   const handleDragStart = useCallback(
     (e: React.DragEvent, serviceId: string) => {
-      if (!dragEnabled) {
+      if (armedId !== serviceId) {
         e.preventDefault();
         return;
       }
@@ -67,7 +77,7 @@ export default function Sidebar({
       e.dataTransfer.setDragImage(img, 0, 0);
       setDraggedId(serviceId);
     },
-    [dragEnabled],
+    [armedId],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent, serviceId: string) => {
@@ -79,12 +89,8 @@ export default function Sidebar({
   const handleDrop = useCallback(
     (e: React.DragEvent, targetId: string) => {
       e.preventDefault();
-      if (!draggedId || draggedId === targetId) {
-        setDraggedId(null);
-        setDropTargetId(null);
-        setDragEnabled(false);
-        return;
-      }
+      resetDrag();
+      if (!draggedId || draggedId === targetId) return;
 
       const oldIds = services.map((s) => s.id);
       const fromIndex = oldIds.indexOf(draggedId);
@@ -95,19 +101,29 @@ export default function Sidebar({
       newIds.splice(fromIndex, 1);
       newIds.splice(toIndex, 0, draggedId);
       onReorderServices(newIds);
-
-      setDraggedId(null);
-      setDropTargetId(null);
-      setDragEnabled(false);
     },
-    [draggedId, services, onReorderServices],
+    [draggedId, services, onReorderServices, resetDrag],
   );
 
-  const handleDragEnd = useCallback(() => {
-    setDraggedId(null);
-    setDropTargetId(null);
-    setDragEnabled(false);
-  }, []);
+  // A drag that ends outside the sidebar (dropped on the service page, which
+  // is a separate native view, or outside the window) isn't guaranteed to
+  // deliver dragend here, notably on macOS. So while one is under way, any
+  // sign the button is back up ends it too: a drop or dragend anywhere in the
+  // page, or the pointer moving again with no button held.
+  useEffect(() => {
+    if (!armedId && !draggedId) return;
+    const onPointerMove = (e: PointerEvent) => {
+      if (e.buttons === 0) resetDrag();
+    };
+    window.addEventListener("dragend", resetDrag);
+    window.addEventListener("drop", resetDrag);
+    window.addEventListener("pointermove", onPointerMove);
+    return () => {
+      window.removeEventListener("dragend", resetDrag);
+      window.removeEventListener("drop", resetDrag);
+      window.removeEventListener("pointermove", onPointerMove);
+    };
+  }, [armedId, draggedId, resetDrag]);
 
   // Clear any pending long-press timer if the sidebar unmounts mid-press
   useEffect(() => clearLongPress, [clearLongPress]);
@@ -188,7 +204,7 @@ export default function Sidebar({
             // Ctrl+N picks the Nth service in sidebar order, disabled ones
             // included — the same lookup main and App.tsx use.
             aria-keyshortcuts={index < 9 ? `Control+${index + 1}` : undefined}
-            draggable={dragEnabled && draggedId === service.id}
+            draggable={armedId === service.id || draggedId === service.id}
             onClick={() => {
               if (!didDrag.current) onSelectService(service.id);
             }}
@@ -198,7 +214,7 @@ export default function Sidebar({
             onDragStart={(e) => handleDragStart(e, service.id)}
             onDragOver={(e) => handleDragOver(e, service.id)}
             onDrop={(e) => handleDrop(e, service.id)}
-            onDragEnd={handleDragEnd}
+            onDragEnd={resetDrag}
             onContextMenu={(e) => handleContextMenu(e, service)}
             onKeyDown={(e) => handleServiceKeyDown(e, service.id)}
             className={`
