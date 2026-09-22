@@ -7,6 +7,7 @@ import {
   nextMuted,
   nextNotificationsEnabled,
   nextPrivacyMode,
+  showsWebView,
 } from "../electron/serviceFlags";
 import type { Service } from "../electron/shared/types";
 
@@ -117,5 +118,26 @@ describe("enableToggleNeedsConfirm", () => {
 
   it("never asks when enabling", () => {
     expect(enableToggleNeedsConfirm(service({ enabled: false }), true)).toBe(false);
+  });
+});
+
+// Switching to a service that gets no web view has to hide the current one and
+// hand the keyboard to the UI, or Ctrl+1-9 stops working from there.
+describe("showsWebView", () => {
+  it("is true for an enabled web service", () => {
+    expect(showsWebView(service())).toBe(true);
+    expect(showsWebView(service({ enabled: true }))).toBe(true);
+  });
+
+  it("is false for a disabled service", () => {
+    expect(showsWebView(service({ enabled: false }))).toBe(false);
+  });
+
+  it("is false for an internal service", () => {
+    expect(showsWebView(service({ type: "notion-notes" }))).toBe(false);
+  });
+
+  it("is false for a service that isn't there", () => {
+    expect(showsWebView(undefined)).toBe(false);
   });
 });

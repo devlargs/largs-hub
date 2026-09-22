@@ -1,4 +1,4 @@
-import type { Service } from "./shared/types";
+import { isInternalService, type Service } from "./shared/types";
 
 // The pure half of a per-service flag toggle: given the current list, produce
 // the next one with a patch merged into a single service.
@@ -34,6 +34,14 @@ export const nextEnabled = (s: Service): Partial<Service> => ({ enabled: s.enabl
  * all of it. Enabling, or disabling a service with nothing running, just
  * happens.
  */
+/**
+ * Whether switching to this service shows a web view. Internal services and
+ * disabled ones are React pages in the UI view instead, so switching to them
+ * hides the current view and hands the keyboard to the UI.
+ */
+export const showsWebView = (s: Service | undefined): s is Service =>
+  !!s && !isInternalService(s) && s.enabled !== false;
+
 export const enableToggleNeedsConfirm = (s: Service, hasAutomation: boolean): boolean =>
   s.enabled !== false && hasAutomation;
 

@@ -1,6 +1,7 @@
 import { BrowserWindow, WebContentsView, Menu, powerMonitor } from "electron";
 import { shell } from "electron";
 import { store, Service, isSafeServiceUrl, isInternalService } from "./store";
+import { showsWebView } from "./serviceFlags";
 import { shouldKeepInView } from "./navigationPolicy";
 import { hookDownloadSession, hasActiveDownload } from "./downloads";
 import { hasAutomationForService } from "./messengerAutomation";
@@ -1229,10 +1230,14 @@ export function showService(serviceId: string) {
   const mainWindow = deps?.getMainWindow();
   if (!mainWindow) return;
 
-  // Internal services render as React pages in the UI view — just make sure
-  // no web view is covering them
+  // Internal and disabled services render as React pages in the UI view —
+  // just make sure no web view is covering them. This has to be settled before
+  // the current view is hidden: bailing out after hiding it left keyboard
+  // focus in a view nobody could see, so Ctrl+1-9 stopped working (the UI's
+  // own key handler never got the keys) and main still thought the hidden
+  // service was active.
   const requested = store.get("services").find((s) => s.id === serviceId);
-  if (isInternalService(requested)) {
+  if (!showsWebView(requested)) {
     hideActiveService();
     return;
   }
@@ -1250,10 +1255,7 @@ export function showService(serviceId: string) {
   // Show or create requested view
   let view = serviceViews.get(serviceId);
   if (!view) {
-    const services = store.get("services");
-    const service = services.find((s) => s.id === serviceId);
-    if (!service || service.enabled === false) return;
-    view = createServiceView(service);
+    view = createServiceView(requested);
     serviceViews.set(serviceId, view);
     serviceLastActive.set(serviceId, Date.now());
     mainWindow.contentView.addChildView(view);
@@ -1276,7 +1278,13 @@ export function showService(serviceId: string) {
 
 export function hideActiveService() {
   const mainWindow = deps?.getMainWindow();
-  if (!mainWindow || !activeServiceId) return;
+  if (!mainWindow) return;
+  // With no service view on screen, the keyboard belongs to the UI: a hidden
+  // view keeps focus otherwise, so keys land in a page nobody can see and the
+  // UI's shortcuts (Ctrl+1-9, zoom, find) never fire. Only while the window
+  // has focus, so this never pulls the app forward on its own.
+  if (windowFocused) deps?.getUiView()?.webContents.focus();
+  if (!activeServiceId) return;
   const currentView = serviceViews.get(activeServiceId);
   if (currentView) {
     currentView.setVisible(false);
