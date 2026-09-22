@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.65] (2026-09-22)
 - **Turning a service's Notifications off now stops its pop-ups.** The switch only hid the unread count, so the service kept sending native notifications (Notification Center on macOS, toasts on Windows). The service's page is now refused permission to notify while the switch is off, and allowed again when you turn it back on, without reloading.
 
 ## [0.1.64] (2026-09-22)
