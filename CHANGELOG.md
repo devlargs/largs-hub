@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.66] (2026-09-22)
 - **Turning a service's Sound off now silences its notifications too.** Sound off muted the page itself, but the chime that comes with each notification is played by the system (Notification Center on macOS, the toast sound on Windows), so messages still made a sound. While Sound is off, the service's notifications now arrive silently. Turning Sound back on brings the chime back, without reloading.
 
 ## [0.1.65] (2026-09-22)
