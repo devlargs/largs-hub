@@ -1,5 +1,6 @@
 import { ipcMain, Menu, BrowserWindow, WebContentsView } from "electron";
 import { store, Service, sanitizeService } from "../store";
+import { isTasksService } from "../shared/types";
 import {
   getServiceView,
   destroyServiceView,
@@ -330,37 +331,7 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
       deps.getUiView()?.webContents.send("services-updated", updated);
     };
 
-    const menu = Menu.buildFromTemplate([
-      { label: service.name, enabled: false },
-      { type: "separator" },
-      {
-        label: "Enabled",
-        type: "checkbox",
-        checked: service.enabled !== false,
-        click: () => {
-          // Disabling ends the service's Messenger automation, so with any
-          // running the renderer asks first and calls toggleServiceEnabled on
-          // confirm. Reads the service now, not the copy the menu opened with.
-          const current = store.get("services").find((s) => s.id === serviceId);
-          if (current && enableToggleNeedsConfirm(current, hasAutomationForService(serviceId))) {
-            deps.getUiView()?.webContents.send("context-menu-action", {
-              action: "confirm-disable-service",
-              serviceId,
-            });
-            return;
-          }
-          const updated = toggleEnabled(serviceId);
-          if (!updated) return;
-          sendUpdated();
-          // If re-enabling, bring the service back on screen.
-          if (updated.find((s) => s.id === serviceId)?.enabled !== false) {
-            deps.getUiView()?.webContents.send("context-menu-action", {
-              action: "show-service",
-              serviceId,
-            });
-          }
-        },
-      },
+    const serviceFlagItems: Electron.MenuItemConstructorOptions[] = [
       {
         label: "Sound",
         type: "checkbox",
@@ -393,6 +364,41 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
           if (togglePrivacyMode(serviceId)) sendUpdated();
         },
       },
+    ];
+
+    const menu = Menu.buildFromTemplate([
+      { label: service.name, enabled: false },
+      { type: "separator" },
+      {
+        label: "Enabled",
+        type: "checkbox",
+        checked: service.enabled !== false,
+        click: () => {
+          // Disabling ends the service's Messenger automation, so with any
+          // running the renderer asks first and calls toggleServiceEnabled on
+          // confirm. Reads the service now, not the copy the menu opened with.
+          const current = store.get("services").find((s) => s.id === serviceId);
+          if (current && enableToggleNeedsConfirm(current, hasAutomationForService(serviceId))) {
+            deps.getUiView()?.webContents.send("context-menu-action", {
+              action: "confirm-disable-service",
+              serviceId,
+            });
+            return;
+          }
+          const updated = toggleEnabled(serviceId);
+          if (!updated) return;
+          sendUpdated();
+          // If re-enabling, bring the service back on screen.
+          if (updated.find((s) => s.id === serviceId)?.enabled !== false) {
+            deps.getUiView()?.webContents.send("context-menu-action", {
+              action: "show-service",
+              serviceId,
+            });
+          }
+        },
+      },
+      // None of these mean anything for the Todo service (see isTasksService)
+      ...(isTasksService(service) ? [] : serviceFlagItems),
       { type: "separator" },
       {
         label: "Edit service",

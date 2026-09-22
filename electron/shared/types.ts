@@ -59,6 +59,19 @@ export function isInternalService(service: { type?: string } | null | undefined)
 // ordinary web service so it's only ever changed in one place.
 export const TASKS_URL = "https://tasks.ralphlargo.com";
 
+// Whether a service is the Todo service, told apart by the host it loads. It's
+// a task list with no sound, no notifications and nothing private to hide, so
+// the per-service Sound, Notifications, Blur when inactive and Privacy mode
+// switches don't apply to it.
+export function isTasksService(service: { url?: string } | null | undefined): boolean {
+  if (!service?.url) return false;
+  try {
+    return new URL(service.url).hostname === new URL(TASKS_URL).hostname;
+  } catch {
+    return false;
+  }
+}
+
 export interface Service {
   id: string;
   name: string;

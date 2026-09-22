@@ -1,4 +1,4 @@
-import { TASKS_URL, type InternalServiceType, type Service } from "./shared/types";
+import { isTasksService, TASKS_URL, type InternalServiceType, type Service } from "./shared/types";
 
 // Runtime validation for service shapes coming off IPC or out of the store.
 //
@@ -28,16 +28,39 @@ export function isSafeServiceUrl(url: unknown): url is string {
 export function migrateLegacyServiceShape(raw: unknown): unknown {
   if (typeof raw !== "object" || raw === null) return raw;
   const s = raw as Record<string, unknown>;
-  if (s.type !== "pomodoro" && s.type !== "todo") return raw;
+  if (s.type !== "pomodoro" && s.type !== "todo") return withoutTasksFlags(raw);
   const { type: _legacyType, ...rest } = s;
-  return {
+  return withoutTasksFlags({
     ...rest,
     url: TASKS_URL,
     // Only the untouched default name is replaced — a list the user renamed
     // keeps the name they gave it.
     name: s.name === "Pomodoro" ? "Todo" : s.name,
     icon: s.icon === "pomodoro.svg" ? "todo.svg" : s.icon,
-  };
+  });
+}
+
+// The Todo service's menu has no Sound, Notifications, Blur when inactive or
+// Privacy mode switch, so one left on from before would be stuck on with no
+// way to turn it off. Those fields go back to their defaults. Same object back
+// when they already are.
+function withoutTasksFlags(raw: unknown): unknown {
+  const s = raw as Record<string, unknown>;
+  if (!isTasksService({ url: typeof s.url === "string" ? s.url : undefined })) return raw;
+  const set =
+    s.muted === true ||
+    s.notificationsEnabled === false ||
+    s.blurWhenInactive === true ||
+    s.privacyMode === true;
+  if (!set) return raw;
+  const {
+    muted: _muted,
+    notificationsEnabled: _notifications,
+    blurWhenInactive: _blur,
+    privacyMode: _privacy,
+    ...rest
+  } = s;
+  return rest;
 }
 
 export function sanitizeService(raw: unknown): Service | null {

@@ -4,7 +4,7 @@ import {
   migrateLegacyServiceShape,
   sanitizeService,
 } from "../electron/serviceSchema";
-import { TASKS_URL } from "../electron/shared/types";
+import { isTasksService, TASKS_URL } from "../electron/shared/types";
 
 describe("isSafeServiceUrl", () => {
   it("accepts http and https", () => {
@@ -182,21 +182,21 @@ describe("migrateLegacyServiceShape", () => {
     ).toMatchObject({ name: "My list", icon: "custom:a", url: TASKS_URL });
   });
 
+  // Sound, Notifications, Blur and Privacy mode are the exception — see the
+  // "Todo service flags" tests below.
   it("carries every other field across untouched", () => {
     const migrated = migrateLegacyServiceShape({
       id: "p",
       name: "Pomodoro",
       type: "pomodoro",
       color: "#abcdef",
-      muted: true,
-      privacyMode: true,
+      enabled: false,
       url: "pomodoro://internal",
     });
     expect(migrated).toMatchObject({
       id: "p",
       color: "#abcdef",
-      muted: true,
-      privacyMode: true,
+      enabled: false,
     });
   });
 
@@ -213,5 +213,72 @@ describe("migrateLegacyServiceShape", () => {
     ]) {
       expect(migrateLegacyServiceShape(input)).toBe(input);
     }
+  });
+});
+
+describe("isTasksService", () => {
+  it("recognises the tasks web app by its host, whatever the path", () => {
+    expect(isTasksService({ url: TASKS_URL })).toBe(true);
+    expect(isTasksService({ url: `${TASKS_URL}/login` })).toBe(true);
+  });
+
+  it("does not match other services or lookalike hosts", () => {
+    expect(isTasksService({ url: "https://mail.google.com" })).toBe(false);
+    expect(isTasksService({ url: "https://ralphlargo.com" })).toBe(false);
+    expect(isTasksService({ url: "https://tasks.ralphlargo.com.evil.com" })).toBe(false);
+  });
+
+  it("is false for a missing or unparseable URL", () => {
+    expect(isTasksService({ url: "" })).toBe(false);
+    expect(isTasksService({ url: "not a url" })).toBe(false);
+    expect(isTasksService(null)).toBe(false);
+    expect(isTasksService(undefined)).toBe(false);
+  });
+});
+
+// The Todo service's menu has no Sound, Notifications, Blur when inactive or
+// Privacy mode switch, so none of them may be left on for it.
+describe("Todo service flags", () => {
+  const flagsOn = {
+    muted: true,
+    notificationsEnabled: false,
+    blurWhenInactive: true,
+    privacyMode: true,
+  };
+
+  it("resets them on a stored tasks web service", () => {
+    const migrated = migrateLegacyServiceShape({
+      id: "t",
+      name: "Todo",
+      url: TASKS_URL,
+      ...flagsOn,
+    });
+    expect(sanitizeService(migrated)).toMatchObject({
+      muted: false,
+      notificationsEnabled: true,
+      blurWhenInactive: false,
+      privacyMode: false,
+    });
+  });
+
+  it("resets them while folding a built-in Todo service over", () => {
+    const service = sanitizeService({ id: "t", name: "Todo", type: "todo", ...flagsOn });
+    expect(service).toMatchObject({
+      url: TASKS_URL,
+      muted: false,
+      notificationsEnabled: true,
+      blurWhenInactive: false,
+      privacyMode: false,
+    });
+  });
+
+  it("leaves the same flags alone on any other service", () => {
+    const input = { id: "g", name: "Gmail", url: "https://mail.google.com", ...flagsOn };
+    expect(migrateLegacyServiceShape(input)).toBe(input);
+  });
+
+  it("returns the same object when a tasks service's flags are already off", () => {
+    const input = { id: "t", name: "Todo", url: TASKS_URL, muted: false, privacyMode: false };
+    expect(migrateLegacyServiceShape(input)).toBe(input);
   });
 });

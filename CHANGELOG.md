@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 - **Todo is now the Tasks web app.** The Todo service loads [tasks.ralphlargo.com](https://tasks.ralphlargo.com) like any other web service, so it's the same list you use from your phone. It gets updates when the site does, without an app release. Your existing Todo service switches over by itself. Sign in once with the site's password. Tasks already in your Notion database are all there. The app's own copy of the list and its saved Notion connection are removed, so a Todo list that was never connected to Notion doesn't carry over.
+- **A shorter menu for Todo.** Right-clicking the Todo service no longer offers **Sound**, **Notifications**, **Blur when inactive** or **Privacy mode**, which don't do anything for a task list. If any of them was switched on for Todo, it's switched back off.
 
 ## [0.1.63] (2026-09-21)
 - **Unread counts show up on battery.** On a laptop running on battery, services you weren't looking at stopped checking for new messages, so Messenger and WhatsApp showed no count in the sidebar at all. They now keep checking on battery, once a minute instead of every 20 seconds, and the service on screen still updates right away. This was most noticeable on MacBooks, but applied to Windows laptops too. Minimizing the window also no longer stops the checks, so the unread count on the Dock or taskbar keeps up while the window is minimized.
