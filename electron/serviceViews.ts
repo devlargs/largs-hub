@@ -19,6 +19,7 @@ import { DEFAULT_ZOOM, nextZoom, sanitizeZoom } from "./zoom";
 import { computeAutomationLayout } from "./automationLayout";
 import { SIDEBAR_WIDTH, TITLEBAR_HEIGHT, FIND_BAR_HEIGHT } from "./shared/layout";
 import { isPermissionAllowed } from "./servicePermissions";
+import { quietNotificationsScript } from "./quietNotifications";
 import { spoofedUserAgent, withChromeIdentityHeaders } from "./userAgent";
 
 // Service-view lifecycle: creation (with UA spoofing, permission policy,
@@ -814,6 +815,15 @@ function createServiceView(service: Service): WebContentsView {
   if (service.muted) {
     view.webContents.setAudioMuted(true);
   }
+
+  // Muting the view doesn't reach the sound the OS plays with a native
+  // notification, so those are made silent from inside the page as well
+  // (quietNotifications.ts). Each load starts a fresh document, so it's
+  // installed on every one, with the service's current Sound setting.
+  view.webContents.on("dom-ready", () => {
+    const muted = store.get("services").find((s) => s.id === service.id)?.muted === true;
+    view.webContents.executeJavaScript(quietNotificationsScript(muted), true).catch(() => {});
+  });
 
   hookDownloadSession(view, partition);
 

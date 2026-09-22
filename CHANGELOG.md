@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Turning a service's Sound off now silences its notifications too.** Sound off muted the page itself, but the chime that comes with each notification is played by the system (Notification Center on macOS, the toast sound on Windows), so messages still made a sound. While Sound is off, the service's notifications now arrive silently. Turning Sound back on brings the chime back, without reloading.
 - **Turning a service's Notifications off now stops its pop-ups.** The switch only hid the unread count, so the service kept sending native notifications (Notification Center on macOS, toasts on Windows). The service's page is now refused permission to notify while the switch is off, and allowed again when you turn it back on, without reloading.
 
 ## [0.1.64] (2026-09-22)

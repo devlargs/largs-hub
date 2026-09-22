@@ -21,6 +21,7 @@ import {
   getAutomationPanelWidth,
 } from "../serviceViews";
 import { getNotificationCounts } from "../notificationCounts";
+import { quietNotificationsScript } from "../quietNotifications";
 import { clearServiceSessionData } from "../partitions";
 import { deleteCustomIconFile } from "../customIcons";
 import { supersededIconFile } from "../iconCleanup";
@@ -83,7 +84,10 @@ function toggleMute(serviceId: string): Service[] | null {
   if (!updated) return null;
   const view = getServiceView(serviceId);
   if (view && !view.webContents.isDestroyed()) {
-    view.webContents.setAudioMuted(updated.find((s) => s.id === serviceId)?.muted === true);
+    const muted = updated.find((s) => s.id === serviceId)?.muted === true;
+    view.webContents.setAudioMuted(muted);
+    // And the OS sound that comes with its notifications, without a reload
+    view.webContents.executeJavaScript(quietNotificationsScript(muted), true).catch(() => {});
   }
   return updated;
 }
