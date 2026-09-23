@@ -2,14 +2,17 @@ import { useCallback, useState } from "react";
 import Modal from "./ui/Modal";
 import PasswordInput from "./ui/PasswordInput";
 
-// Sets the first master password, or changes an existing one (issue #102).
-// Changing asks for the current password first — otherwise anyone who walks up
-// to an unlocked window can lock the owner out of their own workspace.
+// Sets the first master password, changes an existing one (issue #102), or
+// confirms it before security controls are switched off (issue #111). Changing
+// and switching off ask for the current password first — otherwise anyone who
+// walks up to an unlocked window could lock the owner out of their own
+// workspace, or simply turn the lock off.
 
 interface MasterPasswordDialogProps {
   // "set" is the first-run prompt behind the Add Security Controls toggle;
-  // "change" is the Change Master Password button.
-  mode: "set" | "change";
+  // "disable" switching that toggle off; "change" the Change Master Password
+  // button.
+  mode: "set" | "disable" | "change";
   onDone: () => void;
   onCancel: () => void;
 }
@@ -34,11 +37,14 @@ export default function MasterPasswordDialog({
     if (saving) return;
     setSaving(true);
     setError("");
-    const result = await window.electronAPI.security.setPassword({
-      ...(mode === "change" ? { currentPassword } : {}),
-      password,
-      confirm,
-    });
+    const result =
+      mode === "disable"
+        ? await window.electronAPI.security.setEnabled(false, currentPassword)
+        : await window.electronAPI.security.setPassword({
+            ...(mode === "change" ? { currentPassword } : {}),
+            password,
+            confirm,
+          });
     setSaving(false);
     if (result.ok) {
       onDone();
@@ -47,7 +53,16 @@ export default function MasterPasswordDialog({
     setError(result.error ?? "That didn't work.");
   };
 
-  const title = mode === "change" ? "Change master password" : "Set a master password";
+  const title = {
+    set: "Set a master password",
+    disable: "Turn off security controls",
+    change: "Change master password",
+  }[mode];
+  const description =
+    mode === "disable"
+      ? "Enter your master password to stop asking for it. It's kept, so switching this back on won't ask for a new one."
+      : "It is asked for on every launch, and after the window has been left minimized for a while.";
+  const needsCurrent = mode !== "set";
 
   return (
     <Modal label={title} onClose={handleCancel} width={400}>
@@ -70,33 +85,37 @@ export default function MasterPasswordDialog({
               marginBottom: "var(--space-lg)",
             }}
           >
-            It is asked for on every launch, and after the window has been left minimized for a
-            while.
+            {description}
           </p>
 
           <form onSubmit={submit} className="flex flex-col" style={{ gap: "var(--space-sm)" }}>
-            {mode === "change" && (
+            {needsCurrent && (
               <Field
                 id="current-password"
-                label="Current password"
+                label={mode === "disable" ? "Master password" : "Current password"}
                 value={currentPassword}
                 autoFocus
+                autoComplete="current-password"
                 onChange={setCurrentPassword}
               />
             )}
-            <Field
-              id="new-password"
-              label="Password"
-              value={password}
-              autoFocus={mode === "set"}
-              onChange={setPassword}
-            />
-            <Field
-              id="confirm-password"
-              label="Confirm password"
-              value={confirm}
-              onChange={setConfirm}
-            />
+            {mode !== "disable" && (
+              <>
+                <Field
+                  id="new-password"
+                  label="Password"
+                  value={password}
+                  autoFocus={mode === "set"}
+                  onChange={setPassword}
+                />
+                <Field
+                  id="confirm-password"
+                  label="Confirm password"
+                  value={confirm}
+                  onChange={setConfirm}
+                />
+              </>
+            )}
 
             {/* Reserved height so the buttons don't jump when an error appears. */}
             <div
@@ -140,7 +159,7 @@ export default function MasterPasswordDialog({
                   opacity: saving ? 0.5 : 1,
                 }}
               >
-                {saving ? "Saving\u2026" : "Submit"}
+                {saving ? "Saving\u2026" : mode === "disable" ? "Turn off" : "Submit"}
               </button>
             </div>
           </form>
@@ -155,12 +174,14 @@ function Field({
   label,
   value,
   autoFocus,
+  autoComplete = "new-password",
   onChange,
 }: {
   id: string;
   label: string;
   value: string;
   autoFocus?: boolean;
+  autoComplete?: string;
   onChange: (value: string) => void;
 }) {
   return (
@@ -172,7 +193,7 @@ function Field({
         id={id}
         value={value}
         autoFocus={autoFocus}
-        autoComplete="new-password"
+        autoComplete={autoComplete}
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-lg outline-none"
         style={{

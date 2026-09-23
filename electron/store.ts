@@ -2,6 +2,7 @@ import Store from "electron-store";
 import { migrateLegacyServiceShape } from "./serviceSchema";
 import { MessageListGroup } from "./messageLists";
 import type { MasterPasswordCredential } from "./masterPassword";
+import type { ThrottleState } from "./lockPolicy";
 import type { AutoStopState, AutomationTask, Service } from "./shared/types";
 
 // Persistent app state (electron-store) and the shapes stored in it.
@@ -71,6 +72,8 @@ export interface StoreSchema {
   masterPasswordCredential: MasterPasswordCredential | null;
   // Minutes the window may sit minimized before the workspace locks
   lockDelayMinutes: number;
+  // Wrong-password throttle (issue #111), stored so a relaunch doesn't reset it
+  unlockThrottle: ThrottleState;
 }
 
 export const store = new Store<StoreSchema>({
@@ -101,6 +104,7 @@ export const store = new Store<StoreSchema>({
     securityControlsEnabled: false,
     masterPasswordCredential: null,
     lockDelayMinutes: 10,
+    unlockThrottle: { failures: 0, blockedUntil: null },
   },
 });
 

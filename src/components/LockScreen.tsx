@@ -16,6 +16,11 @@ export default function LockScreen() {
   const [password, setPassword] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState("");
+  // After too many wrong passwords the main process refuses attempts for a
+  // while (issue #111). It enforces the wait; this only shows it, counting
+  // down, and keeps the field disabled until it's over.
+  const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
 
   // The window may have been restored straight onto this screen, so take the
@@ -24,9 +29,32 @@ export default function LockScreen() {
     inputRef.current?.focus();
   }, []);
 
+  const waitSeconds = blockedUntil === null ? 0 : Math.ceil((blockedUntil - now) / 1000);
+  const blocked = waitSeconds > 0;
+
+  useEffect(() => {
+    if (blockedUntil === null) return;
+    const timer = setInterval(() => {
+      const current = Date.now();
+      setNow(current);
+      if (current >= blockedUntil) {
+        setBlockedUntil(null);
+        setError("");
+        setPhase("idle");
+        clearInterval(timer);
+      }
+    }, 250);
+    return () => clearInterval(timer);
+  }, [blockedUntil]);
+
+  // Re-focus once the wait is over; the field was disabled during it.
+  useEffect(() => {
+    if (!blocked) inputRef.current?.focus();
+  }, [blocked]);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (phase === "checking" || password.length === 0) return;
+    if (phase === "checking" || blocked || password.length === 0) return;
     setPhase("checking");
     setError("");
     const result = await window.electronAPI.security.unlock(password);
@@ -39,10 +67,16 @@ export default function LockScreen() {
     setPhase("error");
     setError(result.error ?? "Wrong password.");
     setPassword("");
+    if (result.retryAfterMs) {
+      const current = Date.now();
+      setNow(current);
+      setBlockedUntil(current + result.retryAfterMs);
+    }
     inputRef.current?.focus();
   };
 
-  const disabled = phase === "checking" || phase === "unlocked";
+  const disabled = phase === "checking" || phase === "unlocked" || blocked;
+  const message = blocked ? `Too many attempts. Try again in ${formatWait(waitSeconds)}.` : error;
   const inert = disabled || password.length === 0;
 
   return (
@@ -133,11 +167,11 @@ export default function LockScreen() {
             fontSize: "var(--text-xs)",
             color: "var(--danger)",
             marginTop: "var(--space-xs)",
-            opacity: error ? 1 : 0,
+            opacity: message ? 1 : 0,
             transition: "opacity var(--dur-short) var(--ease-out)",
           }}
         >
-          {error || "\u00a0"}
+          {message || "\u00a0"}
         </div>
 
         <button
@@ -163,4 +197,11 @@ export default function LockScreen() {
       </form>
     </div>
   );
+}
+
+// "30 seconds", "1 second", "2 minutes"
+function formatWait(seconds: number): string {
+  if (seconds < 60) return `${seconds} second${seconds === 1 ? "" : "s"}`;
+  const minutes = Math.ceil(seconds / 60);
+  return `${minutes} minute${minutes === 1 ? "" : "s"}`;
 }

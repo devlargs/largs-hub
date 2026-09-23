@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LOCK_DELAY_MINUTES,
+  FIRST_BLOCK_MS,
+  FREE_ATTEMPTS,
   INITIAL_LOCK_STATE,
+  INITIAL_THROTTLE,
   LockState,
+  MAX_BLOCK_MS,
+  ThrottleState,
   msUntilLock,
   reduceLock,
+  registerFailure,
   sanitizeLockDelayMinutes,
+  sanitizeThrottle,
+  throttleMessage,
+  throttleWaitMs,
 } from "../electron/lockPolicy";
 
 const NOW = 1_700_000_000_000;
@@ -129,5 +138,80 @@ describe("msUntilLock", () => {
 
   it("never goes negative", () => {
     expect(msUntilLock({ armedAt: NOW, locked: false }, NOW + 99 * MINUTE, OPTIONS)).toBe(0);
+  });
+});
+
+describe("wrong-password throttle", () => {
+  const fail = (times: number, start: ThrottleState = INITIAL_THROTTLE, at = NOW) => {
+    let state = start;
+    for (let i = 0; i < times; i++) state = registerFailure(state, at);
+    return state;
+  };
+
+  it("lets the first few wrong passwords through with no wait", () => {
+    const state = fail(FREE_ATTEMPTS - 1);
+    expect(state.failures).toBe(FREE_ATTEMPTS - 1);
+    expect(throttleWaitMs(state, NOW)).toBe(0);
+  });
+
+  it("blocks for 30 seconds on the fifth wrong password", () => {
+    expect(FREE_ATTEMPTS).toBe(5);
+    const state = fail(5);
+    expect(throttleWaitMs(state, NOW)).toBe(FIRST_BLOCK_MS);
+    expect(FIRST_BLOCK_MS).toBe(30_000);
+  });
+
+  it("doubles the wait with every wrong password after that", () => {
+    expect(throttleWaitMs(fail(6), NOW)).toBe(60_000);
+    expect(throttleWaitMs(fail(7), NOW)).toBe(120_000);
+    expect(throttleWaitMs(fail(8), NOW)).toBe(240_000);
+  });
+
+  it("never waits longer than an hour", () => {
+    expect(throttleWaitMs(fail(40), NOW)).toBe(MAX_BLOCK_MS);
+    expect(MAX_BLOCK_MS).toBe(60 * 60_000);
+  });
+
+  it("counts down, and lets an attempt through once the wait is over", () => {
+    const state = fail(5);
+    expect(throttleWaitMs(state, NOW + 10_000)).toBe(20_000);
+    expect(throttleWaitMs(state, NOW + FIRST_BLOCK_MS)).toBe(0);
+    expect(throttleWaitMs(state, NOW + FIRST_BLOCK_MS + 1)).toBe(0);
+  });
+
+  it("keeps counting failures after a wait has run out", () => {
+    // A wrong guess after the 30 s wait doubles it, it doesn't start over.
+    const later = NOW + FIRST_BLOCK_MS;
+    const state = registerFailure(fail(5), later);
+    expect(throttleWaitMs(state, later)).toBe(2 * FIRST_BLOCK_MS);
+  });
+
+  describe("sanitizeThrottle", () => {
+    it("reads back what it stored", () => {
+      const state = fail(6);
+      expect(sanitizeThrottle(JSON.parse(JSON.stringify(state)), NOW)).toEqual(state);
+    });
+
+    it("treats anything odd as no failures", () => {
+      for (const raw of [null, undefined, "x", 3, [], {}]) {
+        expect(sanitizeThrottle(raw, NOW)).toEqual(INITIAL_THROTTLE);
+      }
+      expect(sanitizeThrottle({ failures: -2, blockedUntil: "soon" }, NOW)).toEqual(
+        INITIAL_THROTTLE,
+      );
+    });
+
+    it("caps a wait that runs past the longest real one", () => {
+      const state = sanitizeThrottle({ failures: 9, blockedUntil: NOW + 10 * MAX_BLOCK_MS }, NOW);
+      expect(throttleWaitMs(state, NOW)).toBe(MAX_BLOCK_MS);
+    });
+  });
+
+  it("says how long to wait in words", () => {
+    expect(throttleMessage(30_000)).toBe("Too many attempts. Try again in 30 seconds.");
+    expect(throttleMessage(1_000)).toBe("Too many attempts. Try again in 1 second.");
+    expect(throttleMessage(400)).toBe("Too many attempts. Try again in 1 second.");
+    expect(throttleMessage(120_000)).toBe("Too many attempts. Try again in 2 minutes.");
+    expect(throttleMessage(61_000)).toBe("Too many attempts. Try again in 2 minutes.");
   });
 });

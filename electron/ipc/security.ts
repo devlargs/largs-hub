@@ -8,13 +8,18 @@ import {
 } from "../masterPassword";
 import {
   INITIAL_LOCK_STATE,
+  INITIAL_THROTTLE,
   LockEvent,
   LockState,
   msUntilLock,
   reduceLock,
+  registerFailure,
   sanitizeLockDelayMinutes,
+  sanitizeThrottle,
+  throttleMessage,
+  throttleWaitMs,
 } from "../lockPolicy";
-import type { SecurityResult, SecurityState } from "../shared/types";
+import type { SecurityResult, SecurityState, SecurityUpdate } from "../shared/types";
 import { isFromApp } from "../appOrigin";
 
 // IPC: the workspace lock (issue #102) — the "Add Security Controls" toggle,
@@ -56,6 +61,40 @@ function securityState(): SecurityState {
     lockDelayMinutes: sanitizeLockDelayMinutes(store.get("lockDelayMinutes")),
     locked: lockState.locked,
   };
+}
+
+// One password check at a time. scrypt is async now, so without this a burst
+// of parallel attempts would all read the throttle before any of them had
+// recorded a failure, and slip past it.
+let checkInFlight = false;
+
+/**
+ * The one gate every password goes through: unlocking, turning the lock off
+ * and changing the password. Refuses unchecked while the throttle is blocking,
+ * records a wrong password, and clears the throttle on a right one.
+ */
+async function checkPassword(password: unknown, wrongMessage: string): Promise<SecurityResult> {
+  if (checkInFlight) return { ok: false, error: "Still checking the last attempt." };
+  const now = Date.now();
+  const throttle = sanitizeThrottle(store.get("unlockThrottle"), now);
+  const wait = throttleWaitMs(throttle, now);
+  if (wait > 0) return { ok: false, error: throttleMessage(wait), retryAfterMs: wait };
+
+  checkInFlight = true;
+  try {
+    if (await verifyMasterPassword(password, credential())) {
+      store.set("unlockThrottle", INITIAL_THROTTLE);
+      return { ok: true };
+    }
+    const next = registerFailure(throttle, Date.now());
+    store.set("unlockThrottle", next);
+    const nextWait = throttleWaitMs(next, Date.now());
+    return nextWait > 0
+      ? { ok: false, error: throttleMessage(nextWait), retryAfterMs: nextWait }
+      : { ok: false, error: wrongMessage };
+  } finally {
+    checkInFlight = false;
+  }
 }
 
 function broadcast() {
@@ -124,19 +163,38 @@ export function registerSecurityIpc(d: SecurityIpcDeps) {
 
   ipcMain.handle("get-security-state", (): SecurityState => securityState());
 
-  // Switching the toggle off leaves the credential in place; switching it back
-  // on with a credential already stored asks for nothing.
   // Every handler that changes the lock only answers the app's own page
-  // (issue #112).
-  ipcMain.handle("set-security-enabled", (event, enabled: unknown): SecurityState => {
-    if (!isFromApp(event) || typeof enabled !== "boolean") return securityState();
-    store.set("securityControlsEnabled", enabled);
-    setLockState(enabled ? { armedAt: null, locked: false } : INITIAL_LOCK_STATE);
-    return securityState();
-  });
+  // (issue #112), and none of them does anything while the workspace is
+  // locked: from behind the lock screen the only way forward is unlock-app
+  // (issue #111).
+
+  // Switching the toggle off needs the current password, or anyone at an
+  // unlocked window could turn the lock off. It leaves the credential in
+  // place, so switching it back on asks for nothing.
+  ipcMain.handle(
+    "set-security-enabled",
+    async (event, enabled: unknown, currentPassword: unknown): Promise<SecurityUpdate> => {
+      const refuse = (error?: string): SecurityUpdate => ({
+        ok: false,
+        ...(error ? { error } : {}),
+        state: securityState(),
+      });
+      if (!isFromApp(event) || typeof enabled !== "boolean") return refuse();
+      if (lockState.locked) return refuse("Unlock the workspace first.");
+      const turningOff =
+        !enabled && store.get("securityControlsEnabled") === true && credential() !== null;
+      if (turningOff) {
+        const checked = await checkPassword(currentPassword, "That isn't your current password.");
+        if (!checked.ok) return { ...checked, state: securityState() };
+      }
+      store.set("securityControlsEnabled", enabled);
+      setLockState(enabled ? { armedAt: null, locked: false } : INITIAL_LOCK_STATE);
+      return { ok: true, state: securityState() };
+    },
+  );
 
   ipcMain.handle("set-lock-delay", (event, minutes: unknown): SecurityState => {
-    if (!isFromApp(event)) return securityState();
+    if (!isFromApp(event) || lockState.locked) return securityState();
     store.set("lockDelayMinutes", sanitizeLockDelayMinutes(minutes));
     // Re-arms the pending countdown against the new delay.
     setLockState(lockState);
@@ -147,31 +205,36 @@ export function registerSecurityIpc(d: SecurityIpcDeps) {
   // is nothing to check against) and to change an existing one.
   ipcMain.handle(
     "set-master-password",
-    (
+    async (
       event,
       payload: { currentPassword?: unknown; password?: unknown; confirm?: unknown },
-    ): SecurityResult => {
+    ): Promise<SecurityResult> => {
       if (!isFromApp(event)) return { ok: false, error: "Not allowed." };
-      const existing = credential();
-      if (existing && !verifyMasterPassword(payload?.currentPassword, existing)) {
-        return { ok: false, error: "That isn't your current password." };
-      }
+      if (lockState.locked) return { ok: false, error: "Unlock the workspace first." };
+      // Checked before the current password, so a typo in the new one doesn't
+      // cost a throttled attempt.
       const invalid = validateNewPassword(payload?.password, payload?.confirm);
       if (invalid) return { ok: false, error: invalid };
+      if (credential()) {
+        const checked = await checkPassword(
+          payload?.currentPassword,
+          "That isn't your current password.",
+        );
+        if (!checked.ok) return checked;
+      }
 
-      store.set("masterPasswordCredential", hashMasterPassword(payload!.password as string));
+      store.set("masterPasswordCredential", await hashMasterPassword(payload!.password as string));
       store.set("securityControlsEnabled", true);
       setLockState({ armedAt: null, locked: false });
       return { ok: true };
     },
   );
 
-  ipcMain.handle("unlock-app", (event, password: unknown): SecurityResult => {
+  ipcMain.handle("unlock-app", async (event, password: unknown): Promise<SecurityResult> => {
     if (!isFromApp(event)) return { ok: false, error: "Not allowed." };
     if (!lockState.locked) return { ok: true };
-    if (!verifyMasterPassword(password, credential())) {
-      return { ok: false, error: "Wrong password." };
-    }
+    const checked = await checkPassword(password, "Wrong password.");
+    if (!checked.ok) return checked;
     setLockState({ armedAt: null, locked: false });
     return { ok: true };
   });

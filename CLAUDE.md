@@ -47,7 +47,7 @@ Three TypeScript projects: `tsconfig.json` covers `src/` (renderer), `tsconfig.e
 
 Everything hangs off one frameless `BrowserWindow`:
 
-1. **uiView** — a `WebContentsView` running the React app, sized to the full window, transparent background. Loads `http://localhost:5173` in dev (when `NODE_ENV=development` or `--dev` flag), `dist/index.html` in prod.
+1. **uiView** — a `WebContentsView` running the React app, sized to the full window, transparent background. Loads `http://localhost:5173` in dev (when `NODE_ENV=development` or `--dev` flag, and only when running unpackaged), `dist/index.html` in prod. A packaged build has no DevTools on the UI view and no menu items that open DevTools or reload (`devMode.ts`), since the console there could call `window.electronAPI` past the workspace lock.
 2. **Service views** — one `WebContentsView` per enabled service, each with its own session partition (`persist:service-<id>`) so logins are isolated. Positioned to the right of the sidebar and below the titlebar via the `SIDEBAR_WIDTH` / `TITLEBAR_HEIGHT` constants; only the active one is visible.
 3. **Overlay views** (e.g. the link preview) — added last so they render on top.
 

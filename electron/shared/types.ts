@@ -47,6 +47,15 @@ export interface SecurityResult {
   ok: boolean;
   // Present when ok is false: a sentence to show under the field
   error?: string;
+  // Present when too many wrong passwords have been tried: how long, in ms,
+  // until the main process accepts another attempt (issue #111)
+  retryAfterMs?: number;
+}
+
+// Turning security controls on or off: the outcome, plus the state afterwards
+// so the settings page doesn't need a second round-trip.
+export interface SecurityUpdate extends SecurityResult {
+  state: SecurityState;
 }
 
 export type InternalServiceType = "notion-notes";

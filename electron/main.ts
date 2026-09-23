@@ -12,6 +12,7 @@ import { windowCloseAction, windowMinimizeAction } from "./trayMenu";
 import { linkPreviewBounds, MAC_TRAFFIC_LIGHT_POSITION } from "./shared/layout";
 import { loadWithChromeIdentity } from "./chromeIdentity";
 import { APP_ENTRY_URL, guardUiView } from "./uiViewGuard";
+import { DEVTOOLS_ENABLED, installAppMenu } from "./devMode";
 import { createShortcutHintTracker } from "./shortcutHints";
 import { registerSettingsIpc } from "./ipc/settings";
 import { attachSecurityWindowEvents, registerSecurityIpc } from "./ipc/security";
@@ -135,6 +136,8 @@ function createWindow() {
       // The preload only needs contextBridge and ipcRenderer, both available
       // to a sandboxed preload (issue #112).
       sandbox: true,
+      // DevTools here would reach window.electronAPI past the lock (#111).
+      devTools: DEVTOOLS_ENABLED,
     },
   });
 
@@ -446,6 +449,7 @@ ipcMain.on("window-close", () => mainWindow?.close());
 // --- App lifecycle -------------------------------------------------------------
 
 app.whenReady().then(() => {
+  installAppMenu(); // no DevTools or reload in packaged builds (issue #111)
   // Serves uploaded service icons to the UI view.
   //
   // Registered on the *default* session rather than app-wide (issue #67).

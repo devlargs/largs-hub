@@ -2,6 +2,7 @@ import { WebContents, shell } from "electron";
 import path from "path";
 import { pathToFileURL } from "url";
 import { isAppUrl, setAppEntryUrl } from "./appOrigin";
+import { IS_DEV } from "./devMode";
 
 // Keeps the UI view on the app (issue #112). The UI view holds
 // window.electronAPI, and Chromium navigates a webContents to whatever is
@@ -13,10 +14,9 @@ import { isAppUrl, setAppEntryUrl } from "./appOrigin";
  * index.html otherwise. Registered as the app's origin here, at import, so it's
  * in place before any IPC can arrive (appOrigin.ts).
  */
-export const APP_ENTRY_URL =
-  process.env.NODE_ENV === "development" || process.argv.includes("--dev")
-    ? "http://localhost:5173"
-    : pathToFileURL(path.join(__dirname, "../dist/index.html")).href;
+export const APP_ENTRY_URL = IS_DEV
+  ? "http://localhost:5173"
+  : pathToFileURL(path.join(__dirname, "../dist/index.html")).href;
 setAppEntryUrl(APP_ENTRY_URL);
 
 /**

@@ -18,6 +18,7 @@ import type {
   NoticeReason,
   SecurityResult,
   SecurityState,
+  SecurityUpdate,
   Service,
   StartResult,
   TaskSpec,
@@ -90,7 +91,7 @@ export interface ElectronAPI {
   selectDownloadFolder: () => Promise<string | null>;
   security: {
     getState: () => Promise<SecurityState>;
-    setEnabled: (enabled: boolean) => Promise<SecurityState>;
+    setEnabled: (enabled: boolean, currentPassword?: string) => Promise<SecurityUpdate>;
     setLockDelay: (minutes: number) => Promise<SecurityState>;
     setPassword: (payload: {
       currentPassword?: string;

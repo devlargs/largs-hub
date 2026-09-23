@@ -1,4 +1,4 @@
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from "node:crypto";
 
 // Master-password hashing for the workspace lock.
 //
@@ -27,7 +27,10 @@ const PARALLELIZATION = 1;
 const KEY_LENGTH = 64;
 const SALT_BYTES = 16;
 
-export const MIN_PASSWORD_LENGTH = 4;
+// A short PIN is guessable at the lock screen even with the attempt throttle
+// (lockPolicy.ts), so the floor is six (issue #111). Passwords set before the
+// floor was raised keep working; only new ones are checked.
+export const MIN_PASSWORD_LENGTH = 6;
 
 // Shared by the "set a password" and "change password" flows so both reject the
 // same things with the same words.
@@ -40,18 +43,34 @@ export function validateNewPassword(password: unknown, confirm: unknown): string
   return null;
 }
 
-function derive(password: string, salt: Buffer, credential?: MasterPasswordCredential): Buffer {
-  return scryptSync(password.normalize("NFKC"), salt, credential?.keyLength ?? KEY_LENGTH, {
+// Async scrypt runs on libuv's thread pool. The sync version blocked the
+// Electron main thread for every unlock attempt, stalling IPC, window events
+// and every service view while it ran (issue #111).
+function derive(
+  password: string,
+  salt: Buffer,
+  credential?: MasterPasswordCredential,
+): Promise<Buffer> {
+  const options: ScryptOptions = {
     N: credential?.cost ?? COST,
     r: credential?.blockSize ?? BLOCK_SIZE,
     p: credential?.parallelization ?? PARALLELIZATION,
     // 128 * N * r plus headroom; the default 32 MB is already enough for the
     // parameters above, but a stored credential could carry a higher cost.
     maxmem: 256 * (credential?.cost ?? COST) * (credential?.blockSize ?? BLOCK_SIZE),
+  };
+  return new Promise((resolve, reject) => {
+    scrypt(
+      password.normalize("NFKC"),
+      salt,
+      credential?.keyLength ?? KEY_LENGTH,
+      options,
+      (err, key) => (err ? reject(err) : resolve(key)),
+    );
   });
 }
 
-export function hashMasterPassword(password: string): MasterPasswordCredential {
+export async function hashMasterPassword(password: string): Promise<MasterPasswordCredential> {
   const salt = randomBytes(SALT_BYTES);
   const credential: MasterPasswordCredential = {
     algorithm: "scrypt",
@@ -62,7 +81,7 @@ export function hashMasterPassword(password: string): MasterPasswordCredential {
     blockSize: BLOCK_SIZE,
     parallelization: PARALLELIZATION,
   };
-  credential.hash = derive(password, salt, credential).toString("hex");
+  credential.hash = (await derive(password, salt, credential)).toString("hex");
   return credential;
 }
 
@@ -96,14 +115,14 @@ export function sanitizeCredential(raw: unknown): MasterPasswordCredential | nul
 
 // The one place a password is checked. A cloud-backed store swaps the body of
 // this function (and nothing else) for the API call.
-export function verifyMasterPassword(
+export async function verifyMasterPassword(
   password: unknown,
   credential: MasterPasswordCredential | null,
-): boolean {
+): Promise<boolean> {
   if (!credential || typeof password !== "string" || password.length === 0) return false;
   let derived: Buffer;
   try {
-    derived = derive(password, Buffer.from(credential.salt, "hex"), credential);
+    derived = await derive(password, Buffer.from(credential.salt, "hex"), credential);
   } catch {
     return false;
   }

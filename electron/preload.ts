@@ -9,6 +9,7 @@ import type {
   NoticeReason,
   SecurityResult,
   SecurityState,
+  SecurityUpdate,
   Service,
   StartResult,
   TaskSpec,
@@ -178,8 +179,9 @@ const api = {
   // process — the bridge only carries passwords in, and never back out.
   security: {
     getState: (): Promise<SecurityState> => ipcRenderer.invoke("get-security-state"),
-    setEnabled: (enabled: boolean): Promise<SecurityState> =>
-      ipcRenderer.invoke("set-security-enabled", enabled),
+    // Turning it off needs the current password (issue #111)
+    setEnabled: (enabled: boolean, currentPassword?: string): Promise<SecurityUpdate> =>
+      ipcRenderer.invoke("set-security-enabled", enabled, currentPassword),
     setLockDelay: (minutes: number): Promise<SecurityState> =>
       ipcRenderer.invoke("set-lock-delay", minutes),
     setPassword: (payload: {

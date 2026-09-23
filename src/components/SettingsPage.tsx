@@ -28,8 +28,9 @@ export default function SettingsPage() {
     locked: false,
   });
   // Which master-password prompt is open, if any: "set" is the first-run prompt
-  // behind the toggle, "change" the Change Master Password button.
-  const [passwordDialog, setPasswordDialog] = useState<"set" | "change" | null>(null);
+  // behind the toggle, "disable" asks for the password before switching it
+  // off, "change" is the Change Master Password button.
+  const [passwordDialog, setPasswordDialog] = useState<"set" | "disable" | "change" | null>(null);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
   const [currentVersion, setCurrentVersion] = useState("");
   const [newVersion, setNewVersion] = useState("");
@@ -118,14 +119,20 @@ export default function SettingsPage() {
   };
 
   // Switching the toggle on for the first time has to collect a password
-  // before anything is stored; every later switch is just the flag, because the
-  // credential deliberately survives switching it off.
+  // before anything is stored. Switching it off asks for that password, so
+  // nobody at an unlocked window can turn the lock off (issue #111). Switching
+  // it back on is just the flag, because the credential survives switching it
+  // off.
   const handleSecurityToggle = async () => {
     if (!security.enabled && !security.hasPassword) {
       setPasswordDialog("set");
       return;
     }
-    setSecurity(await window.electronAPI.security.setEnabled(!security.enabled));
+    if (security.enabled && security.hasPassword) {
+      setPasswordDialog("disable");
+      return;
+    }
+    setSecurity((await window.electronAPI.security.setEnabled(!security.enabled)).state);
   };
 
   const handleLockDelayChange = async (minutes: number) => {
@@ -225,7 +232,7 @@ export default function SettingsPage() {
         <Section title="Security">
           <SettingRow
             label="Add Security Controls"
-            description="Ask for a master password on launch, when you lock your PC, and after the window has been left minimized"
+            description="Ask for a master password on launch, when you lock your PC, and after the window has been left minimized. It keeps people off your screen; it doesn't encrypt anything stored on this computer."
           >
             <Toggle checked={security.enabled} onChange={handleSecurityToggle} />
           </SettingRow>
