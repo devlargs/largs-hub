@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { IssueCreated } from "../../types";
 import Modal from "../ui/Modal";
 import { insertAt, replacePlaceholder, uploadPlaceholder } from "../../lib/issueText";
+import { imagesToUpload } from "../../lib/clipboardImages";
 
 interface ReportIssueDialogProps {
   onClose: () => void;
@@ -46,8 +47,9 @@ export default function ReportIssueDialog({ onClose, onOpenSettings }: ReportIss
   }, []);
 
   const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const images = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith("image/"));
-    if (images.length === 0) return; // plain text pastes as usual
+    // Ctrl+V on Windows, Cmd+V on macOS (the Edit menu's Paste) both land here
+    const images = imagesToUpload(e.clipboardData);
+    if (images.length === 0) return; // text pastes as usual
     e.preventDefault();
     const area = e.currentTarget;
     for (const file of images) {
