@@ -15,3 +15,8 @@ export function serviceLabel(service: Service, unread: number): string {
   }
   return parts.join(", ");
 }
+
+// The unread badge's text: the count, capped at "99+".
+export function badgeText(unread: number): string {
+  return unread > 99 ? "99+" : String(unread);
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { serviceLabel } from "../src/lib/serviceLabel";
+import { badgeText, serviceLabel } from "../src/lib/serviceLabel";
 import type { Service } from "../electron/shared/types";
 
 const service = (overrides: Partial<Service> = {}): Service => ({
@@ -36,5 +36,13 @@ describe("serviceLabel", () => {
 
   it("ignores a negative count rather than reading it out", () => {
     expect(serviceLabel(service(), -1)).toBe("Gmail");
+  });
+});
+
+describe("badgeText", () => {
+  it("shows the count, capped at 99+", () => {
+    expect(badgeText(1)).toBe("1");
+    expect(badgeText(99)).toBe("99");
+    expect(badgeText(100)).toBe("99+");
   });
 });

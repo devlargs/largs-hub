@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useMemo } from "react";
 import { Service } from "../types";
-import { resolveIcon } from "../assets/serviceIcons";
-import { IoSunny, IoMoon, IoHome } from "react-icons/io5";
+import { IoHome } from "react-icons/io5";
 import { useNotificationStore } from "../store/notifications";
 import { SIDEBAR_WIDTH } from "@shared/layout";
-import { serviceLabel } from "../lib/serviceLabel";
+import { moveBy } from "../lib/serviceOrder";
+import { useServiceDrag } from "../hooks/useServiceDrag";
+import ServiceButton from "./sidebar/ServiceButton";
+import ThemeToggle from "./sidebar/ThemeToggle";
 
 interface SidebarProps {
   services: Service[];
@@ -25,285 +27,70 @@ export default function Sidebar({
   onReorderServices,
 }: SidebarProps) {
   const notificationCounts = useNotificationStore((s) => s.counts);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-
-  // Drag and drop state. A 300ms long-press only *arms* a service for dragging
-  // (armedId, which makes it draggable); it isn't draggedId — and doesn't fade —
-  // until a drag has actually started. Arming it straight into the dragged
-  // state left the icon faded for good whenever the press ended without a
-  // drag, since no dragend ever comes to clear it.
-  const [armedId, setArmedId] = useState<string | null>(null);
-  const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const didDrag = useRef(false);
-
-  const clearLongPress = useCallback(() => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }, []);
-
-  const resetDrag = useCallback(() => {
-    setArmedId(null);
-    setDraggedId(null);
-    setDropTargetId(null);
-  }, []);
-
-  const handlePointerDown = useCallback((serviceId: string) => {
-    didDrag.current = false;
-    longPressTimer.current = setTimeout(() => setArmedId(serviceId), 300);
-  }, []);
-
-  // A press that ends without a drag disarms, so the next plain click doesn't
-  // start from a draggable button.
-  const handlePointerUp = useCallback(() => {
-    clearLongPress();
-    setArmedId(null);
-  }, [clearLongPress]);
-
-  const handleDragStart = useCallback(
-    (e: React.DragEvent, serviceId: string) => {
-      if (armedId !== serviceId) {
-        e.preventDefault();
-        return;
-      }
-      didDrag.current = true;
-      e.dataTransfer.effectAllowed = "move";
-      // Use a transparent image as drag ghost (we show our own indicator)
-      const img = new Image();
-      img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-      e.dataTransfer.setDragImage(img, 0, 0);
-      setDraggedId(serviceId);
-    },
-    [armedId],
-  );
-
-  const handleDragOver = useCallback((e: React.DragEvent, serviceId: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    setDropTargetId(serviceId);
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent, targetId: string) => {
-      e.preventDefault();
-      resetDrag();
-      if (!draggedId || draggedId === targetId) return;
-
-      const oldIds = services.map((s) => s.id);
-      const fromIndex = oldIds.indexOf(draggedId);
-      const toIndex = oldIds.indexOf(targetId);
-      if (fromIndex === -1 || toIndex === -1) return;
-
-      const newIds = [...oldIds];
-      newIds.splice(fromIndex, 1);
-      newIds.splice(toIndex, 0, draggedId);
-      onReorderServices(newIds);
-    },
-    [draggedId, services, onReorderServices, resetDrag],
-  );
-
-  // A drag that ends outside the sidebar (dropped on the service page, which
-  // is a separate native view, or outside the window) isn't guaranteed to
-  // deliver dragend here, notably on macOS. So while one is under way, any
-  // sign the button is back up ends it too: a drop or dragend anywhere in the
-  // page, or the pointer moving again with no button held.
-  useEffect(() => {
-    if (!armedId && !draggedId) return;
-    const onPointerMove = (e: PointerEvent) => {
-      if (e.buttons === 0) resetDrag();
-    };
-    window.addEventListener("dragend", resetDrag);
-    window.addEventListener("drop", resetDrag);
-    window.addEventListener("pointermove", onPointerMove);
-    return () => {
-      window.removeEventListener("dragend", resetDrag);
-      window.removeEventListener("drop", resetDrag);
-      window.removeEventListener("pointermove", onPointerMove);
-    };
-  }, [armedId, draggedId, resetDrag]);
-
-  // Clear any pending long-press timer if the sidebar unmounts mid-press
-  useEffect(() => clearLongPress, [clearLongPress]);
-
-  useEffect(() => {
-    if (!window.electronAPI) return;
-    window.electronAPI.getTheme().then((t) => {
-      setTheme(t);
-      document.documentElement.classList.toggle("light", t === "light");
-    });
-  }, []);
-
-  const toggleTheme = () => {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    document.documentElement.classList.toggle("light", next === "light");
-    window.electronAPI?.setTheme(next);
-  };
+  const serviceIds = useMemo(() => services.map((s) => s.id), [services]);
+  const drag = useServiceDrag(serviceIds, onReorderServices);
 
   // Reordering was pointer-only: a 300ms long-press then a drag, with no
   // keyboard route at all (issue #88). Alt+Up/Down moves the focused service.
-  const moveService = useCallback(
-    (serviceId: string, direction: -1 | 1) => {
-      const ids = services.map((s) => s.id);
-      const from = ids.indexOf(serviceId);
-      const to = from + direction;
-      if (from === -1 || to < 0 || to >= ids.length) return;
-      const reordered = [...ids];
-      reordered.splice(from, 1);
-      reordered.splice(to, 0, serviceId);
-      onReorderServices(reordered);
-    },
-    [services, onReorderServices],
-  );
-
   const handleServiceKeyDown = (e: React.KeyboardEvent, serviceId: string) => {
     if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
     e.preventDefault();
-    moveService(serviceId, e.key === "ArrowUp" ? -1 : 1);
+    const reordered = moveBy(serviceIds, serviceId, e.key === "ArrowUp" ? -1 : 1);
+    if (reordered) onReorderServices(reordered);
     // Keep focus on the button that moved, which React has just re-rendered
     // into a new position.
     const button = e.currentTarget as HTMLElement;
     requestAnimationFrame(() => button.focus());
   };
 
-  const handleContextMenu = (e: React.MouseEvent, service: Service) => {
-    e.preventDefault();
-    window.electronAPI?.showServiceContextMenu(service.id);
-  };
-
   return (
-    <>
-      <div
-        className="bg-sidebar flex flex-col items-center pb-4 shrink-0 overflow-y-auto"
-        // Width comes from the shared constant main positions service views
-        // against, rather than a Tailwind class that could drift from it.
-        style={{ width: SIDEBAR_WIDTH, gap: 8, paddingTop: 8 }}
+    <div
+      className="bg-sidebar flex flex-col items-center pb-4 shrink-0 overflow-y-auto"
+      // Width comes from the shared constant main positions service views
+      // against, rather than a Tailwind class that could drift from it.
+      style={{ width: SIDEBAR_WIDTH, gap: 8, paddingTop: 8 }}
+    >
+      {/* Home button */}
+      <button
+        onClick={onAddService}
+        className={`
+          w-12 h-12 rounded-xl flex items-center justify-center
+          transition-all duration-200 cursor-pointer
+          ${!activeServiceId ? "bg-accent/20 ring-2 ring-accent" : "hover:bg-sidebar-hover"}
+        `}
+        aria-label="Home"
+        title="Home"
+        style={{ color: !activeServiceId ? "var(--accent)" : "var(--text-muted)" }}
       >
-        {/* Home button */}
-        <button
-          onClick={onAddService}
-          className={`
-            w-12 h-12 rounded-xl flex items-center justify-center
-            transition-all duration-200 cursor-pointer
-            ${!activeServiceId ? "bg-accent/20 ring-2 ring-accent" : "hover:bg-sidebar-hover"}
-          `}
-          aria-label="Home"
+        <IoHome size={22} />
+      </button>
 
-          title="Home"
-          style={{ color: !activeServiceId ? "var(--accent)" : "var(--text-muted)" }}
-        >
-          <IoHome size={22} />
-        </button>
+      {services.map((service, index) => (
+        <ServiceButton
+          key={service.id}
+          service={service}
+          index={index}
+          active={activeServiceId === service.id}
+          unread={notificationCounts[service.id] ?? 0}
+          showShortcutHint={showShortcutHints}
+          dragging={drag.draggedId === service.id}
+          dropTarget={drag.dropTargetId === service.id}
+          dragProps={drag.dragProps(service.id)}
+          onClick={() => {
+            if (!drag.wasDrag()) onSelectService(service.id);
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            window.electronAPI?.showServiceContextMenu(service.id);
+          }}
+          onKeyDown={(e) => handleServiceKeyDown(e, service.id)}
+        />
+      ))}
 
-        {services.map((service, index) => (
-          <button
-            key={service.id}
-            // Ctrl+N picks the Nth service in sidebar order, disabled ones
-            // included — the same lookup main and App.tsx use.
-            aria-keyshortcuts={index < 9 ? `Control+${index + 1}` : undefined}
-            draggable={armedId === service.id || draggedId === service.id}
-            onClick={() => {
-              if (!didDrag.current) onSelectService(service.id);
-            }}
-            onPointerDown={() => handlePointerDown(service.id)}
-            onPointerUp={handlePointerUp}
-            onPointerLeave={clearLongPress}
-            onDragStart={(e) => handleDragStart(e, service.id)}
-            onDragOver={(e) => handleDragOver(e, service.id)}
-            onDrop={(e) => handleDrop(e, service.id)}
-            onDragEnd={resetDrag}
-            onContextMenu={(e) => handleContextMenu(e, service)}
-            onKeyDown={(e) => handleServiceKeyDown(e, service.id)}
-            className={`
-              relative w-12 h-12 rounded-xl flex items-center justify-center
-              transition-all duration-200 group cursor-pointer
-              ${
-                activeServiceId === service.id
-                  ? "bg-accent/20 ring-2 ring-accent"
-                  : "hover:bg-sidebar-hover"
-              }
-              ${draggedId === service.id ? "opacity-40 scale-90" : ""}
-              ${dropTargetId === service.id && draggedId !== service.id ? "ring-2 ring-accent/50" : ""}
-              ${service.enabled === false ? "opacity-30 grayscale" : ""}
-            `}
-            aria-current={activeServiceId === service.id}
-            aria-label={serviceLabel(service, notificationCounts[service.id] ?? 0)}
-            title={service.name}
-          >
-            {(() => {
-              const resolved = resolveIcon(service.icon, service.name);
-              if (resolved) {
-                return (
-                  <img
-                    src={resolved}
-                    alt={service.name}
-                    className="w-7 h-7 rounded object-contain"
-                  />
-                );
-              }
-              if (service.icon) {
-                return <span className="text-2xl">{service.icon}</span>;
-              }
-              return (
-                <span
-                  className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-                  style={{ backgroundColor: service.color || "#6c7086" }}
-                >
-                  {service.name.charAt(0).toUpperCase()}
-                </span>
-              );
-            })()}
+      {/* Spacer */}
+      <div className="flex-1" />
 
-            {/* Notification badge */}
-            {(notificationCounts[service.id] || 0) > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                {(notificationCounts[service.id] || 0) > 99
-                  ? "99+"
-                  : notificationCounts[service.id]}
-              </span>
-            )}
-
-            {/* Shortcut number, while Ctrl is held. Bottom-right so it never
-                covers the notification count in the top-right. */}
-            {showShortcutHints && index < 9 && (
-              <span
-                aria-hidden="true"
-                className="absolute -bottom-1 -right-1 rounded-md min-w-[18px] h-[18px] flex items-center justify-center px-1 text-[11px] font-bold tabular-nums"
-                style={{
-                  color: "var(--sidebar)",
-                  background: "var(--text-primary)",
-                  boxShadow: "0 0 0 2px var(--sidebar)",
-                }}
-              >
-                {index + 1}
-              </span>
-            )}
-
-            {/* Active indicator */}
-            {activeServiceId === service.id && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-accent rounded-r-full" />
-            )}
-          </button>
-        ))}
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Theme toggle */}
-        <button
-          onClick={toggleTheme}
-          className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer hover:bg-sidebar-hover"
-          style={{ color: "var(--text-muted)", marginBottom: 4 }}
-          aria-pressed={theme === "light"}
-          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-        >
-          {theme === "dark" ? <IoSunny size={18} /> : <IoMoon size={18} />}
-        </button>
-      </div>
-    </>
+      <ThemeToggle />
+    </div>
   );
 }

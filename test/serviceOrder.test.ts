@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareServiceNames, sortByName } from "../src/lib/serviceOrder";
+import { compareServiceNames, moveBy, moveOnto, sortByName } from "../src/lib/serviceOrder";
 
 const names = (items: { name: string }[]) => items.map((i) => i.name);
 
@@ -62,5 +62,40 @@ describe("sortByName", () => {
     expect(sortByName([{ name: "Notes", type: "notion-notes" }])).toEqual([
       { name: "Notes", type: "notion-notes" },
     ]);
+  });
+});
+
+describe("moveOnto", () => {
+  const ids = ["a", "b", "c", "d"];
+
+  it("puts the dragged service where the target was", () => {
+    expect(moveOnto(ids, "a", "c")).toEqual(["b", "c", "a", "d"]);
+    expect(moveOnto(ids, "d", "b")).toEqual(["a", "d", "b", "c"]);
+  });
+
+  it("changes nothing when dropped on itself or an unknown id", () => {
+    expect(moveOnto(ids, "b", "b")).toBeNull();
+    expect(moveOnto(ids, "zzz", "b")).toBeNull();
+    expect(moveOnto(ids, "b", "zzz")).toBeNull();
+  });
+
+  it("leaves the input alone", () => {
+    moveOnto(ids, "a", "d");
+    expect(ids).toEqual(["a", "b", "c", "d"]);
+  });
+});
+
+describe("moveBy", () => {
+  const ids = ["a", "b", "c"];
+
+  it("moves one place up or down", () => {
+    expect(moveBy(ids, "b", -1)).toEqual(["b", "a", "c"]);
+    expect(moveBy(ids, "b", 1)).toEqual(["a", "c", "b"]);
+  });
+
+  it("stops at either end", () => {
+    expect(moveBy(ids, "a", -1)).toBeNull();
+    expect(moveBy(ids, "c", 1)).toBeNull();
+    expect(moveBy(ids, "zzz", 1)).toBeNull();
   });
 });
