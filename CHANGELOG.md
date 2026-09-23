@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Copy a link from the right-click menu.** Right-clicking a link in a service now offers **Copy Link**, just below **View Link**, so you can paste a link somewhere else without opening it first. It works on any link, including email addresses. Applies on Windows and macOS.
 
 ## [0.1.69] (2026-09-23)
 - **The Messenger automation panel remembers your settings.** It used to open on its defaults every time. Now it opens as you left it for that account: the tab you were on, the min and max seconds, the emoji and max repeat, the send time, the ring wait, the chosen list and the auto-stop minutes. Each Messenger account keeps its own. The message text isn't kept, since it's cleared after each send anyway. A list you've since deleted is simply left unselected. Removing a service forgets its settings. Applies on Windows and macOS.

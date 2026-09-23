@@ -1,4 +1,4 @@
-import { Menu, WebContentsView } from "electron";
+import { clipboard, Menu, WebContentsView } from "electron";
 import { DEFAULT_ZOOM } from "../zoom";
 import { getDeps } from "./state";
 import { getServiceZoom, openFindBarFor, stepServiceZoom } from "./findZoom";
@@ -75,6 +75,10 @@ export function attachContextMenu(view: WebContentsView, serviceId: string, part
           click: () => getDeps()?.openLinkPreview(params.linkURL, partition),
         });
       }
+      menuItems.push({
+        label: "Copy Link",
+        click: () => clipboard.writeText(params.linkURL),
+      });
       menuItems.push({
         label: "Download File",
         click: () => view.webContents.downloadURL(params.linkURL),
