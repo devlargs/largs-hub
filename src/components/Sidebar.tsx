@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Service } from "../types";
+import { Service, showsUnreadBadge } from "../types";
 import { IoHome } from "react-icons/io5";
 import { useNotificationStore } from "../store/notifications";
 import { SIDEBAR_WIDTH } from "@shared/layout";
@@ -71,7 +71,7 @@ export default function Sidebar({
           service={service}
           index={index}
           active={activeServiceId === service.id}
-          unread={notificationCounts[service.id] ?? 0}
+          unread={showsUnreadBadge(service) ? (notificationCounts[service.id] ?? 0) : 0}
           showShortcutHint={showShortcutHints}
           dragging={drag.draggedId === service.id}
           dropTarget={drag.dropTargetId === service.id}

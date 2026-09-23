@@ -2,6 +2,7 @@ import { app, BrowserWindow, net, session } from "electron";
 import { pathToFileURL } from "url";
 import { customIconsDir, resolveCustomIconPath, sweepOrphanedIcons } from "./customIcons";
 import { store } from "./store";
+import { showsUnreadBadge } from "./shared/types";
 import { registerMessengerAutomation } from "./messengerAutomation";
 import { registerUpdater } from "./updater";
 import { registerServicesIpc } from "./ipc/services";
@@ -55,8 +56,8 @@ app.setAppUserModelId("com.largshub.app");
 initNotificationCounts({
   getMainWindow,
   getUiView,
-  isServiceNotificationsEnabled: (serviceId) =>
-    store.get("services").find((s) => s.id === serviceId)?.notificationsEnabled !== false,
+  showsBadge: (serviceId) =>
+    showsUnreadBadge(store.get("services").find((s) => s.id === serviceId)),
 });
 
 initDownloads({ getMainWindow });

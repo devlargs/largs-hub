@@ -12,8 +12,8 @@ import { PendingDecrease, shouldAcceptCount } from "./badgeDebounce";
 interface NotificationCountDeps {
   getMainWindow(): BrowserWindow | null;
   getUiView(): WebContentsView | null;
-  /** Whether badges are enabled for this service (Settings / context menu). */
-  isServiceNotificationsEnabled(serviceId: string): boolean;
+  /** Whether this service's count may be shown (enabled, Notifications on). */
+  showsBadge(serviceId: string): boolean;
 }
 
 const counts = new Map<string, number>();
@@ -34,7 +34,9 @@ export function initNotificationCounts(d: NotificationCountDeps) {
 // (server-side fetchers, never page scrapes) skip the decrease debounce.
 export function reportNotificationCount(serviceId: string, count: number, trusted = false) {
   if (!deps) return;
-  if (!deps.isServiceNotificationsEnabled(serviceId)) {
+  // Also catches a reading that was already on its way when the service was
+  // disabled, which would otherwise put its badge back.
+  if (!deps.showsBadge(serviceId)) {
     count = 0;
   }
 
@@ -57,10 +59,14 @@ export function reportNotificationCount(serviceId: string, count: number, truste
 }
 
 // Forget a service entirely (removed or disabled) and re-render the badge.
+// The sidebar keeps its own copy of each count, so it's told too; otherwise a
+// disabled service went on showing its last count.
 export function clearNotificationCount(serviceId: string) {
+  const had = counts.has(serviceId);
   counts.delete(serviceId);
   pendingDecrease.delete(serviceId);
   updateTaskbarBadge();
+  if (had) deps?.getUiView()?.webContents.send("notification-update", { serviceId, count: 0 });
 }
 
 // Drop only the in-flight debounce state. Used on hibernation, where the last
