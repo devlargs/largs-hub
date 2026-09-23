@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Camera and microphone are now a per-service switch, and only the service itself can use them.** Right-click a service and choose **Camera & microphone**. It starts on for services with calls (Messenger, WhatsApp, Slack, Discord, Telegram, Gmail and Google Chat), so Slack huddles, Discord voice and video, and Google Chat and Meet calls in Gmail now work, where before only Messenger and WhatsApp could use the camera and mic. It starts off for other services, including ones you add by URL; turn it on if one needs it. Access used to be granted to any page shown inside Messenger or WhatsApp, including sign-in pages and content embedded from other sites. It now goes only to the service's own pages. Applies on Windows and macOS.
 - **Behind the scenes: service views and Messenger automation reorganised.** The two largest parts of the app were split into smaller, focused pieces, and the logic that decides which service is on screen (including keeping services hidden while the workspace is locked) now has automated tests. Nothing should look or behave differently on Windows or macOS.
 
 ## [0.1.66] (2026-09-22)

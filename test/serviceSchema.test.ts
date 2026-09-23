@@ -77,6 +77,14 @@ describe("sanitizeService", () => {
     });
   });
 
+  it("keeps a set Camera & microphone switch and leaves an unset one unset", () => {
+    expect(sanitizeService({ ...valid, mediaAllowed: false })?.mediaAllowed).toBe(false);
+    expect(sanitizeService({ ...valid, mediaAllowed: true })?.mediaAllowed).toBe(true);
+    // Unset (or junk) follows the default in isMediaAllowed, so it isn't stored.
+    expect(sanitizeService(valid)).not.toHaveProperty("mediaAllowed");
+    expect(sanitizeService({ ...valid, mediaAllowed: "yes" })).not.toHaveProperty("mediaAllowed");
+  });
+
   it("always resets the notification count — it is runtime state, not stored", () => {
     expect(sanitizeService({ ...valid, notificationCount: 99 })?.notificationCount).toBe(0);
   });
@@ -236,14 +244,16 @@ describe("isTasksService", () => {
   });
 });
 
-// The Todo service's menu has no Sound, Notifications, Blur when inactive or
-// Privacy mode switch, so none of them may be left on for it.
+// The Todo service's menu has no Sound, Notifications, Blur when inactive,
+// Privacy mode or Camera & microphone switch, so none of them may be left on
+// for it.
 describe("Todo service flags", () => {
   const flagsOn = {
     muted: true,
     notificationsEnabled: false,
     blurWhenInactive: true,
     privacyMode: true,
+    mediaAllowed: true,
   };
 
   it("resets them on a stored tasks web service", () => {
@@ -253,12 +263,14 @@ describe("Todo service flags", () => {
       url: TASKS_URL,
       ...flagsOn,
     });
-    expect(sanitizeService(migrated)).toMatchObject({
+    const service = sanitizeService(migrated);
+    expect(service).toMatchObject({
       muted: false,
       notificationsEnabled: true,
       blurWhenInactive: false,
       privacyMode: false,
     });
+    expect(service).not.toHaveProperty("mediaAllowed");
   });
 
   it("resets them while folding a built-in Todo service over", () => {

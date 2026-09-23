@@ -2,8 +2,9 @@
 // are treated as external links.
 //
 // This guard is what stops an arbitrary page from rendering inside a service's
-// session partition — with that partition's cookies and permission grants (the
-// Messenger and WhatsApp partitions have camera and mic allowed). It used to
+// session partition — with that partition's cookies. (Camera and mic are
+// judged separately, by the asking page's origin: servicePermissions.ts, so
+// an allowlisted domain here never inherits them — issue #114.) It used to
 // match domains with a bare `endsWith` in both directions, so a service on
 // notion.so accepted `evilnotion.so`, and a service on web.whatsapp.com
 // accepted any host that was a suffix of it (issue #68).

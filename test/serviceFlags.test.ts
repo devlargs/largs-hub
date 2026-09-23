@@ -4,6 +4,7 @@ import {
   enableToggleNeedsConfirm,
   nextBlurWhenInactive,
   nextEnabled,
+  nextMediaAllowed,
   nextMuted,
   nextNotificationsEnabled,
   nextPrivacyMode,
@@ -103,6 +104,24 @@ describe("flag toggles", () => {
   it("returns only the field it owns", () => {
     expect(Object.keys(nextMuted(service()))).toEqual(["muted"]);
     expect(Object.keys(nextEnabled(service()))).toEqual(["enabled"]);
+  });
+});
+
+describe("nextMediaAllowed", () => {
+  it("flips what the switch shows, starting from the service's default", () => {
+    // Messenger defaults on, so the first toggle turns it off...
+    expect(nextMediaAllowed(service({ url: "https://www.messenger.com" }))).toEqual({
+      mediaAllowed: false,
+    });
+    // ...and a custom service defaults off, so the first toggle turns it on.
+    expect(nextMediaAllowed(service())).toEqual({ mediaAllowed: true });
+  });
+
+  it("flips an explicit value", () => {
+    expect(nextMediaAllowed(service({ mediaAllowed: true }))).toEqual({ mediaAllowed: false });
+    expect(
+      nextMediaAllowed(service({ url: "https://www.messenger.com", mediaAllowed: false })),
+    ).toEqual({ mediaAllowed: true });
   });
 });
 

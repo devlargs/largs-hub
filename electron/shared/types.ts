@@ -85,6 +85,10 @@ export interface Service {
   blurWhenInactive?: boolean;
   // Covers the top half of the service page so only the bottom 50% is visible
   privacyMode?: boolean;
+  // Camera & microphone switch. Unset means the default: on for services with
+  // calls (Messenger, WhatsApp, Slack, ...), off otherwise — isMediaAllowed in
+  // electron/servicePermissions.ts.
+  mediaAllowed?: boolean;
   // Internal services render as React pages instead of getting a
   // WebContentsView in the main process. The only one left is "notion-notes",
   // which is retired (the Note Taker was replaced by Todo) and only renders a
