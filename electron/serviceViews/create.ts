@@ -6,7 +6,11 @@ import { messengerAdapter } from "../badge-adapters/messenger";
 import { DEFAULT_ZOOM } from "../zoom";
 import { isPermissionAllowed } from "../servicePermissions";
 import { quietNotificationsScript } from "../quietNotifications";
-import { spoofedUserAgent, withChromeIdentityHeaders } from "../userAgent";
+import {
+  applyChromeIdentity,
+  applyChromeIdentityToSession,
+  loadWithChromeIdentity,
+} from "../chromeIdentity";
 import { getDeps, partitionFor } from "./state";
 import { isFindBarOpen } from "./layout";
 import { ZOOM_KEYS, getServiceZoom, openFindBarFor, stepServiceZoom } from "./findZoom";
@@ -47,22 +51,12 @@ export function createServiceView(
 
   view.setBackgroundColor("#00000000");
 
-  // Spoof user agent so sites like Google and WhatsApp don't reject Electron
-  const chromeVersion = process.versions.chrome;
-  const spoofedUA = spoofedUserAgent(chromeVersion);
-  view.webContents.setUserAgent(spoofedUA);
-
-  // Also set at session level so OAuth popups inherit the spoofed UA
-  view.webContents.session.setUserAgent(spoofedUA);
-
-  // The UA string is only half the disguise: Chromium also sends User-Agent
-  // Client Hints, and Electron's name the runtime, which is what makes Google
-  // sign-in answer "this browser or app may not be secure" (issue #106).
-  // Rewriting them on the way out is the only place they can be reached.
-  // Registering the listener again on view recreation just replaces it.
-  view.webContents.session.webRequest.onBeforeSendHeaders((details, callback) => {
-    callback({ requestHeaders: withChromeIdentityHeaders(details.requestHeaders, chromeVersion) });
-  });
+  // Look like desktop Chrome on this OS so sites like Google and WhatsApp
+  // don't reject Electron (chromeIdentity.ts, issues #106 and #113). The
+  // session half covers OAuth popups and every request's headers; the view
+  // half (applied before the first load, below) covers the page's own view
+  // of navigator.userAgentData.
+  applyChromeIdentityToSession(view.webContents.session);
 
   // Electron underlines misspellings but only once a dictionary is chosen.
   // macOS uses the OS spellchecker and rejects the call, hence the guard.
@@ -109,10 +103,12 @@ export function createServiceView(
 
   // Messenger/Facebook calls reopen in an in-app call window (callWindow.ts).
   const isCallService = messengerAdapter.matches(serviceHost);
-  if (isCallService) attachCallPopupHandler(view, partition, spoofedUA);
+  if (isCallService) attachCallPopupHandler(view, partition);
 
   if (isSafeServiceUrl(service.url)) {
-    view.webContents.loadURL(service.url);
+    loadWithChromeIdentity(view.webContents, service.url);
+  } else {
+    void applyChromeIdentity(view.webContents);
   }
 
   // Apply mute state

@@ -10,7 +10,7 @@ import { sweepOrphanedPartitions } from "./partitions";
 import { initTray, isQuitting, isTrayAvailable, refreshTray, syncTray, destroyTray } from "./tray";
 import { windowCloseAction, windowMinimizeAction } from "./trayMenu";
 import { linkPreviewBounds, MAC_TRAFFIC_LIGHT_POSITION } from "./shared/layout";
-import { spoofedUserAgent } from "./userAgent";
+import { loadWithChromeIdentity } from "./chromeIdentity";
 import { createShortcutHintTracker } from "./shortcutHints";
 import { registerSettingsIpc } from "./ipc/settings";
 import { attachSecurityWindowEvents, registerSecurityIpc } from "./ipc/security";
@@ -286,10 +286,6 @@ function openLinkPreview(url: string, partition: string) {
 
   view.setBackgroundColor("#1e1e2e");
 
-  // Same Chrome disguise as the service views; the header rewrite that goes
-  // with it is registered on the (shared) service session in serviceViews.ts.
-  view.webContents.setUserAgent(spoofedUserAgent(process.versions.chrome));
-
   // Anything that tries to open a new window goes to the system browser
   view.webContents.setWindowOpenHandler(({ url: popupUrl }) => {
     shell.openExternal(popupUrl);
@@ -309,7 +305,10 @@ function openLinkPreview(url: string, partition: string) {
     uiView?.webContents.send("link-preview-navigated", navUrl);
   });
 
-  view.webContents.loadURL(url);
+  // Same Chrome disguise as the service views, applied before the page loads.
+  // The header rewrite that goes with it is registered on the (shared)
+  // service session in serviceViews/create.ts.
+  loadWithChromeIdentity(view.webContents, url);
   mainWindow.contentView.addChildView(view);
   view.setBounds(getLinkPreviewBounds());
   linkPreviewView = view;

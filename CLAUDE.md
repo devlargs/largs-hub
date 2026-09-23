@@ -74,14 +74,14 @@ Adding any main↔renderer capability touches three places, which must be kept c
 Service views live in `electron/serviceViews/`, one module per responsibility, with `index.ts` re-exporting the public API (the rest of `electron/` imports from `./serviceViews`, not from a file inside it; tests may reach in):
 
 - `state.ts` — shared runtime state (the view map, `viewState.activeServiceId`/`windowFocused`/`viewsSuppressed`, idle timestamps) and the deps `main.ts` injects via `initServiceViews`
-- `create.ts` — `createServiceView`: session partition, spoofed Chrome UA + client-hint headers, permission handlers, per-load re-injection, keyboard shortcuts, `setWindowOpenHandler`
+- `create.ts` — `createServiceView`: session partition, the Chrome identity (via `chromeIdentity.ts`), permission handlers, per-load re-injection, keyboard shortcuts, `setWindowOpenHandler`
 - `visibility.ts` — `showService`/`hideActiveService`, suppression while the workspace is locked, window focus/blur, view teardown and preloading
 - `hibernation.ts` — the idle-view sweep (`hibernationPolicy.ts` decides)
 - `layout.ts` — view bounds, the find-bar strip, the automation split
 - `findZoom.ts`, `contextMenu.ts`, `overlays.ts` (blur/privacy), `polling.ts` (badge extraction and its poll rate), `callWindow.ts` (Messenger call popup)
 - `scripts.ts` — every page script they inject, as pure strings/builders so they're snapshot-tested
 
-Each service view gets: a spoofed Chrome user agent (sites like Google/WhatsApp reject the Electron UA), notification-count detection (title-pattern `(N)` plus per-service DOM polling via `executeJavaScript`, with decreases debounced in `notificationCounts.ts` to avoid badge flicker), Ctrl+1-9 service switching intercepted in `before-input-event`, and a `setWindowOpenHandler` that navigates in-view for the service's own domain / an allowlist of auth domains and ignores other http(s) links (they open via the "View Link" preview).
+Each service view gets: a desktop-Chrome identity for the OS it's running on (sites like Google/WhatsApp reject Electron). `userAgent.ts` builds the UA string, the `Sec-CH-UA*` headers and the `navigator.userAgentData` metadata from one pure function, and `chromeIdentity.ts` applies them: the session's header rewrite, plus Chromium's own UA override via `webContents.debugger` (`Emulation.setUserAgentOverride`), set before the first `loadURL` so the page never sees Electron's values. Any new `webContents` that loads service pages (a popup window, a preview) needs `applyChromeIdentity` / `loadWithChromeIdentity` too. It also gets notification-count detection (title-pattern `(N)` plus per-service DOM polling via `executeJavaScript`, with decreases debounced in `notificationCounts.ts` to avoid badge flicker), Ctrl+1-9 service switching intercepted in `before-input-event`, and a `setWindowOpenHandler` that navigates in-view for the service's own domain / an allowlist of auth domains and ignores other http(s) links (they open via the "View Link" preview).
 
 Messenger automation is split the same way in `electron/messengerAutomation/`: `index.ts` (IPC handlers + public API), `runtime.ts` (deps, task list, push/inject helpers), `tasks.ts` (the scheduler), `autoStop.ts`, and the pure `notice.ts`, `validation.ts` and `scripts.ts`.
 

@@ -1,4 +1,5 @@
 import { BrowserWindow, WebContentsView, shell } from "electron";
+import { applyChromeIdentity } from "../chromeIdentity";
 import { getDeps, partitionFor } from "./state";
 import {
   AUTO_START_CALL_SCRIPT,
@@ -38,11 +39,7 @@ export function armAutomationCall(serviceId: string) {
 // so Meta can't reset it) where WebRTC works fully (issue #59).
 // The view's setWindowOpenHandler allows the hidden popup so this navigation
 // can be observed.
-export function attachCallPopupHandler(
-  view: WebContentsView,
-  partition: string,
-  spoofedUA: string,
-) {
+export function attachCallPopupHandler(view: WebContentsView, partition: string) {
   view.webContents.on("did-create-window", (childWindow) => {
     childWindow.hide(); // keep it hidden until we know what it is
     let settled = false;
@@ -53,7 +50,7 @@ export function attachCallPopupHandler(
         // A call: reopen it in a dedicated in-app window, where WebRTC works
         // and Meta's opener can't blank it out.
         event.preventDefault();
-        openCallWindow(navUrl, partition, spoofedUA);
+        openCallWindow(navUrl, partition);
         if (!childWindow.isDestroyed()) childWindow.close();
       } else {
         // Some other genuine popup (e.g. an auth window) — let it show.
@@ -77,7 +74,7 @@ export function attachCallPopupHandler(
 // session partition so the user stays logged in. WebRTC + camera/mic work
 // because it's a real Chromium window and the partition's permission handler
 // already allows media for these hosts.
-function openCallWindow(callUrl: string, partition: string, spoofedUA: string) {
+function openCallWindow(callUrl: string, partition: string) {
   // Consume the Call Cycle flag (if armed). Manual calls never arm it, so
   // isAutomationCall is false and the popup stays audible and visible.
   const isAutomationCall = automationCallArmed.delete(partition);
@@ -119,7 +116,6 @@ function openCallWindow(callUrl: string, partition: string, spoofedUA: string) {
   });
 
   callWindow.setMenuBarVisibility(false);
-  callWindow.webContents.setUserAgent(spoofedUA);
   if (isAutomationCall) callWindow.webContents.setAudioMuted(true); // silence cycle calls
 
   // Cycle calls open minimized (and never take focus): the popup only matters
@@ -163,7 +159,12 @@ function openCallWindow(callUrl: string, partition: string, spoofedUA: string) {
   });
 
   callWindows.set(partition, callWindow);
-  callWindow.loadURL(callUrl);
+  // Same Chrome identity as the service view, in place before the call page
+  // loads. The reused-window path above keeps it: the override lasts for the
+  // window's life.
+  void applyChromeIdentity(callWindow.webContents).then(() => {
+    if (!callWindow.isDestroyed()) callWindow.loadURL(callUrl);
+  });
 }
 
 // Close and forget the in-app call window for a service, if one is open. Used
