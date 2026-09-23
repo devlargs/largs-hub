@@ -40,7 +40,8 @@ import {
 //   notificationCounts.ts badge state, debounce, taskbar overlay
 //   badge-adapters/       per-service unread-count extraction
 //   updater/              GitHub release check + installer download
-//   ipc/services.ts       service CRUD/toggles/navigation/context menu
+//   ipc/services.ts       service CRUD/toggles, plus serviceNavigation.ts and
+//                         serviceContextMenu.ts (find, zoom, back/forward, menu)
 //   ipc/settings.ts       theme, settings, custom icons, settings menu
 //   ipc/security.ts       workspace lock: master password + auto-lock timer
 
