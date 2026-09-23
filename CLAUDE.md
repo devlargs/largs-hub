@@ -85,7 +85,7 @@ Each service view gets: a spoofed Chrome user agent (sites like Google/WhatsApp 
 
 Messenger automation is split the same way in `electron/messengerAutomation/`: `index.ts` (IPC handlers + public API), `runtime.ts` (deps, task list, push/inject helpers), `tasks.ts` (the scheduler), `autoStop.ts`, and the pure `notice.ts`, `validation.ts` and `scripts.ts`.
 
-Keep new logic in the module that owns it, and keep files under ~500 lines — split along a seam rather than growing one file. Page scripts go in the folder's `scripts.ts`.
+Keep new logic in the module that owns it, and follow the file-size rule under Code Style and Structure. Page scripts go in the folder's `scripts.ts`.
 
 ### State
 
@@ -105,6 +105,7 @@ Act as an expert in TypeScript, Electron, and desktop app development.
 - Keep the three layers distinct: main process (`electron/main.ts`), preload (`electron/preload.ts`), and renderer (`src/`).
 - Organize files by feature, grouping related components, modules, utilities, and styles.
 - Clearly separate core application logic from UI components to enhance maintainability and testability.
+- **Keep files short.** 250–300 lines is already long for one file. When a file you touch is well past that, split it along its existing seams (one module per responsibility, pure logic and injected scripts in their own modules, a barrel `index.ts` so importers don't change), the way `electron/serviceViews/` and `electron/messengerAutomation/` are split. Don't grow a file that's already over the limit. Put new code in a new module instead.
 
 ### Naming Conventions
 
