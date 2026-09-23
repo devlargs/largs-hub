@@ -17,13 +17,9 @@ import {
 import { validateAutoStopMinutes, validateSpec } from "./validation";
 import { buildTypeAndSendScript } from "./scripts";
 import { armAutoStop, clearAutoStop, publicAutoStop, restorePersistedAutoStops } from "./autoStop";
-import {
-  launchTask,
-  restorePersistedTasks,
-  stopAllForService,
-  stopTask,
-  sweepOverdue,
-} from "./tasks";
+import { launchTask } from "./tasks";
+import { stopAllForService, stopTask } from "./lifecycle";
+import { restorePersistedTasks, sweepOverdue } from "./restore";
 
 // Messenger automation: scheduling/looping lives in the main process so tasks
 // survive page reloads and keep running while the view is hidden or another
@@ -32,7 +28,11 @@ import {
 //
 //   index.ts       IPC handlers and the public API main/serviceViews use
 //   runtime.ts     injected deps, the live task list, push/inject helpers
-//   tasks.ts       the scheduler: arm, loop, call cycle, stop, restore
+//   tasks.ts       the scheduler: arm and loop each kind of task
+//   callCycle.ts   the call cycle: ring, wait for an answer, watch for a reaction
+//   lifecycle.ts   creating and stopping tasks, a missing view
+//   restore.ts     restoring tasks after a restart, the overdue sweep
+//   schedule.ts    fire times, random delays, emoji bursts (pure)
 //   autoStop.ts    per-service auto-stop countdowns
 //   notice.ts      "she noticed you" detection for the call cycle (pure)
 //   validation.ts  task-spec and auto-stop validation (pure)
