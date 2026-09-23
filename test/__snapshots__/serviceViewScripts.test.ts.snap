@@ -1,0 +1,118 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildPrivacyScript > draws the default top-half cover and no side cover 1`] = `
+"
+    (function() {
+      const panels = [
+        ['__largs_privacy_overlay__', 'position:fixed;top:0;left:0;background:#181825;z-index:2147483647;pointer-events:none;width:100vw;height:50vh;opacity:1;'],
+        ['__largs_privacy_overlay_h__', ''],
+      ];
+      for (const [id, css] of panels) {
+        const existing = document.getElementById(id);
+        if (!css) { if (existing) existing.remove(); continue; }
+        if (existing) { existing.style.cssText = css; continue; }
+        const el = document.createElement('div');
+        el.id = id;
+        el.style.cssText = css;
+        document.documentElement.appendChild(el);
+      }
+    })()
+  "
+`;
+
+exports[`service view scripts > APPLY_BLUR_SCRIPT parses and matches its snapshot 1`] = `
+"
+    (function() {
+      if (document.getElementById('__largs_blur_overlay__')) return;
+      const el = document.createElement('div');
+      el.id = '__largs_blur_overlay__';
+      el.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);z-index:2147483647;pointer-events:none;transition:opacity 0.15s ease;';
+      document.documentElement.appendChild(el);
+    })()
+  "
+`;
+
+exports[`service view scripts > AUTO_START_CALL_SCRIPT parses and matches its snapshot 1`] = `
+"
+  (() => new Promise((resolve) => {
+    const deadline = Date.now() + 15000;
+    const scan = () => {
+      for (const el of document.querySelectorAll('div[role="button"], button')) {
+        const label = (el.getAttribute('aria-label') || '').trim();
+        const text = (el.textContent || '').trim();
+        if (/^start call$/i.test(label) || /^start call$/i.test(text)) {
+          el.click();
+          resolve(true);
+          return;
+        }
+      }
+      if (Date.now() < deadline) setTimeout(scan, 300);
+      else resolve(false);
+    };
+    scan();
+  }))()
+"
+`;
+
+exports[`service view scripts > HANGUP_SCRIPT parses and matches its snapshot 1`] = `
+"
+  (() => {
+    const rx = /end call|leave call|hang ?up|end room/i;
+    for (const el of document.querySelectorAll('div[role="button"], button, [aria-label]')) {
+      const label = (el.getAttribute('aria-label') || '').trim();
+      if (label && rx.test(label)) { el.click(); return true; }
+    }
+    return false;
+  })()
+"
+`;
+
+exports[`service view scripts > REMOVE_BLUR_SCRIPT parses and matches its snapshot 1`] = `
+"
+    (function() {
+      const el = document.getElementById('__largs_blur_overlay__');
+      if (el) el.remove();
+    })()
+  "
+`;
+
+exports[`service view scripts > REMOVE_CALL_OVERLAY_SCRIPT parses and matches its snapshot 1`] = `
+"
+  (() => {
+    const el = document.getElementById('__largs_ring_countdown__');
+    if (el) el.remove();
+  })()
+"
+`;
+
+exports[`service view scripts > REMOVE_PRIVACY_SCRIPT parses and matches its snapshot 1`] = `
+"
+    (function() {
+      for (const id of ['__largs_privacy_overlay__', '__largs_privacy_overlay_h__']) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
+      }
+    })()
+  "
+`;
+
+exports[`service view scripts > builds a parseable call overlay script with the countdown baked in 1`] = `
+"
+    (() => {
+      let el = document.getElementById('__largs_ring_countdown__');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = '__largs_ring_countdown__';
+        el.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2147483647;background:rgba(24,24,37,0.92);color:#fff;font:600 13px system-ui,-apple-system,sans-serif;padding:6px 14px;border-radius:999px;pointer-events:none;box-shadow:0 2px 10px rgba(0,0,0,0.45);';
+        (document.body || document.documentElement).appendChild(el);
+      }
+      el.textContent = 'Ending call in 17s';
+      for (const node of document.querySelectorAll('span, div')) {
+        if (node.children.length) continue;
+        const t = (node.textContent || '').trim();
+        if (/^\\d{1,2}:\\d{2}(:\\d{2})?$/.test(t)) return t;
+      }
+      return null;
+    })()
+  "
+`;

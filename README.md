@@ -192,14 +192,14 @@ largs-hub/
 ├── electron/                 # Main process & preload
 │   ├── main.ts               # Window, UI layer and overlay orchestration
 │   ├── preload.ts            # Typed contextBridge API
-│   ├── serviceViews.ts       # Service-view lifecycle, calls, hibernation
+│   ├── serviceViews/         # Service-view creation, switching, hibernation, calls, overlays
 │   ├── store.ts              # electron-store schema & migrations
 │   ├── downloads.ts          # Download session handling
 │   ├── updater.ts            # GitHub Releases auto-updater
 │   ├── macUpdate.ts          # In-place app replacement on macOS
 │   ├── notificationCounts.ts # Badge state, Windows taskbar badge
 │   ├── tray.ts               # Tray / menu bar icon and menu
-│   ├── messengerAutomation.ts
+│   ├── messengerAutomation/  # Messenger automation scheduler, IPC & injected scripts
 │   ├── badge-adapters/       # Per-service unread-count detection
 │   ├── ipc/                  # services, settings, security & list-group IPC handlers
 │   └── shared/               # Types and layout constants shared with the renderer

@@ -53,7 +53,8 @@ import {
 // Entry point: owns the frameless window and the React UI layer (uiView), the
 // link-preview overlay, and z-order IPC. Everything else lives in modules:
 //   store.ts              persistent state + stored-shape validation
-//   serviceViews.ts       service view lifecycle, switching, hibernation
+//   serviceViews/         service view lifecycle, switching, hibernation
+//   messengerAutomation/  Messenger automation scheduler + IPC
 //   downloads.ts          per-session download handling + completion toast
 //   notificationCounts.ts badge state, debounce, taskbar overlay
 //   badge-adapters/       per-service unread-count extraction

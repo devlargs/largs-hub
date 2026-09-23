@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Behind the scenes: service views and Messenger automation reorganised.** The two largest parts of the app were split into smaller, focused pieces, and the logic that decides which service is on screen (including keeping services hidden while the workspace is locked) now has automated tests. Nothing should look or behave differently on Windows or macOS.
 
 ## [0.1.66] (2026-09-22)
 - **Turning a service's Sound off now silences its notifications too.** Sound off muted the page itself, but the chime that comes with each notification is played by the system (Notification Center on macOS, the toast sound on Windows), so messages still made a sound. While Sound is off, the service's notifications now arrive silently. Turning Sound back on brings the chime back, without reloading.

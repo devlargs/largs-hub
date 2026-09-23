@@ -69,9 +69,23 @@ Adding any main↔renderer capability touches three places, which must be kept c
 
 **Payload types are not duplicated.** `Service`, `TaskSpec`, `AutomationTask` and friends live once in `electron/shared/types.ts`; `store.ts` re-exports them, preload imports them from `./shared/types`, and `src/types.ts` re-exports them via `@shared/types`. Add or change a field there and both tsconfig projects fail until every caller agrees — so declare new payload shapes in the shared module, never in the layer that happens to need them first.
 
-### Service view behaviors (createServiceView in main.ts)
+### Service views (electron/serviceViews/)
 
-Each service view gets: a spoofed Chrome user agent (sites like Google/WhatsApp reject the Electron UA), notification-count detection (title-pattern `(N)` plus per-service DOM polling via `executeJavaScript`, with decreases debounced by `DECREASE_THRESHOLD` to avoid badge flicker), Ctrl+1-9 service switching intercepted in `before-input-event`, and a `setWindowOpenHandler` that navigates in-view for the service's own domain / an allowlist of auth domains and opens everything else in the system browser.
+Service views live in `electron/serviceViews/`, one module per responsibility, with `index.ts` re-exporting the public API (the rest of `electron/` imports from `./serviceViews`, not from a file inside it; tests may reach in):
+
+- `state.ts` — shared runtime state (the view map, `viewState.activeServiceId`/`windowFocused`/`viewsSuppressed`, idle timestamps) and the deps `main.ts` injects via `initServiceViews`
+- `create.ts` — `createServiceView`: session partition, spoofed Chrome UA + client-hint headers, permission handlers, per-load re-injection, keyboard shortcuts, `setWindowOpenHandler`
+- `visibility.ts` — `showService`/`hideActiveService`, suppression while the workspace is locked, window focus/blur, view teardown and preloading
+- `hibernation.ts` — the idle-view sweep (`hibernationPolicy.ts` decides)
+- `layout.ts` — view bounds, the find-bar strip, the automation split
+- `findZoom.ts`, `contextMenu.ts`, `overlays.ts` (blur/privacy), `polling.ts` (badge extraction and its poll rate), `callWindow.ts` (Messenger call popup)
+- `scripts.ts` — every page script they inject, as pure strings/builders so they're snapshot-tested
+
+Each service view gets: a spoofed Chrome user agent (sites like Google/WhatsApp reject the Electron UA), notification-count detection (title-pattern `(N)` plus per-service DOM polling via `executeJavaScript`, with decreases debounced in `notificationCounts.ts` to avoid badge flicker), Ctrl+1-9 service switching intercepted in `before-input-event`, and a `setWindowOpenHandler` that navigates in-view for the service's own domain / an allowlist of auth domains and ignores other http(s) links (they open via the "View Link" preview).
+
+Messenger automation is split the same way in `electron/messengerAutomation/`: `index.ts` (IPC handlers + public API), `runtime.ts` (deps, task list, push/inject helpers), `tasks.ts` (the scheduler), `autoStop.ts`, and the pure `notice.ts`, `validation.ts` and `scripts.ts`.
+
+Keep new logic in the module that owns it, and keep files under ~500 lines — split along a seam rather than growing one file. Page scripts go in the folder's `scripts.ts`.
 
 ### State
 

@@ -1,0 +1,59 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`messenger automation scripts > CLICK_CALL_SCRIPT parses and matches its snapshot 1`] = `
+"
+  (() => {
+    const btn = document.querySelector('div[aria-label="Start a voice call"]');
+    if (btn) { btn.click(); return "clicked"; }
+    return "no-call-button";
+  })()
+"
+`;
+
+exports[`messenger automation scripts > NOTICE_SCRIPT parses and matches its snapshot 1`] = `
+"
+  (() => {
+    // Rows the call cycle itself produces — ignore them, they aren't a reply.
+    const CALL_ROW = /\\b(call|calling|called|ringing|missed|unanswered)\\b/i;
+    const rows = [];
+    for (const row of document.querySelectorAll('div[role="row"]')) {
+      const text = (row.innerText || "").trim();
+      if (!text || CALL_ROW.test(text)) continue;
+      rows.push(text);
+    }
+    let seen = false;
+    let typing = false;
+    for (const el of document.querySelectorAll('[aria-label]')) {
+      const label = el.getAttribute('aria-label') || '';
+      if (!seen && /\\bseen\\b/i.test(label)) seen = true;
+      if (!typing && /is typing|typing\\u2026|typing\\.\\.\\./i.test(label)) typing = true;
+      if (seen && typing) break;
+    }
+    return { count: rows.length, last: rows[rows.length - 1] || "", seen, typing };
+  })()
+"
+`;
+
+exports[`messenger automation scripts > builds a parseable type-and-send script 1`] = `
+"
+    (async () => {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      let input = null;
+      for (let i = 0; i < 20 && !input; i++) {
+        input = document.querySelector('div[contenteditable="true"]');
+        if (!input) await wait(100);
+      }
+      if (!input) return "no-input";
+      input.focus();
+      document.execCommand("selectAll");
+      document.execCommand("delete");
+      document.execCommand("insertText", false, "hello");
+      for (let i = 0; i < 20; i++) {
+        const btn = document.querySelector('div[aria-label="Press enter to send"]');
+        if (btn) { btn.click(); return "sent"; }
+        await wait(100);
+      }
+      return "no-send-button";
+    })()
+  "
+`;
