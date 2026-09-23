@@ -53,7 +53,7 @@ Everything hangs off one frameless `BrowserWindow`:
 
 **Z-order rule:** child-view reordering is unreliable on Windows, so overlays don't get stacked above service views — instead the active service view is _hidden_. React modals do this by calling `bringUiToFront()` in a mount effect and `sendUiToBack()` on cleanup; main ref-counts these (`uiLayerRefCount`) so nested overlays work. Any new React modal that must appear over a service view needs this effect.
 
-**Native menus:** HTML menus/tooltips can't render above WebContentsViews, so all context menus are native `Menu.buildFromTemplate` in the main process. Results flow back to React via the `"context-menu-action"` IPC event, handled in `App.tsx`.
+**Native menus:** HTML menus/tooltips can't render above WebContentsViews, so all context menus are native `Menu.buildFromTemplate` in the main process. Results flow back to React via the `"context-menu-action"` IPC event, handled in `src/hooks/useServiceEvents.ts`.
 
 **Hybrid modals:** the link preview modal shows arbitrary pages (iframes would be blocked by X-Frame-Options), so the page renders in a native `WebContentsView` while React draws the chrome (backdrop/header) around it. Both sides take their geometry from `electron/shared/layout.ts`.
 

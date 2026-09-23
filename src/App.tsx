@@ -1,83 +1,67 @@
-import { lazy, Suspense, useEffect, useState, useCallback, useRef } from "react";
-import { AutomationTask, isInternalService, Service } from "./types";
+import { useState, useCallback } from "react";
+import { isInternalService, Service } from "./types";
 import Sidebar from "./components/Sidebar";
 import Titlebar from "./components/Titlebar";
 import AddServiceModal from "./components/AddServiceModal";
 import LinkPreviewModal from "./components/LinkPreviewModal";
 import FindBar from "./components/FindBar";
 import MessengerAutomationPanel from "./components/MessengerAutomationPanel";
-import WelcomeScreen from "./components/WelcomeScreen";
-import SettingsPage from "./components/SettingsPage";
-import DisabledServiceScreen from "./components/DisabledServiceScreen";
-import RetiredNoteTakerScreen from "./components/RetiredNoteTakerScreen";
+import ContentPane, { AppPage } from "./components/ContentPane";
 import LockScreen from "./components/LockScreen";
-import ConfirmDialog, { ConfirmTone } from "./components/ui/ConfirmDialog";
+import ConfirmDialog from "./components/ui/ConfirmDialog";
 import { useNotificationStore } from "./store/notifications";
-
-// The whole CHANGELOG.md rides along with this page, so it loads on first open
-// rather than in the startup bundle.
-const ChangelogPage = lazy(() => import("./components/ChangelogPage"));
-
-// Mirrors the main process's hostname-based Messenger detection (main.ts)
-function isMessengerService(service: Service | null | undefined): boolean {
-  if (!service) return false;
-  try {
-    return new URL(service.url).hostname.includes("messenger");
-  } catch {
-    return false;
-  }
-}
-
-// Ctrl+<key> zoom shortcuts, mirroring ZOOM_KEYS in electron/serviceViews.ts so
-// the shortcut behaves the same whether the interface or a service has focus.
-const ZOOM_KEYS: Record<string, "in" | "out" | "reset"> = {
-  "=": "in",
-  "+": "in",
-  "-": "out",
-  _: "out",
-  "0": "reset",
-};
+import type { ConfirmPrompt } from "./lib/appActions";
+import {
+  useAutomationTasks,
+  useLinkPreview,
+  useNotificationSync,
+  useShortcutHints,
+  useUiLayer,
+  useWorkspaceLock,
+  useZoomFactor,
+} from "./hooks/useMainState";
+import { useFindBar } from "./hooks/useFindBar";
+import { useAppShortcuts } from "./hooks/useAppShortcuts";
+import { useAutomationPanel } from "./hooks/useAutomationPanel";
+import { useServiceEvents } from "./hooks/useServiceEvents";
 
 function App() {
   const [services, setServices] = useState<Service[]>([]);
   const [activeServiceId, setActiveServiceId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
-  // Full-pane app pages, shown while no service is active
-  const [appPage, setAppPage] = useState<"settings" | "changelog" | null>(null);
-  const [linkPreviewUrl, setLinkPreviewUrl] = useState<string | null>(null);
-  const [showAutomationPanel, setShowAutomationPanel] = useState(false);
-  // Find bar: the service it is searching, or null when closed.
-  const [findServiceId, setFindServiceId] = useState<string | null>(null);
-  // Per-service zoom factors, mirrored from the main process for the titlebar.
-  const [zoomFactors, setZoomFactors] = useState<Record<string, number>>({});
-  const [automationTasks, setAutomationTasks] = useState<AutomationTask[]>([]);
-  // The workspace lock (issue #102). Main owns the state — a fresh launch, the
-  // auto-lock countdown and every unlock are decided there — so the renderer
-  // only mirrors it.
+  const [appPage, setAppPage] = useState<AppPage | null>(null);
   // The destructive prompts the service context menu asks for (issue #104).
-  // Main no longer opens a native message box; it sends the request here.
-  const [confirm, setConfirm] = useState<{
-    title: string;
-    body: string;
-    confirmLabel: string;
-    tone: ConfirmTone;
-    onConfirm: () => void;
-  } | null>(null);
-  const [locked, setLocked] = useState(false);
-  // Ctrl held down: the sidebar numbers its first nine services (main decides
-  // when, since a focused service view never passes keys to this window).
-  const [shortcutHints, setShortcutHints] = useState(false);
-  useEffect(() => window.electronAPI?.onShortcutHintsChanged(setShortcutHints), []);
-  const lockedRef = useRef(false);
-  lockedRef.current = locked;
-  // Read inside window-level key handlers, which are registered once and must
-  // not re-bind on every service switch.
-  const activeServiceIdRef = useRef<string | null>(null);
-  activeServiceIdRef.current = activeServiceId;
-  const updateNotificationCount = useNotificationStore((s) => s.updateCount);
-  const setNotificationCounts = useNotificationStore((s) => s.setCounts);
+  const [confirm, setConfirm] = useState<(ConfirmPrompt & { onConfirm: () => void }) | null>(null);
   const removeNotificationService = useNotificationStore((s) => s.removeService);
+
+  const locked = useWorkspaceLock();
+  const shortcutHints = useShortcutHints();
+  const automationTasks = useAutomationTasks();
+  const linkPreviewUrl = useLinkPreview();
+  const zoomFactor = useZoomFactor(activeServiceId);
+  const { findServiceId, openFind, closeFind } = useFindBar(activeServiceId);
+  const activeService = services.find((s) => s.id === activeServiceId) ?? null;
+  const automationPanel = useAutomationPanel(activeService);
+  useNotificationSync();
+  // Hide the service view so the modal renders above it
+  useUiLayer(showAddModal);
+
+  // Look up a service in the current list from a handler registered once.
+  // Reading it through the state updater avoids a stale closure.
+  const withService = useCallback((serviceId: string, fn: (service: Service) => void) => {
+    setServices((current) => {
+      const svc = current.find((s) => s.id === serviceId);
+      if (svc) fn(svc);
+      return current;
+    });
+  }, []);
+
+  const showAppPage = useCallback(async (page: AppPage | null) => {
+    setActiveServiceId(null);
+    setAppPage(page);
+    await window.electronAPI?.hideService();
+  }, []);
 
   const handleRemoveService = useCallback(
     async (serviceId: string) => {
@@ -95,206 +79,52 @@ function App() {
     [removeNotificationService],
   );
 
-  useEffect(() => {
-    if (!window.electronAPI) return;
-
-    // Reopen whatever was on screen last time. Main resolves the id, so a
-    // service removed or disabled since launch falls back to Welcome (#89).
-    window.electronAPI.getServices().then(async (loaded) => {
-      setServices(loaded);
-      const lastActive = await window.electronAPI.getLastActiveService();
-      if (lastActive) {
-        setActiveServiceId(lastActive);
-        const service = loaded.find((s) => s.id === lastActive);
-        if (!isInternalService(service)) window.electronAPI.showService(lastActive);
-      }
-    });
-
-    window.electronAPI.security.getState().then((state) => setLocked(state.locked));
-    const unsubSecurity = window.electronAPI.security.onStateChanged((state) =>
-      setLocked(state.locked),
-    );
-
-    // Seed from main before subscribing: counts already held there are only
-    // pushed when they change, so a UI reload would otherwise show no badges.
-    window.electronAPI.getNotificationCounts().then(setNotificationCounts);
-
-    const unsub = window.electronAPI.onNotificationUpdate(({ serviceId, count }) => {
-      updateNotificationCount(serviceId, count);
-    });
-
-    // Listen for services updated from native context menu actions
-    const unsubServices = window.electronAPI.onServicesUpdated((updated) => {
-      setServices(updated);
-    });
-
-    // Listen for Ctrl+Number service switches from the main process
-    // (fired when a service WebContentsView has focus)
-    const unsubSwitched = window.electronAPI.onServiceSwitched((serviceId) => {
+  const handleSelectService = useCallback(
+    (serviceId: string) => {
       setActiveServiceId(serviceId);
       setAppPage(null);
-    });
+      withService(serviceId, (svc) => {
+        if (isInternalService(svc) || svc.enabled === false) {
+          // Internal services render as React pages — no web view to show
+          window.electronAPI?.hideService();
+        } else {
+          window.electronAPI?.showService(serviceId);
+        }
+      });
+    },
+    [withService],
+  );
 
-    // Listen for context menu actions that need renderer handling
-    const unsubActions = window.electronAPI.onContextMenuAction(({ action, serviceId }) => {
-      if (action === "edit-service") {
-        setServices((current) => {
-          const svc = current.find((s) => s.id === serviceId);
-          if (svc) {
-            setEditingService(svc);
-            setShowAddModal(true);
-          }
-          return current;
-        });
-      } else if (action === "confirm-remove-service") {
-        setServices((current) => {
-          const svc = current.find((s) => s.id === serviceId);
-          if (svc) {
-            setConfirm({
-              title: `Remove ${svc.name}?`,
-              body: "This permanently removes the service from Largs Hub, along with its saved sign-in.",
-              confirmLabel: "Remove",
-              tone: "danger",
-              onConfirm: () => void handleRemoveService(serviceId),
-            });
-          }
-          return current;
-        });
-      } else if (action === "confirm-disable-service") {
-        setServices((current) => {
-          const svc = current.find((s) => s.id === serviceId);
-          if (svc) {
-            setConfirm({
-              title: `Disable ${svc.name}?`,
-              body: "Disabling this service stops all of its Messenger automation: scheduled and interval messages, emoji bursts, call cycles and the auto-stop timer. You can enable the service again later, but the automation won't restart.",
-              confirmLabel: "Disable",
-              tone: "danger",
-              onConfirm: () =>
-                void window.electronAPI.toggleServiceEnabled(serviceId).then(setServices),
-            });
-          }
-          return current;
-        });
-      } else if (action === "confirm-clear-data") {
-        setServices((current) => {
-          const svc = current.find((s) => s.id === serviceId);
-          if (svc) {
-            setConfirm({
-              title: `Clear ${svc.name}'s data?`,
-              body: "This signs the account out and deletes the service's cookies, site data and cache. The service itself is kept.",
-              confirmLabel: "Clear data",
-              tone: "danger",
-              onConfirm: () => void window.electronAPI.clearServiceData(serviceId),
-            });
-          }
-          return current;
-        });
-      } else if (action === "show-service") {
-        setActiveServiceId(serviceId);
-        setAppPage(null);
-        window.electronAPI.showService(serviceId);
-      } else if (action === "show-update-page") {
-        setAppPage("settings");
-        setActiveServiceId(null);
-        window.electronAPI.hideService();
-      }
-    });
+  useServiceEvents({
+    setServices,
+    withService,
+    onRestored: setActiveServiceId,
+    onActivated: (serviceId) => {
+      setActiveServiceId(serviceId);
+      setAppPage(null);
+    },
+    onEdit: (svc) => {
+      setEditingService(svc);
+      setShowAddModal(true);
+    },
+    onConfirm: (prompt, onConfirm) => setConfirm({ ...prompt, onConfirm }),
+    onRemove: (serviceId) => void handleRemoveService(serviceId),
+    onShowUpdatePage: () => void showAppPage("settings"),
+  });
 
-    // Ctrl+F (or the context menu) inside a service view — main has already
-    // handed keyboard focus to this view, so the input can take it.
-    const unsubFindOpen = window.electronAPI.onOpenFindBar((serviceId) => {
-      setFindServiceId(serviceId);
-    });
-    const unsubFindClose = window.electronAPI.onCloseFindBar(() => {
-      setFindServiceId(null);
-    });
-
-    const unsubZoom = window.electronAPI.onServiceZoomChanged(({ serviceId, factor }) => {
-      setZoomFactors((current) => ({ ...current, [serviceId]: factor }));
-    });
-
-    // Link preview modal opened from a service view's context menu
-    const unsubLinkOpen = window.electronAPI.onLinkPreviewOpen((url) => {
-      setLinkPreviewUrl(url);
-    });
-    const unsubLinkClosed = window.electronAPI.onLinkPreviewClosed(() => {
-      setLinkPreviewUrl(null);
-    });
-
-    // Messenger automation task state pushed from the main process
-    window.electronAPI.messengerAutomation.list().then(setAutomationTasks);
-    const unsubAutomation = window.electronAPI.messengerAutomation.onUpdated(setAutomationTasks);
-
-    return () => {
-      unsub();
-      unsubServices();
-      unsubSwitched();
-      unsubActions();
-      unsubLinkOpen();
-      unsubLinkClosed();
-      unsubAutomation();
-      unsubFindOpen();
-      unsubFindClose();
-      unsubZoom();
-      unsubSecurity();
-    };
-  }, [
-    updateNotificationCount,
-    setNotificationCounts,
-    removeNotificationService,
-    handleRemoveService,
-  ]);
-
-  const handleSelectService = useCallback((serviceId: string) => {
-    setActiveServiceId(serviceId);
-    setAppPage(null);
-    setServices((current) => {
-      const svc = current.find((s) => s.id === serviceId);
-      if (isInternalService(svc) || svc?.enabled === false) {
-        // Internal services render as React pages — no web view to show
-        window.electronAPI?.hideService();
-      } else {
-        window.electronAPI?.showService(serviceId);
-      }
-      return current;
-    });
-  }, []);
-
-  useEffect(() => {
-    const handleKeydown = (e: KeyboardEvent) => {
-      // Nothing behind the lock screen is reachable, shortcuts included.
-      if (lockedRef.current) return;
-      if (!e.ctrlKey || e.altKey || e.metaKey) return;
-      // Zoom tolerates shift ("+" is shift+"=" on most layouts).
-      const zoomDirection = ZOOM_KEYS[e.key];
-      if (zoomDirection && activeServiceIdRef.current) {
-        e.preventDefault();
-        window.electronAPI?.stepServiceZoom(activeServiceIdRef.current, zoomDirection);
-        return;
-      }
-      if (e.shiftKey) return;
-      if (e.key.toLowerCase() === "f") {
-        if (!activeServiceIdRef.current) return;
-        e.preventDefault();
-        setFindServiceId(activeServiceIdRef.current);
-        return;
-      }
-      const num = parseInt(e.key, 10);
-      if (num >= 1 && num <= 9) {
-        e.preventDefault();
-        setServices((current) => {
-          const service = current[num - 1];
-          if (service) {
-            handleSelectService(service.id);
-          }
-          return current;
-        });
-      }
-    };
-
-    window.addEventListener("keydown", handleKeydown);
-    return () => window.removeEventListener("keydown", handleKeydown);
-  }, [handleSelectService]);
+  useAppShortcuts({
+    locked,
+    activeServiceId,
+    onFind: openFind,
+    // Ctrl+N picks the Nth service in sidebar order, disabled ones included
+    onSwitch: (index) => {
+      setServices((current) => {
+        const service = current[index];
+        if (service) handleSelectService(service.id);
+        return current;
+      });
+    },
+  });
 
   const handleAddService = useCallback(async (service: Service) => {
     const updated = await window.electronAPI.addService(service);
@@ -316,114 +146,25 @@ function App() {
     setServices(updated);
   }, []);
 
-  const handleReloadService = useCallback(() => {
-    if (activeServiceId) {
-      window.electronAPI?.reloadService(activeServiceId);
-    }
-  }, [activeServiceId]);
-
-  const handleGoBack = useCallback(() => {
-    if (activeServiceId) {
-      window.electronAPI?.goBack(activeServiceId);
-    }
-  }, [activeServiceId]);
-
-  const handleGoForward = useCallback(() => {
-    if (activeServiceId) {
-      window.electronAPI?.goForward(activeServiceId);
-    }
-  }, [activeServiceId]);
-
-  // Bring UI to front when modal is open so it renders above service views
-  useEffect(() => {
-    if (!showAddModal) return;
-    window.electronAPI?.bringUiToFront();
-    return () => {
-      window.electronAPI?.sendUiToBack();
-    };
-  }, [showAddModal]);
-
-  const linkPreviewOpen = linkPreviewUrl !== null;
-  useEffect(() => {
-    if (!linkPreviewOpen) return;
-    window.electronAPI?.bringUiToFront();
-    return () => {
-      window.electronAPI?.sendUiToBack();
-    };
-  }, [linkPreviewOpen]);
-
-  // Reserve the find bar's strip in the service view's bounds while it is open,
-  // and drop the page's match highlighting when it closes.
-  const findOpen = findServiceId !== null;
-  useEffect(() => {
-    window.electronAPI?.setFindBarOpen(findOpen);
-    return () => {
-      window.electronAPI?.setFindBarOpen(false);
-    };
-  }, [findOpen]);
-
-  // The bar searches one service; switching away (or hiding the view) closes it.
-  useEffect(() => {
-    if (findServiceId && findServiceId !== activeServiceId) {
-      window.electronAPI?.stopFindInPage(findServiceId);
-      setFindServiceId(null);
-    }
-  }, [findServiceId, activeServiceId]);
-
-  // Seed the titlebar's zoom indicator when a service is opened; later changes
-  // arrive on the service-zoom-changed event.
-  useEffect(() => {
-    if (!activeServiceId) return;
-    window.electronAPI?.getServiceZoom(activeServiceId).then((factor) => {
-      setZoomFactors((current) => ({ ...current, [activeServiceId]: factor }));
-    });
-  }, [activeServiceId]);
-
-  const activeService = services.find((s) => s.id === activeServiceId) ?? null;
-
-  // Split the layout into a service pane (left) and the automation panel
-  // (right) by resizing the Messenger view instead of hiding it, so the
-  // conversation stays visible beside the panel.
-  useEffect(() => {
-    if (!showAutomationPanel) return;
-    window.electronAPI?.messengerAutomation.setSplitOpen(true);
-    return () => {
-      window.electronAPI?.messengerAutomation.setSplitOpen(false);
-    };
-  }, [showAutomationPanel]);
-
-  // Close the panel when navigating away from a Messenger service
-  const automationAvailable = isMessengerService(activeService);
-  useEffect(() => {
-    if (showAutomationPanel && !automationAvailable) {
-      setShowAutomationPanel(false);
-    }
-  }, [showAutomationPanel, automationAvailable]);
+  // Runs `fn` on the active service, if there is one
+  const onActive = (fn: (serviceId: string) => void) => () => {
+    if (activeServiceId) fn(activeServiceId);
+  };
 
   return (
     <div className="flex flex-col h-screen w-screen">
       <Titlebar
         activeService={activeService}
-        onReload={handleReloadService}
-        onGoBack={handleGoBack}
-        onGoForward={handleGoForward}
-        onOpenSettings={async () => {
-          setActiveServiceId(null);
-          setAppPage("settings");
-          await window.electronAPI?.hideService();
-        }}
-        onOpenChangelog={async () => {
-          setActiveServiceId(null);
-          setAppPage("changelog");
-          await window.electronAPI?.hideService();
-        }}
-        zoomFactor={activeServiceId ? (zoomFactors[activeServiceId] ?? 1) : 1}
-        onResetZoom={() => {
-          if (activeServiceId) window.electronAPI?.stepServiceZoom(activeServiceId, "reset");
-        }}
-        showAutomation={automationAvailable}
+        onReload={onActive((id) => window.electronAPI?.reloadService(id))}
+        onGoBack={onActive((id) => window.electronAPI?.goBack(id))}
+        onGoForward={onActive((id) => window.electronAPI?.goForward(id))}
+        onOpenSettings={() => showAppPage("settings")}
+        onOpenChangelog={() => showAppPage("changelog")}
+        zoomFactor={zoomFactor}
+        onResetZoom={onActive((id) => window.electronAPI?.stepServiceZoom(id, "reset"))}
+        showAutomation={automationPanel.available}
         automationActive={automationTasks.some((t) => t.serviceId === activeServiceId)}
-        onOpenAutomation={() => setShowAutomationPanel((open) => !open)}
+        onOpenAutomation={() => automationPanel.setOpen((open) => !open)}
       />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
@@ -431,58 +172,28 @@ function App() {
           activeServiceId={activeServiceId}
           showShortcutHints={shortcutHints && !locked}
           onSelectService={handleSelectService}
-          onAddService={async () => {
+          onAddService={() => {
             setEditingService(null);
-            setActiveServiceId(null);
-            setAppPage(null);
-            await window.electronAPI?.hideService();
+            return showAppPage(null);
           }}
           onReorderServices={handleReorderServices}
         />
-        {/* BrowserView renders natively on top of this area */}
-        <div className="flex-1 relative">
-          {!activeServiceId && !appPage && (
-            <WelcomeScreen
-              onAddService={() => setShowAddModal(true)}
-              hasServices={services.length > 0}
-            />
-          )}
-          {appPage === "settings" && !activeServiceId && <SettingsPage />}
-          {appPage === "changelog" && !activeServiceId && (
-            <Suspense fallback={null}>
-              <ChangelogPage />
-            </Suspense>
-          )}
-          {activeService?.type === "notion-notes" && activeService.enabled !== false && (
-            <RetiredNoteTakerScreen
-              service={activeService}
-              onRemove={() => handleRemoveService(activeService.id)}
-            />
-          )}
-          {activeServiceId &&
-            (() => {
-              const svc = services.find((s) => s.id === activeServiceId);
-              return svc?.enabled === false ? (
-                <DisabledServiceScreen
-                  serviceName={svc.name}
-                  onEnable={async () => {
-                    const updated = await window.electronAPI.toggleServiceEnabled(svc.id);
-                    setServices(updated);
-                    window.electronAPI?.showService(svc.id);
-                  }}
-                />
-              ) : null;
-            })()}
-        </div>
-      </div>
-      {findServiceId && (
-        <FindBar
-          serviceId={findServiceId}
-          onClose={() => {
-            window.electronAPI?.stopFindInPage(findServiceId);
-            setFindServiceId(null);
+        <ContentPane
+          activeService={activeService}
+          activeServiceId={activeServiceId}
+          appPage={appPage}
+          hasServices={services.length > 0}
+          onAddService={() => setShowAddModal(true)}
+          onRemoveService={handleRemoveService}
+          onEnableService={async (svc) => {
+            const updated = await window.electronAPI.toggleServiceEnabled(svc.id);
+            setServices(updated);
+            window.electronAPI?.showService(svc.id);
           }}
         />
+      </div>
+      {findServiceId && (
+        <FindBar serviceId={findServiceId} onClose={() => closeFind(findServiceId)} />
       )}
       {linkPreviewUrl && (
         <LinkPreviewModal
@@ -500,11 +211,11 @@ function App() {
           }}
         />
       )}
-      {showAutomationPanel && activeServiceId && (
+      {automationPanel.open && activeServiceId && (
         <MessengerAutomationPanel
           serviceId={activeServiceId}
           tasks={automationTasks}
-          onClose={() => setShowAutomationPanel(false)}
+          onClose={() => automationPanel.setOpen(false)}
         />
       )}
       {confirm && (
@@ -512,7 +223,7 @@ function App() {
           title={confirm.title}
           body={confirm.body}
           confirmLabel={confirm.confirmLabel}
-          tone={confirm.tone}
+          tone="danger"
           onConfirm={confirm.onConfirm}
           onClose={() => setConfirm(null)}
         />
