@@ -107,7 +107,7 @@ Act as an expert in TypeScript, Electron, and desktop app development.
 - Keep the three layers distinct: main process (`electron/`, entry point `main.ts`), preload (`electron/preload.ts`), and renderer (`src/`).
 - Organize files by feature, grouping related components, modules, utilities, and styles.
 - Clearly separate core application logic from UI components to enhance maintainability and testability.
-- **Keep files short.** 250–300 lines is already long for one file. When a file you touch is well past that, split it along its existing seams (one module per responsibility, pure logic and injected scripts in their own modules, a barrel `index.ts` so importers don't change), the way `electron/serviceViews/` and `electron/messengerAutomation/` are split. Don't grow a file that's already over the limit. Put new code in a new module instead.
+- **Keep files short.** 250–300 lines is already long for one file. When a file you touch is well past that, split it along its existing seams (one module per responsibility, pure logic and injected scripts in their own modules, a barrel `index.ts` so importers don't change), the way `electron/serviceViews/` and `electron/messengerAutomation/` are split. In the renderer that means sub-components in a lowercase feature folder (`src/components/settings/`, `sidebar/`, `add-service/`, `messenger-automation/`), hooks in `src/hooks/` and pure logic in `src/lib/` with a test. Don't grow a file that's already over the limit. Put new code in a new module instead.
 
 ### Naming Conventions
 

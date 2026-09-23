@@ -206,7 +206,8 @@ largs-hub/
 │   ├── ipc/                  # services, settings, security & list-group IPC handlers
 │   └── shared/               # Types and layout constants shared with the renderer
 ├── src/                      # React renderer
-│   ├── components/           # UI components
+│   ├── components/           # UI components, with per-feature folders (settings/, sidebar/, …)
+│   ├── hooks/                # React hooks, incl. the ones that mirror main-process state
 │   ├── lib/                  # Pure renderer helpers
 │   ├── store/                # Zustand stores
 │   ├── types.ts              # The window.electronAPI interface
