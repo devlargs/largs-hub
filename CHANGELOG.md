@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.68] (2026-09-23)
 - **Services show up again.** In 0.1.67 every service (Messenger, WhatsApp, Todo and the rest) could stay blank, and so could link previews and Messenger call windows. Before loading a page, the app first tells it to look like Chrome, and it waited for that step to finish. When the step never finished, the page never loaded. Now it waits at most a second, then loads the page regardless. Applies on Windows and macOS.
 
 ## [0.1.67] (2026-09-23)
