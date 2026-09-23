@@ -21,6 +21,7 @@ import { deleteCustomIconFile } from "../customIcons";
 import { supersededIconFile } from "../iconCleanup";
 import { hasAutomationForService, stopAutomationForService } from "../messengerAutomation";
 import { enableToggleNeedsConfirm } from "../serviceFlags";
+import { isFromApp } from "../appOrigin";
 import {
   serviceFlagMenuItems,
   toggleEnabled,
@@ -41,8 +42,12 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     return store.get("services");
   });
 
-  ipcMain.handle("add-service", (_event, rawService: unknown) => {
+  // Adding, changing and removing services (which loads URLs into logged-in
+  // partitions and wipes session data) only answers the app's own page
+  // (issue #112).
+  ipcMain.handle("add-service", (event, rawService: unknown) => {
     const services = store.get("services");
+    if (!isFromApp(event)) return services;
     const service = sanitizeService(rawService);
     if (!service) return services;
     if (services.some((s) => s.id === service.id)) return services;
@@ -51,7 +56,8 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     return services;
   });
 
-  ipcMain.handle("remove-service", async (_event, serviceId: string) => {
+  ipcMain.handle("remove-service", async (event, serviceId: string) => {
+    if (!isFromApp(event)) return store.get("services");
     const removed = store.get("services").find((s) => s.id === serviceId);
     const services = store.get("services").filter((s) => s.id !== serviceId);
     store.set("services", services);
@@ -76,7 +82,8 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
   // Signs the account out and drops its cached data, keeping the service. Split
   // out of the context menu when the confirmation moved into the app (issue
   // #104): the prompt is the renderer's, the work stays here.
-  ipcMain.handle("clear-service-data", async (_event, serviceId: unknown) => {
+  ipcMain.handle("clear-service-data", async (event, serviceId: unknown) => {
+    if (!isFromApp(event)) return;
     if (typeof serviceId !== "string" || !serviceId) return;
     if (!store.get("services").some((s) => s.id === serviceId)) return;
     const wasActive = getActiveServiceId() === serviceId;
@@ -91,7 +98,8 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     }
   });
 
-  ipcMain.handle("update-service", (_event, rawUpdated: unknown) => {
+  ipcMain.handle("update-service", (event, rawUpdated: unknown) => {
+    if (!isFromApp(event)) return store.get("services");
     const updated = sanitizeService(rawUpdated);
     if (!updated) return store.get("services");
     const old = store.get("services").find((s) => s.id === updated.id);

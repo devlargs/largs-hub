@@ -67,6 +67,8 @@ Adding any main↔renderer capability touches three places, which must be kept c
 2. `electron/preload.ts` — method on the `api` object exposed as `window.electronAPI`
 3. `src/types.ts` — matching signature on the `ElectronAPI` interface
 
+**Only the app may use the bridge.** The UI view is the only page with the preload. It runs sandboxed, and `uiViewGuard.ts` cancels any navigation away from the app (a dropped link or file would otherwise load there with `window.electronAPI`) and denies `window.open`. A handler that changes stored state (settings, the lock, the service list, files on disk) must also start with `if (!isFromApp(event)) …` (`appOrigin.ts`), and must never take a filesystem path from the renderer: get it from a native dialog in main instead, as `select-download-folder` does.
+
 **Payload types are not duplicated.** `Service`, `TaskSpec`, `AutomationTask` and friends live once in `electron/shared/types.ts`; `store.ts` re-exports them, preload imports them from `./shared/types`, and `src/types.ts` re-exports them via `@shared/types`. Add or change a field there and both tsconfig projects fail until every caller agrees — so declare new payload shapes in the shared module, never in the layer that happens to need them first.
 
 ### Service views (electron/serviceViews/)
@@ -135,7 +137,7 @@ Act as an expert in TypeScript, Electron, and desktop app development.
 
 ### Best Practices
 
-- Follow Electron's security guidelines rigorously: context isolation on, Node integration off in renderers, sandboxed service views, and secure IPC patterns (validate inputs in `ipcMain` handlers).
+- Follow Electron's security guidelines rigorously: context isolation on, Node integration off in renderers, every view sandboxed (UI view included), and secure IPC patterns (validate inputs in `ipcMain` handlers).
 - Use electron-builder (already configured) for packaging and updates; extend it rather than hand-rolling deployment.
 - Implement comprehensive error handling: try-catch around fallible main-process work, proper logging, and error boundaries in React where applicable.
 - Document non-obvious code and architectural decisions to facilitate future development and debugging.

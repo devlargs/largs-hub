@@ -3,6 +3,7 @@ import fs from "fs";
 import { store } from "../store";
 import { refreshPrivacyOverlays } from "../serviceViews";
 import { syncTray } from "../tray";
+import { isFromApp } from "../appOrigin";
 import {
   customIconsDir as iconsDir,
   resolveCustomIconPath as resolveIconPath,
@@ -43,9 +44,14 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
     };
   });
 
-  ipcMain.handle("update-setting", (_event, key: string, value: unknown) => {
-    if (key === "downloadFolder" && typeof value === "string") {
-      store.set("downloadFolder", value);
+  // Changing stored settings is only for the app's own page (issue #112).
+  ipcMain.handle("update-setting", (event, key: string, value: unknown) => {
+    if (!isFromApp(event)) return;
+    // A folder can only be chosen through the native picker below, which
+    // stores it itself. Over IPC the only allowed value is "" (back to the
+    // system default), so no page can quietly point every download elsewhere.
+    if (key === "downloadFolder" && value === "") {
+      store.set("downloadFolder", "");
     } else if (key === "wakeServicesAutomatically" && typeof value === "boolean") {
       store.set("wakeServicesAutomatically", value);
     } else if (key === "launchAtStartup" && typeof value === "boolean") {
@@ -80,9 +86,9 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
     }
   });
 
-  ipcMain.handle("select-download-folder", async () => {
+  ipcMain.handle("select-download-folder", async (event) => {
     const mainWindow = deps.getMainWindow();
-    if (!mainWindow) return null;
+    if (!mainWindow || !isFromApp(event)) return null;
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ["openDirectory"],
       title: "Select Download Folder",
@@ -106,7 +112,8 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
 
   ipcMain.handle(
     "save-custom-icon",
-    async (_event, { fileName, dataUrl }: { fileName: string; dataUrl: string }) => {
+    async (event, { fileName, dataUrl }: { fileName: string; dataUrl: string }) => {
+      if (!isFromApp(event)) throw new Error("Not allowed");
       const filePath = resolveCustomIconPath(fileName);
       if (!filePath) throw new Error("Invalid icon file name");
       if (typeof dataUrl !== "string" || !ICON_DATA_URL_RE.test(dataUrl)) {
@@ -121,7 +128,8 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
     },
   );
 
-  ipcMain.handle("delete-custom-icon", async (_event, fileName: string) => {
+  ipcMain.handle("delete-custom-icon", async (event, fileName: string) => {
+    if (!isFromApp(event)) return;
     deleteCustomIconFile(fileName);
   });
 

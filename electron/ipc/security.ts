@@ -15,6 +15,7 @@ import {
   sanitizeLockDelayMinutes,
 } from "../lockPolicy";
 import type { SecurityResult, SecurityState } from "../shared/types";
+import { isFromApp } from "../appOrigin";
 
 // IPC: the workspace lock (issue #102) — the "Add Security Controls" toggle,
 // the master password, the auto-lock countdown and the lock screen's unlock.
@@ -125,14 +126,17 @@ export function registerSecurityIpc(d: SecurityIpcDeps) {
 
   // Switching the toggle off leaves the credential in place; switching it back
   // on with a credential already stored asks for nothing.
-  ipcMain.handle("set-security-enabled", (_event, enabled: unknown): SecurityState => {
-    if (typeof enabled !== "boolean") return securityState();
+  // Every handler that changes the lock only answers the app's own page
+  // (issue #112).
+  ipcMain.handle("set-security-enabled", (event, enabled: unknown): SecurityState => {
+    if (!isFromApp(event) || typeof enabled !== "boolean") return securityState();
     store.set("securityControlsEnabled", enabled);
     setLockState(enabled ? { armedAt: null, locked: false } : INITIAL_LOCK_STATE);
     return securityState();
   });
 
-  ipcMain.handle("set-lock-delay", (_event, minutes: unknown): SecurityState => {
+  ipcMain.handle("set-lock-delay", (event, minutes: unknown): SecurityState => {
+    if (!isFromApp(event)) return securityState();
     store.set("lockDelayMinutes", sanitizeLockDelayMinutes(minutes));
     // Re-arms the pending countdown against the new delay.
     setLockState(lockState);
@@ -144,9 +148,10 @@ export function registerSecurityIpc(d: SecurityIpcDeps) {
   ipcMain.handle(
     "set-master-password",
     (
-      _event,
+      event,
       payload: { currentPassword?: unknown; password?: unknown; confirm?: unknown },
     ): SecurityResult => {
+      if (!isFromApp(event)) return { ok: false, error: "Not allowed." };
       const existing = credential();
       if (existing && !verifyMasterPassword(payload?.currentPassword, existing)) {
         return { ok: false, error: "That isn't your current password." };
@@ -161,7 +166,8 @@ export function registerSecurityIpc(d: SecurityIpcDeps) {
     },
   );
 
-  ipcMain.handle("unlock-app", (_event, password: unknown): SecurityResult => {
+  ipcMain.handle("unlock-app", (event, password: unknown): SecurityResult => {
+    if (!isFromApp(event)) return { ok: false, error: "Not allowed." };
     if (!lockState.locked) return { ok: true };
     if (!verifyMasterPassword(password, credential())) {
       return { ok: false, error: "Wrong password." };

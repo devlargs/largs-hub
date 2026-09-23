@@ -11,6 +11,7 @@ import { initTray, isQuitting, isTrayAvailable, refreshTray, syncTray, destroyTr
 import { windowCloseAction, windowMinimizeAction } from "./trayMenu";
 import { linkPreviewBounds, MAC_TRAFFIC_LIGHT_POSITION } from "./shared/layout";
 import { loadWithChromeIdentity } from "./chromeIdentity";
+import { APP_ENTRY_URL, guardUiView } from "./uiViewGuard";
 import { createShortcutHintTracker } from "./shortcutHints";
 import { registerSettingsIpc } from "./ipc/settings";
 import { attachSecurityWindowEvents, registerSecurityIpc } from "./ipc/security";
@@ -131,10 +132,14 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
+      // The preload only needs contextBridge and ipcRenderer, both available
+      // to a sandboxed preload (issue #112).
+      sandbox: true,
     },
   });
 
   uiView.setBackgroundColor("#00000000");
+  guardUiView(uiView.webContents);
   uiView.webContents.on("before-input-event", (_event, input) => {
     shortcutHints.handleInput(input);
   });
@@ -147,11 +152,7 @@ function createWindow() {
   };
   resizeUiView();
 
-  if (process.env.NODE_ENV === "development" || process.argv.includes("--dev")) {
-    uiView.webContents.loadURL("http://localhost:5173");
-  } else {
-    uiView.webContents.loadFile(path.join(__dirname, "../dist/index.html"));
-  }
+  uiView.webContents.loadURL(APP_ENTRY_URL);
 
   mainWindow.on("resize", () => {
     if (mainWindow) {
