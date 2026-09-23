@@ -1,5 +1,11 @@
 import { Session, WebContents } from "electron";
 import { currentChromeIdentity, withChromeIdentityHeaders } from "./userAgent";
+import { settleWithin } from "./settleWithin";
+
+// How long a first load waits for the UA override before going ahead anyway.
+// The command is normally answered in milliseconds; one that never answers
+// used to leave the page unloaded for good.
+const OVERRIDE_WAIT_MS = 1000;
 
 // Applies the desktop-Chrome identity (userAgent.ts) to Electron objects.
 //
@@ -14,22 +20,30 @@ import { currentChromeIdentity, withChromeIdentityHeaders } from "./userAgent";
 /**
  * Give one webContents the Chrome identity. Resolves once the override is in
  * place, so load the first URL after it: a page that loaded earlier would
- * have read Electron's values already. Never rejects. If the debugger can't
- * attach (e.g. DevTools holds it), the UA string and the rewritten request
- * headers still apply, and only the page-visible metadata falls back.
+ * have read Electron's values already. Never rejects, and never waits longer
+ * than OVERRIDE_WAIT_MS: an override that hasn't been answered by then is
+ * left to land when it does. If the debugger can't attach (e.g. DevTools holds
+ * it), the UA string and the rewritten request headers still apply, and only
+ * the page-visible metadata falls back.
  */
 export async function applyChromeIdentity(webContents: WebContents): Promise<void> {
   const identity = currentChromeIdentity();
   webContents.setUserAgent(identity.userAgent);
+  let override: Promise<unknown>;
   try {
     if (!webContents.debugger.isAttached()) webContents.debugger.attach("1.3");
-    await webContents.debugger.sendCommand("Emulation.setUserAgentOverride", {
+    override = webContents.debugger.sendCommand("Emulation.setUserAgentOverride", {
       userAgent: identity.userAgent,
       platform: identity.navigatorPlatform,
       userAgentMetadata: identity.metadata,
     });
   } catch (err) {
     console.warn("[chromeIdentity] UA metadata override unavailable:", err);
+    return;
+  }
+  override.catch((err) => console.warn("[chromeIdentity] UA metadata override failed:", err));
+  if (!(await settleWithin(override, OVERRIDE_WAIT_MS))) {
+    console.warn("[chromeIdentity] UA metadata override not answered; loading anyway");
   }
 }
 
