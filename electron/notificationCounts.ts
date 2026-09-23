@@ -73,7 +73,7 @@ export function resetDecreaseDebounce(serviceId: string) {
 
 // Windows drops an overlay icon set before the window has been shown, so the
 // last rendered total is kept and re-applied from refreshTaskbarBadge() once
-// the window is up (see main.ts).
+// the window is up (see window/create.ts).
 let lastTotal = 0;
 
 function totalCount(): number {

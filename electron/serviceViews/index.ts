@@ -1,7 +1,7 @@
 // Service-view lifecycle: creation (with UA spoofing, permission policy,
 // notification extraction, popup handling), show/hide switching, hibernation,
-// and layout. These modules own all per-view runtime state; main.ts owns the
-// window and UI layer and injects them via initServiceViews.
+// and layout. These modules own all per-view runtime state; window/ owns the
+// window and UI layer, and main.ts injects them via initServiceViews.
 //
 //   state.ts        shared runtime state + the deps main injects
 //   create.ts       building a view: session, UA, permissions, popups, keys

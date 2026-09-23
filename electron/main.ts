@@ -1,59 +1,38 @@
-import { app, BrowserWindow, WebContentsView, ipcMain, net, session, shell } from "electron";
-import path from "path";
+import { app, BrowserWindow, net, session } from "electron";
 import { pathToFileURL } from "url";
 import { customIconsDir, resolveCustomIconPath, sweepOrphanedIcons } from "./customIcons";
-import { store, StoreSchema } from "./store";
-import { registerMessengerAutomation, restoreAutomationState } from "./messengerAutomation";
+import { store } from "./store";
+import { registerMessengerAutomation } from "./messengerAutomation";
 import { registerUpdater } from "./updater";
 import { registerServicesIpc } from "./ipc/services";
 import { sweepOrphanedPartitions } from "./partitions";
-import { initTray, isQuitting, isTrayAvailable, refreshTray, syncTray, destroyTray } from "./tray";
-import { windowCloseAction, windowMinimizeAction } from "./trayMenu";
-import { linkPreviewBounds, MAC_TRAFFIC_LIGHT_POSITION } from "./shared/layout";
-import { loadWithChromeIdentity } from "./chromeIdentity";
-import { APP_ENTRY_URL, guardUiView } from "./uiViewGuard";
-import { DEVTOOLS_ENABLED, installAppMenu } from "./devMode";
-import { createShortcutHintTracker } from "./shortcutHints";
+import { isQuitting, isTrayAvailable, destroyTray } from "./tray";
+import { installAppMenu } from "./devMode";
 import { registerSettingsIpc } from "./ipc/settings";
-import { attachSecurityWindowEvents, registerSecurityIpc } from "./ipc/security";
+import { registerSecurityIpc } from "./ipc/security";
 import { registerListGroupsIpc } from "./ipc/listGroups";
 import { addRecentEmoji, sanitizeRecentEmojis } from "./recentEmojis";
-import {
-  initDownloads,
-  repositionDownloadToasts,
-  closeAllDownloadToasts,
-  setDownloadToastsVisible,
-} from "./downloads";
-import {
-  initNotificationCounts,
-  refreshTaskbarBadge,
-  getNotificationCounts,
-  setBadgeChangeListener,
-} from "./notificationCounts";
+import { initDownloads } from "./downloads";
+import { initNotificationCounts } from "./notificationCounts";
 import {
   initServiceViews,
   getServiceView,
-  setActiveViewVisible,
   setViewsSuppressed,
-  setAutomationSplitOpen,
-  repositionActiveView,
-  showService,
-  setWindowMinimized,
-  watchPowerForPolling,
-  pushAutomationWidth,
-  handleWindowFocus,
-  handleWindowBlur,
-  startHibernationSweep,
-  stopHibernationSweep,
-  preloadServices,
-  clearAllViewState,
   monitorCallForAnswer,
   closeCallWindow,
   armAutomationCall,
 } from "./serviceViews";
+import {
+  createWindow,
+  getMainWindow,
+  getUiView,
+  openLinkPreview,
+  registerWindowIpc,
+  shortcutHints,
+} from "./window";
 
-// Entry point: owns the frameless window and the React UI layer (uiView), the
-// link-preview overlay, and z-order IPC. Everything else lives in modules:
+// Entry point: wires the modules together and runs the app lifecycle.
+//   window/               the frameless window, UI layer, link preview, window IPC
 //   store.ts              persistent state + stored-shape validation
 //   serviceViews/         service view lifecycle, switching, hibernation
 //   messengerAutomation/  Messenger automation scheduler + IPC
@@ -70,320 +49,39 @@ app.setName("Largs Hub");
 // toast notifications off this ID, and a mismatch breaks both silently (#58).
 app.setAppUserModelId("com.largshub.app");
 
-let mainWindow: BrowserWindow | null = null;
-let uiView: WebContentsView | null = null;
-let uiLayerRefCount = 0;
-let linkPreviewView: WebContentsView | null = null;
-
-// Window bounds change on every resize/move tick; electron-store writes the
-// whole config file synchronously, so coalesce those writes behind a debounce.
-let pendingBounds: StoreSchema["windowBounds"] | null = null;
-let boundsSaveTimer: ReturnType<typeof setTimeout> | null = null;
-function saveBoundsDebounced(partial: Partial<StoreSchema["windowBounds"]>) {
-  pendingBounds = { ...(pendingBounds ?? store.get("windowBounds")), ...partial };
-  if (!boundsSaveTimer) {
-    boundsSaveTimer = setTimeout(flushBounds, 500);
-  }
-}
-function flushBounds() {
-  if (boundsSaveTimer) {
-    clearTimeout(boundsSaveTimer);
-    boundsSaveTimer = null;
-  }
-  if (pendingBounds) {
-    store.set("windowBounds", pendingBounds);
-    pendingBounds = null;
-  }
-}
-
-function createWindow() {
-  const bounds = store.get("windowBounds");
-
-  mainWindow = new BrowserWindow({
-    width: bounds.width,
-    height: bounds.height,
-    x: bounds.x,
-    y: bounds.y,
-    minWidth: 480,
-    minHeight: 600,
-    frame: false,
-    titleBarStyle: "hidden",
-    // macOS keeps its native close/minimize/zoom buttons; line them up with the
-    // custom titlebar. Windows draws its own buttons in React.
-    ...(process.platform === "darwin" ? { trafficLightPosition: MAC_TRAFFIC_LIGHT_POSITION } : {}),
-    backgroundColor: "#181825",
-    ...(process.env.NODE_ENV !== "development" && !process.argv.includes("--dev")
-      ? { icon: path.join(__dirname, "../assets/ico/icon.ico") }
-      : {}),
-  });
-
-  // Restore the last window state rather than always maximizing — an
-  // auto-update relaunches the app, and coming back maximized when you weren't
-  // is the visible symptom (issue #92).
-  if (store.get("windowMaximized")) {
-    mainWindow.maximize();
-  }
-
-  mainWindow.on("maximize", () => store.set("windowMaximized", true));
-  mainWindow.on("unmaximize", () => store.set("windowMaximized", false));
-
-  // Create the UI view (React app) as a WebContentsView for z-order control
-  uiView = new WebContentsView({
-    webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      // The preload only needs contextBridge and ipcRenderer, both available
-      // to a sandboxed preload (issue #112).
-      sandbox: true,
-      // DevTools here would reach window.electronAPI past the lock (#111).
-      devTools: DEVTOOLS_ENABLED,
-    },
-  });
-
-  uiView.setBackgroundColor("#00000000");
-  guardUiView(uiView.webContents);
-  uiView.webContents.on("before-input-event", (_event, input) => {
-    shortcutHints.handleInput(input);
-  });
-  mainWindow.contentView.addChildView(uiView);
-
-  const resizeUiView = () => {
-    if (!mainWindow || !uiView) return;
-    const [width, height] = mainWindow.getContentSize();
-    uiView.setBounds({ x: 0, y: 0, width, height });
-  };
-  resizeUiView();
-
-  uiView.webContents.loadURL(APP_ENTRY_URL);
-
-  mainWindow.on("resize", () => {
-    if (mainWindow) {
-      // While maximized the size is the screen's, not the user's — saving it
-      // would leave nothing to restore to on unmaximize.
-      if (!mainWindow.isMaximized()) {
-        const [width, height] = mainWindow.getSize();
-        saveBoundsDebounced({ width, height });
-      }
-      resizeUiView();
-      repositionActiveView();
-      pushAutomationWidth(); // the panel follows the window, not a fixed ratio
-      if (linkPreviewView) {
-        linkPreviewView.setBounds(getLinkPreviewBounds());
-      }
-      repositionDownloadToasts(); // toasts sit against the window's corner
-    }
-  });
-
-  mainWindow.on("focus", () => {
-    mainWindow?.flashFrame(false); // Stop taskbar flashing
-    handleWindowFocus();
-  });
-
-  mainWindow.on("blur", () => {
-    handleWindowBlur();
-    shortcutHints.reset();
-  });
-
-  mainWindow.on("minimize", () => setDownloadToastsVisible(false));
-  mainWindow.on("restore", () => {
-    repositionDownloadToasts();
-    setDownloadToastsVisible(true);
-  });
-
-  mainWindow.on("move", () => {
-    if (mainWindow) {
-      if (!mainWindow.isMaximized()) {
-        const [x, y] = mainWindow.getPosition();
-        saveBoundsDebounced({ x, y });
-      }
-      repositionDownloadToasts();
-    }
-  });
-
-  // Close/minimize to tray (issue #90). Both settings are off by default, so
-  // without them this is a no-op and the window behaves exactly as before.
-  mainWindow.on("close", (event) => {
-    if (isQuitting()) return;
-    if (windowCloseAction(store.get("closeToTray"), isTrayAvailable()) === "hide") {
-      event.preventDefault();
-      mainWindow?.hide();
-      refreshTray(); // the menu's Show/Hide label just changed
-    }
-  });
-
-  mainWindow.on("minimize", () => {
-    if (windowMinimizeAction(store.get("minimizeToTray"), isTrayAvailable()) === "hide") {
-      mainWindow?.hide();
-      refreshTray();
-    }
-  });
-
-  mainWindow.on("closed", () => {
-    flushBounds(); // persist any bounds still buffered by the debounce
-    // Toasts are top-level windows; leaving one open would block "window-all-closed"
-    closeAllDownloadToasts();
-    stopHibernationSweep();
-    mainWindow = null;
-    uiView = null;
-    linkPreviewView = null;
-    clearAllViewState();
-  });
-
-  initTray({
-    getMainWindow: () => mainWindow,
-    showService: (serviceId) => {
-      showService(serviceId);
-      uiView?.webContents.send("service-switched", serviceId);
-    },
-    getNotificationCounts,
-  });
-  syncTray();
-  setBadgeChangeListener(refreshTray);
-
-  // Poll rate follows window state and power (issue #80).
-  mainWindow.on("minimize", () => setWindowMinimized(true));
-  mainWindow.on("restore", () => setWindowMinimized(false));
-  mainWindow.on("show", () => setWindowMinimized(false));
-  watchPowerForPolling();
-
-  // Auto-lock countdown follows the window, not the renderer (issue #102).
-  attachSecurityWindowEvents(mainWindow);
-
-  startHibernationSweep();
-
-  // Pre-load all saved services so they're warm on startup (if enabled)
-  uiView.webContents.on("did-finish-load", () => {
-    preloadServices();
-    refreshTaskbarBadge();
-    // Only now do the service views a stored task needs to inject into exist
-    // (issue #75). Restoring earlier would tear each task down on its first fire.
-    restoreAutomationState();
-  });
-
-  // An overlay set before the window is on screen is discarded by Windows
-  mainWindow.once("show", () => refreshTaskbarBadge());
-  mainWindow.on("restore", () => refreshTaskbarBadge());
-}
-
-// Link preview modal: the page renders in a WebContentsView layered on top,
-// while the React UI draws the modal chrome (backdrop, header, close button)
-// around it. Both sides read the geometry from shared/layout.ts.
-function getLinkPreviewBounds() {
-  if (!mainWindow) return { x: 0, y: 0, width: 0, height: 0 };
-  const [width, height] = mainWindow.getContentSize();
-  return linkPreviewBounds(width, height);
-}
-
-function openLinkPreview(url: string, partition: string) {
-  if (!mainWindow || !uiView) return;
-  closeLinkPreview();
-
-  const view = new WebContentsView({
-    webPreferences: {
-      partition,
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-  });
-
-  view.setBackgroundColor("#1e1e2e");
-
-  // Anything that tries to open a new window goes to the system browser
-  view.webContents.setWindowOpenHandler(({ url: popupUrl }) => {
-    shell.openExternal(popupUrl);
-    return { action: "deny" };
-  });
-
-  view.webContents.on("before-input-event", (event, input) => {
-    shortcutHints.handleInput(input);
-    if (input.type === "keyDown" && input.key === "Escape") {
-      event.preventDefault();
-      closeLinkPreview();
-    }
-  });
-
-  // Keep the URL shown in the modal header up to date
-  view.webContents.on("did-navigate", (_event, navUrl) => {
-    uiView?.webContents.send("link-preview-navigated", navUrl);
-  });
-
-  // Same Chrome disguise as the service views, applied before the page loads.
-  // The header rewrite that goes with it is registered on the (shared)
-  // service session in serviceViews/create.ts.
-  loadWithChromeIdentity(view.webContents, url);
-  mainWindow.contentView.addChildView(view);
-  view.setBounds(getLinkPreviewBounds());
-  linkPreviewView = view;
-
-  uiView.webContents.send("link-preview-open", url);
-}
-
-function closeLinkPreview() {
-  if (!linkPreviewView) return;
-  if (mainWindow) {
-    mainWindow.contentView.removeChildView(linkPreviewView);
-  }
-  linkPreviewView.webContents.close();
-  linkPreviewView = null;
-  uiView?.webContents.send("link-preview-closed");
-}
-
 // --- Module wiring -----------------------------------------------------------
 
 initNotificationCounts({
-  getMainWindow: () => mainWindow,
-  getUiView: () => uiView,
+  getMainWindow,
+  getUiView,
   isServiceNotificationsEnabled: (serviceId) =>
     store.get("services").find((s) => s.id === serviceId)?.notificationsEnabled !== false,
 });
 
-initDownloads({
-  getMainWindow: () => mainWindow,
-});
-
-// Numbers on the sidebar while Ctrl is held. Every view that can hold keyboard
-// focus feeds it: the UI view and link preview in createWindow/openLinkPreview,
-// the service views through their deps below.
-const shortcutHints = createShortcutHintTracker({
-  onChange: (visible) => uiView?.webContents.send("shortcut-hints-changed", visible),
-});
+initDownloads({ getMainWindow });
 
 initServiceViews({
-  getMainWindow: () => mainWindow,
-  getUiView: () => uiView,
+  getMainWindow,
+  getUiView,
   openLinkPreview,
   onKeyInput: (input) => shortcutHints.handleInput(input),
 });
 
-registerServicesIpc({
-  getMainWindow: () => mainWindow,
-  getUiView: () => uiView,
-});
-
-registerSettingsIpc({
-  getMainWindow: () => mainWindow,
-  getUiView: () => uiView,
-});
-
+registerServicesIpc({ getMainWindow, getUiView });
+registerSettingsIpc({ getMainWindow, getUiView });
 registerSecurityIpc({
-  getUiView: () => uiView,
+  getUiView,
   onLockedChanged: (locked) => setViewsSuppressed(locked),
 });
-
 registerListGroupsIpc();
-
-registerUpdater({
-  getMainWindow: () => mainWindow,
-  getUiView: () => uiView,
-});
+registerUpdater({ getMainWindow, getUiView });
+registerWindowIpc();
 
 // Messenger automation (scheduled/interval sends, call cycles)
 registerMessengerAutomation({
   getServiceView: (serviceId) => getServiceView(serviceId),
   getServices: () => store.get("services"),
-  getUiView: () => uiView,
+  getUiView,
   monitorCallForAnswer: (serviceId, timeoutMs) => monitorCallForAnswer(serviceId, timeoutMs),
   closeCallWindow: (serviceId) => closeCallWindow(serviceId),
   armAutomationCall: (serviceId) => armAutomationCall(serviceId),
@@ -399,52 +97,6 @@ registerMessengerAutomation({
     return updated;
   },
 });
-
-// --- UI-layer IPC (z-order, link preview, window controls) -------------------
-
-// Z-order control: WebContentsView child reordering doesn't reliably
-// control z-order on Windows, so we hide the active service view instead.
-// Ref-counted so nested overlays (context menu → modal) work correctly.
-ipcMain.on("bring-ui-to-front", () => {
-  uiLayerRefCount++;
-  // Always hide the active service view when any overlay is open
-  setActiveViewVisible(false);
-});
-
-ipcMain.on("send-ui-to-back", () => {
-  uiLayerRefCount = Math.max(0, uiLayerRefCount - 1);
-  // Only show the service view when ALL overlays are closed
-  if (uiLayerRefCount === 0) {
-    setActiveViewVisible(true);
-  }
-});
-
-ipcMain.on("close-link-preview", () => {
-  closeLinkPreview();
-});
-
-ipcMain.on("open-link-external", (_event, url: string) => {
-  if (typeof url === "string" && /^https?:/i.test(url)) {
-    shell.openExternal(url);
-  }
-});
-
-// Split the layout into service (left) + automation panel (right) by resizing
-// the active service view, so the service stays visible beside the panel.
-ipcMain.on("set-automation-split", (_event, open: unknown) => {
-  setAutomationSplitOpen(open === true);
-});
-
-// Window controls
-ipcMain.on("window-minimize", () => mainWindow?.minimize());
-ipcMain.on("window-maximize", () => {
-  if (mainWindow?.isMaximized()) {
-    mainWindow.unmaximize();
-  } else {
-    mainWindow?.maximize();
-  }
-});
-ipcMain.on("window-close", () => mainWindow?.close());
 
 // --- App lifecycle -------------------------------------------------------------
 

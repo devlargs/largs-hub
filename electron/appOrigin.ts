@@ -2,13 +2,13 @@ import type { IpcMainEvent, IpcMainInvokeEvent } from "electron";
 
 // The UI view is the only page with the preload, so the only one holding
 // window.electronAPI. This module answers "is this URL the app itself?", for
-// the UI view's navigation guard (main.ts) and for the IPC handlers that change
+// the UI view's navigation guard (uiViewGuard.ts) and for the IPC handlers that change
 // settings, security or services (issue #112): if anything else ever ended up
 // in the UI view (a dropped link, a future <a>), it gets neither the page nor
 // the bridge.
 //
 // isAppUrl is pure and unit-tested (test/appOrigin.test.ts). The entry URL is
-// set once by main.ts before the UI view loads.
+// set once by uiViewGuard.ts before the UI view loads.
 
 /**
  * Whether `url` is the app's own page. `appEntryUrl` is what the UI view loads:

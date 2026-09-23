@@ -130,7 +130,7 @@ function handleLockEvent(event: LockEvent) {
   setLockState(reduceLock(lockState, event, Date.now(), lockOptions()));
 }
 
-// Called from main.ts once the window exists. Hiding to the tray is the same
+// Called from window/create.ts once the window exists. Hiding to the tray is the same
 // thing as minimizing as far as the lock is concerned — close-to-tray users
 // would otherwise never arm the countdown.
 export function attachSecurityWindowEvents(window: BrowserWindow) {

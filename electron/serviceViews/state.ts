@@ -1,7 +1,7 @@
 import { BrowserWindow, WebContentsView } from "electron";
 
-// Runtime state shared by the serviceViews modules. main.ts owns the window
-// and the UI layer and injects them via initServiceViews; everything else here
+// Runtime state shared by the serviceViews modules. window/ owns the window
+// and the UI layer, and main.ts injects them via initServiceViews; everything else here
 // is per-view bookkeeping that lives only as long as the process.
 
 export interface ServiceViewDeps {

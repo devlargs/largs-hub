@@ -43,7 +43,7 @@ Three TypeScript projects: `tsconfig.json` covers `src/` (renderer), `tsconfig.e
 
 ## Architecture
 
-### Three-layer WebContentsView stack (electron/main.ts)
+### Three-layer WebContentsView stack (electron/window/)
 
 Everything hangs off one frameless `BrowserWindow`:
 
@@ -51,7 +51,7 @@ Everything hangs off one frameless `BrowserWindow`:
 2. **Service views** — one `WebContentsView` per enabled service, each with its own session partition (`persist:service-<id>`) so logins are isolated. Positioned to the right of the sidebar and below the titlebar via the `SIDEBAR_WIDTH` / `TITLEBAR_HEIGHT` constants; only the active one is visible.
 3. **Overlay views** (e.g. the link preview) — added last so they render on top.
 
-**Z-order rule:** child-view reordering is unreliable on Windows, so overlays don't get stacked above service views — instead the active service view is _hidden_. React modals do this by calling `bringUiToFront()` in a mount effect and `sendUiToBack()` on cleanup; main ref-counts these (`uiLayerRefCount`) so nested overlays work. Any new React modal that must appear over a service view needs this effect.
+**Z-order rule:** child-view reordering is unreliable on Windows, so overlays don't get stacked above service views — instead the active service view is _hidden_. React modals do this by calling `bringUiToFront()` in a mount effect and `sendUiToBack()` on cleanup; main ref-counts these (`electron/uiLayer.ts`) so nested overlays work. Any new React modal that must appear over a service view needs this effect: use `useUiLayer(open)` from `src/hooks/useMainState.ts`.
 
 **Native menus:** HTML menus/tooltips can't render above WebContentsViews, so all context menus are native `Menu.buildFromTemplate` in the main process. Results flow back to React via the `"context-menu-action"` IPC event, handled in `src/hooks/useServiceEvents.ts`.
 
@@ -63,7 +63,7 @@ Everything hangs off one frameless `BrowserWindow`:
 
 Adding any main↔renderer capability touches three places, which must be kept consistent:
 
-1. `electron/main.ts` — `ipcMain.handle` / `ipcMain.on` handler
+1. `electron/ipc/` (or `electron/window/ipc.ts` for window and z-order controls) — `ipcMain.handle` / `ipcMain.on` handler
 2. `electron/preload.ts` — method on the `api` object exposed as `window.electronAPI`
 3. `src/types.ts` — matching signature on the `ElectronAPI` interface
 
@@ -91,7 +91,7 @@ Keep new logic in the module that owns it, and follow the file-size rule under C
 
 ### State
 
-All persistence is `electron-store` in the main process (`StoreSchema` in main.ts): services, window bounds, theme, download settings. React holds runtime state only and syncs via IPC; there is a small zustand store for notification counts (`src/store/notifications.ts`).
+All persistence is `electron-store` in the main process (`StoreSchema` in `electron/store.ts`): services, window bounds, theme, download settings. React holds runtime state only and syncs via IPC; there is a small zustand store for notification counts (`src/store/notifications.ts`).
 
 ### Styling
 
@@ -104,7 +104,7 @@ Act as an expert in TypeScript, Electron, and desktop app development.
 ### Code Style and Structure
 
 - Write concise, type-safe TypeScript throughout the application.
-- Keep the three layers distinct: main process (`electron/main.ts`), preload (`electron/preload.ts`), and renderer (`src/`).
+- Keep the three layers distinct: main process (`electron/`, entry point `main.ts`), preload (`electron/preload.ts`), and renderer (`src/`).
 - Organize files by feature, grouping related components, modules, utilities, and styles.
 - Clearly separate core application logic from UI components to enhance maintainability and testability.
 - **Keep files short.** 250–300 lines is already long for one file. When a file you touch is well past that, split it along its existing seams (one module per responsibility, pure logic and injected scripts in their own modules, a barrel `index.ts` so importers don't change), the way `electron/serviceViews/` and `electron/messengerAutomation/` are split. Don't grow a file that's already over the limit. Put new code in a new module instead.

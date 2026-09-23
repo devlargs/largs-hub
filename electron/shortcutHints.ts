@@ -1,7 +1,7 @@
 // Ctrl+1-9 switches services, but nothing on screen said which number was
 // which. Holding Ctrl on its own for a moment puts the numbers on the sidebar.
 //
-// Pure and Electron-free (see test/shortcutHints.test.ts). main.ts feeds it
+// Pure and Electron-free (see test/shortcutHints.test.ts). window/state.ts feeds it
 // every `before-input-event` from the UI view, the service views and the link
 // preview — whichever one has keyboard focus is the only one that hears the
 // key — and forwards visibility changes to the renderer.

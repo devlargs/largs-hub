@@ -185,12 +185,13 @@ Largs Hub is built on a three-layer `WebContentsView` stack hosted in a single f
 - **Service views** — one `WebContentsView` per enabled service, each with its own `persist:service-<id>` session partition for isolated logins. Only the active one is visible.
 - **Overlay views** — the link preview, layered on top. (Messenger calls open in their own window.)
 
-The main process owns all persistence, native menus, notification detection (via pluggable per-service **badge adapters**), download handling, and the auto-updater. The renderer holds only runtime UI state and communicates through a typed IPC bridge (a handler in `main.ts` or `electron/ipc/` ⇄ the `preload.ts` API ⇄ the `src/types.ts` interface). Payload types are declared once, in `electron/shared/types.ts`.
+The main process owns all persistence, native menus, notification detection (via pluggable per-service **badge adapters**), download handling, and the auto-updater. The renderer holds only runtime UI state and communicates through a typed IPC bridge (a handler in `electron/ipc/` or `electron/window/` ⇄ the `preload.ts` API ⇄ the `src/types.ts` interface). Payload types are declared once, in `electron/shared/types.ts`.
 
 ```
 largs-hub/
 ├── electron/                 # Main process & preload
-│   ├── main.ts               # Window, UI layer and overlay orchestration
+│   ├── main.ts               # Entry point: module wiring and app lifecycle
+│   ├── window/               # The window, UI layer, link-preview overlay and window IPC
 │   ├── preload.ts            # Typed contextBridge API
 │   ├── serviceViews/         # Service-view creation, switching, hibernation, calls, overlays
 │   ├── store.ts              # electron-store schema & migrations
