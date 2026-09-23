@@ -1,4 +1,4 @@
-import MessageListPicker from "../MessageListPicker";
+import MessageListPicker from "./MessageListPicker";
 import {
   AutomationForm,
   HELPER_TEXT,
