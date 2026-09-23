@@ -2,12 +2,17 @@ import { WebContentsView, powerMonitor } from "electron";
 import { Service } from "../store";
 import { pollIntervalChanged, pollIntervalMs } from "../pollPolicy";
 import { createFetchTrigger } from "../fetchTrigger";
-import { findBadgeAdapter, buildPollScript, parseTitleCount } from "../badge-adapters";
+import { findBadgeAdapter, buildPollScript } from "../badge-adapters";
 import { reportNotificationCount } from "../notificationCounts";
 import { viewState } from "./state";
 
 // Notification-count extraction for one service view, and the conditions its
 // poll rate follows (pollPolicy.ts, issue #80).
+
+// When a title change is read: at once (a new message shows immediately) and
+// again shortly after, which is the second matching reading the decrease
+// debounce needs before a count may drop.
+const TITLE_POLL_DELAYS_MS = [0, 1_500];
 
 let windowMinimized = false;
 let systemSuspended = false;
@@ -99,12 +104,6 @@ export function attachBadgeExtraction(
   }
   const directFetchTrigger = fetchDirect ? createFetchTrigger(() => void fetchDirect?.()) : null;
 
-  view.webContents.on("page-title-updated", (_event, title) => {
-    directFetchTrigger?.trigger();
-    if (directFetchIsFresh()) return;
-    reportNotificationCount(service.id, parseTitleCount(title));
-  });
-
   // Poll for apps that don't reliably put counts in the title. The script is
   // title check + the adapter's targeted selectors — no broad heuristics.
   const pollScript = buildPollScript(adapter);
@@ -119,6 +118,19 @@ export function attachBadgeExtraction(
       })
       .catch(() => {});
   };
+
+  // A title change is read through the same poll, right away and once more a
+  // moment later, rather than reported on its own. The title used to be a
+  // separate reading: a drop to 0 from the title, contradicted by the next
+  // poll, was thrown away by the decrease debounce, and nothing re-sent it,
+  // so a read message could leave its count on the badge. One source means
+  // the readings agree, and the second poll confirms a drop within seconds
+  // instead of a background poll or two later.
+  const titlePollTrigger = createFetchTrigger(runPoll, TITLE_POLL_DELAYS_MS);
+  view.webContents.on("page-title-updated", () => {
+    directFetchTrigger?.trigger();
+    titlePollTrigger.trigger();
+  });
 
   // The rate follows what the app is actually doing rather than running flat
   // out for the view's whole life (issue #80). Re-armed whenever the conditions
@@ -168,5 +180,6 @@ export function attachBadgeExtraction(
     pollRateListeners.delete(applyPollRate);
     if (directFetchInterval) clearInterval(directFetchInterval);
     directFetchTrigger?.dispose();
+    titlePollTrigger.dispose();
   });
 }

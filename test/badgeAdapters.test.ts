@@ -127,6 +127,23 @@ describe("messenger poll script (executed)", () => {
     expect(runPollScript(script, doc)).toBe(5);
   });
 
+  it("ignores numbers inside the open conversation", () => {
+    // A message that is just "2", or a reaction count, sits in a leaf span
+    // under the conversation, whose label mentions "Messages".
+    const doc = fakeDocument({
+      navLinks: [
+        { ariaLabel: "Messages in conversation with Ada", spans: [{ text: "2" }] },
+        { ariaLabel: "Messenger conversation settings", spans: [{ text: "7" }] },
+      ],
+    });
+    expect(runPollScript(script, doc)).toBe(0);
+  });
+
+  it("still reads the badge on a rail item labelled with its count", () => {
+    const doc = fakeDocument({ navLinks: [{ ariaLabel: "Messages", spans: [{ text: "4" }] }] });
+    expect(runPollScript(script, doc)).toBe(4);
+  });
+
   it("ignores nav items unrelated to chats", () => {
     const doc = fakeDocument({ navLinks: [{ ariaLabel: "Marketplace", spans: [{ text: "8" }] }] });
     expect(runPollScript(script, doc)).toBe(0);

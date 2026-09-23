@@ -43,10 +43,19 @@ export const messengerAdapter: BadgeAdapter = {
 
     // 2. The Chats rail's visual badge: a leaf span whose entire text is the
     //    number ("3", "99+"). Leaf-only so aggregated wrapper text can't
-    //    false-positive.
+    //    false-positive. The label has to *be* the rail item ("Chats",
+    //    "Messages, 2 unread"), not merely mention messages: the open
+    //    conversation is labelled "Messages in conversation with …", and a
+    //    message that is just a number, or a reaction count, used to become
+    //    the badge and stay there after everything was read.
     for (const el of labelled) {
       const label = el.getAttribute('aria-label') || '';
-      if (!CHATS.test(label)) continue;
+      const words = label.toLowerCase().match(/[a-z]+/g) || [];
+      const isRail =
+        words.length > 0 &&
+        /^(chats|messages|messenger)$/.test(words[0]) &&
+        words.slice(1).every((w) => w === 'unread');
+      if (!isRail) continue;
       for (const span of el.querySelectorAll('span')) {
         const text = (span.textContent || '').trim();
         if (span.children.length === 0 && /^\\d+\\+?$/.test(text)) {
