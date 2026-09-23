@@ -1,4 +1,5 @@
 import React from "react";
+import InfoPopover from "./InfoPopover";
 
 // The building blocks every settings section is made of.
 
@@ -23,12 +24,17 @@ export function Section({ title, children }: { title: string; children: React.Re
 
 export function SettingRow({
   label,
-  description,
+  info,
+  status,
   statusColor,
   children,
 }: {
   label: string;
-  description: string;
+  // What the setting does, shown in a popup from the ⓘ beside the label
+  info: string;
+  // A line that stays on screen, for rows whose value is itself worth reading
+  // (the download folder, the update status)
+  status?: string;
   statusColor?: string;
   children: React.ReactNode;
 }) {
@@ -36,19 +42,23 @@ export function SettingRow({
     // Label left, control right, on one line at every width — a control that
     // stacks under its own label reads as a separate thing from the setting it
     // belongs to (issue #98). The label column takes the slack and the control
-    // keeps its intrinsic size, so the two stay on the same optical line
-    // however the description wraps.
+    // keeps its intrinsic size, so the two stay on the same optical line.
     <div className="flex flex-row items-center justify-between gap-3 rounded-lg py-2 @lg:gap-6 @lg:px-3.5 @lg:py-3">
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-          {label}
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+            {label}
+          </span>
+          <InfoPopover label={label} text={info} />
         </div>
-        <div
-          className="text-xs break-words @lg:truncate"
-          style={{ color: statusColor || "var(--text-muted)", marginTop: 2 }}
-        >
-          {description}
-        </div>
+        {status && (
+          <div
+            className="text-xs break-words @lg:truncate"
+            style={{ color: statusColor || "var(--text-muted)", marginTop: 2 }}
+          >
+            {status}
+          </div>
+        )}
       </div>
       <div className="flex shrink-0 justify-end">
         {/* The row's label is the control's accessible name; a bare Toggle has

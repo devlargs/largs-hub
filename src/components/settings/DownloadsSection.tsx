@@ -13,7 +13,8 @@ export default function DownloadsSection({ settings, save, toggle, preview }: Ap
     <Section title="Downloads">
       <SettingRow
         label="Download folder"
-        description={settings.downloadFolder || "System default (save dialog)"}
+        info="Where downloaded files are saved. With no folder chosen, each download asks where to save it. The × button goes back to asking."
+        status={settings.downloadFolder || "System default (save dialog)"}
       >
         <div className="flex items-center gap-2">
           {settings.downloadFolder && (
@@ -36,7 +37,7 @@ export default function DownloadsSection({ settings, save, toggle, preview }: Ap
 
       <SettingRow
         label="Open folder on finish"
-        description="Show the file in its folder when a download completes"
+        info={`When a download finishes, opens its folder in ${window.electronAPI?.platform === "darwin" ? "Finder" : "File Explorer"} with the file selected.`}
       >
         <Toggle
           checked={settings.openFolderOnFinish}
@@ -46,12 +47,15 @@ export default function DownloadsSection({ settings, save, toggle, preview }: Ap
 
       <SettingRow
         label="Open file on finish"
-        description="Open the downloaded file automatically when complete"
+        info="When a download finishes, opens the file with the app your computer uses for that kind of file."
       >
         <Toggle checked={settings.openFileOnFinish} onChange={() => toggle("openFileOnFinish")} />
       </SettingRow>
 
-      <SettingRow label="Download alert" description="Show a notification when a download finishes">
+      <SettingRow
+        label="Download alert"
+        info="Shows a small alert with the file's name in the corner of the window when a download finishes."
+      >
         <Toggle
           checked={settings.downloadAlertOnFinish}
           onChange={() => toggle("downloadAlertOnFinish")}

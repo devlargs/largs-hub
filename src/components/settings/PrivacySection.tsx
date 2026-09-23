@@ -7,34 +7,34 @@ type PrivacyKey = Extract<
   "privacyCoverPercent" | "privacyOpacity" | "privacyHorizontalPercent" | "privacyHorizontalOpacity"
 >;
 
-const SLIDERS: Array<{ key: PrivacyKey; label: string; description: string }> = [
+const SLIDERS: Array<{ key: PrivacyKey; label: string; info: string }> = [
   {
     key: "privacyCoverPercent",
     label: "Vertical cover size",
-    description: "How much of the page height is hidden from the top (0 = off)",
+    info: "Privacy mode covers the top of the page. This is how much of its height the cover takes, from the top. 0 turns this cover off.",
   },
   {
     key: "privacyOpacity",
     label: "Vertical cover opacity",
-    description: "How solid the top cover is — lower values let the page show through",
+    info: "How solid the top cover is. Lower values let the page show through faintly; 100 hides it completely.",
   },
   {
     key: "privacyHorizontalPercent",
     label: "Horizontal cover size",
-    description: "How much of the page width is hidden from the left (0 = off)",
+    info: "A second cover over the left side of the page. This is how much of its width the cover takes, from the left. 0 turns this cover off.",
   },
   {
     key: "privacyHorizontalOpacity",
     label: "Horizontal cover opacity",
-    description: "How solid the left cover is — lower values let the page show through",
+    info: "How solid the left cover is. Lower values let the page show through faintly; 100 hides it completely.",
   },
 ];
 
 export default function PrivacySection({ settings, preview }: AppSettingsApi) {
   return (
     <Section title="Privacy">
-      {SLIDERS.map(({ key, label, description }) => (
-        <SettingRow key={key} label={label} description={description}>
+      {SLIDERS.map(({ key, label, info }) => (
+        <SettingRow key={key} label={label} info={info}>
           {/* Sliders update local state on every drag frame but only persist on
               release, so the main process isn't re-injecting the overlay on
               each pixel of travel. */}

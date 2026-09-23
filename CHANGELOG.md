@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **A tidier Settings page.** The explanation under every setting is gone. Each setting has an ⓘ beside its name instead; click it for a popup saying what the setting does, and click anywhere else or press Escape to close it. The download folder and the update status stay on screen, since they're worth reading at a glance. The explanations now match your system: "your Mac", the menu bar, the Dock and Finder on macOS; Windows, the notification area, the taskbar and File Explorer on Windows. They used to say Windows everywhere.
 - **Microphone and Camera are now separate switches, in a new Permissions section.** Right-click a service: **Notifications**, **Sound**, **Microphone** and **Camera** now sit together under their own **Permissions** heading, apart from **Blur when inactive** and **Privacy mode**. The single **Camera & microphone** switch is split in two, so a service can have your microphone without your camera, or the other way round. A page asking for a device that's switched off is refused that device. If you had changed **Camera & microphone** for a service, both new switches start where it was. Applies on Windows and macOS.
 
 ## [0.1.68] (2026-09-23)

@@ -46,7 +46,7 @@ export default function SecuritySection() {
       <Section title="Security">
         <SettingRow
           label="Add Security Controls"
-          description="Ask for a master password on launch, when you lock your PC, and after the window has been left minimized. It keeps people off your screen; it doesn't encrypt anything stored on this computer."
+          info="Asks for a master password when the app starts, when you lock your computer, and after the window has been left minimized. It keeps people off your screen; it doesn't encrypt anything stored on this computer. Turning it off asks for the password."
         >
           <Toggle checked={security.enabled} onChange={handleToggle} />
         </SettingRow>
@@ -55,7 +55,7 @@ export default function SecuritySection() {
           <>
             <SettingRow
               label="Lock after"
-              description="How long the window may stay minimized before the workspace locks"
+              info="How long the window may stay minimized (or hidden to the tray) before the workspace locks and asks for the master password again."
             >
               <MinutesSelect
                 value={security.lockDelayMinutes}
@@ -70,7 +70,7 @@ export default function SecuritySection() {
 
             <SettingRow
               label="Change Master Password"
-              description="The password is stored as a salted hash, so this is the only way to replace it"
+              info="Replaces the master password. You'll need the current one. The password is stored as a salted hash, never as itself, so it can't be read back or recovered, only replaced here."
             >
               <SecondaryButton onClick={() => setPasswordDialog("change")}>Change</SecondaryButton>
             </SettingRow>

@@ -44,7 +44,8 @@ export default function UpdatesSection() {
     <Section title="Updates">
       <SettingRow
         label="Software update"
-        description={updateDescription({ status, currentVersion, newVersion, percent })}
+        info="Checks GitHub for a newer version of Largs Hub. Update Now downloads it, checks it against the checksum GitHub publishes, then closes the app to install it and reopens on the new version."
+        status={updateDescription({ status, currentVersion, newVersion, percent })}
         statusColor={updateStatusColor(status)}
       >
         {status === "downloading" ? (

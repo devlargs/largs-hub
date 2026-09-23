@@ -1,19 +1,23 @@
 import type { AppSettingsApi } from "./useAppSettings";
 import { MinutesSelect, Section, SettingRow, Toggle } from "./controls";
 
+// Where the tray icon lives: the notification area on Windows, the menu bar on macOS
+const IS_MAC = window.electronAPI?.platform === "darwin";
+const TRAY = IS_MAC ? "the menu bar" : "the notification area";
+
 export default function GeneralSection({ settings, save, toggle }: AppSettingsApi) {
   return (
     <Section title="General">
       <SettingRow
         label="Launch at startup"
-        description="Open the app automatically when Windows starts"
+        info={`Opens Largs Hub by itself when you sign in to ${IS_MAC ? "your Mac" : "Windows"}, so your services are ready without starting it by hand.`}
       >
         <Toggle checked={settings.launchAtStartup} onChange={() => toggle("launchAtStartup")} />
       </SettingRow>
 
       <SettingRow
         label="Wake services automatically"
-        description="Load all enabled services when the app starts"
+        info="Loads every enabled service in the background as soon as the app starts, so unread counts show up and each one is ready when you click it. Turned off, a service only loads the first time you open it."
       >
         <Toggle
           checked={settings.wakeServicesAutomatically}
@@ -23,7 +27,7 @@ export default function GeneralSection({ settings, save, toggle }: AppSettingsAp
 
       <SettingRow
         label="Hibernate inactive services"
-        description="Unload services left idle to free memory; they reload on next click"
+        info="Unloads a service you haven't looked at for this long, to free memory. It reloads the next time you click it, which can take a moment. Never keeps them all loaded."
       >
         <MinutesSelect
           value={settings.hibernateInactiveMinutes}
@@ -39,14 +43,14 @@ export default function GeneralSection({ settings, save, toggle }: AppSettingsAp
 
       <SettingRow
         label="Close to tray"
-        description="Keep running in the notification area when the window is closed, so badges and notifications carry on"
+        info={`Closing the window hides it to ${TRAY} instead of quitting, so unread counts and notifications keep coming. Quit from the tray icon's menu.`}
       >
         <Toggle checked={settings.closeToTray} onChange={() => toggle("closeToTray")} />
       </SettingRow>
 
       <SettingRow
         label="Minimize to tray"
-        description="Hide to the notification area when the window is minimized"
+        info={`Minimizing the window hides it to ${TRAY} instead of the ${IS_MAC ? "Dock" : "taskbar"}. Use the tray icon to bring it back.`}
       >
         <Toggle checked={settings.minimizeToTray} onChange={() => toggle("minimizeToTray")} />
       </SettingRow>
