@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.68] (2026-09-23)
 - **Services show up again.** In 0.1.67 every service (Messenger, WhatsApp, Todo and the rest) could stay blank, and so could link previews and Messenger call windows. Before loading a page, the app first tells it to look like Chrome, and it waited for that step to finish. When the step never finished, the page never loaded. Now it waits at most a second, then loads the page regardless. Applies on Windows and macOS.
 - **Behind the scenes: build warnings cleared.** The GitHub Actions workflows use the Node 24 releases of their actions, and the Linux jobs run on a fixed Ubuntu 24.04 image instead of whatever `ubuntu-latest` points at, so CI and release runs no longer warn about deprecated Node 20 actions or the coming Ubuntu 26 switch. The app itself is unchanged.
 
