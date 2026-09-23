@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import type {
   AutoStopResult,
   AutoStopState,
+  AutomationPrefs,
   AutoStopUpdate,
   AutomationTask,
   ListGroupsResult,
@@ -236,6 +237,10 @@ const api = {
       ipcRenderer.invoke("messenger-automation-set-auto-stop", serviceId, minutes),
     getAutoStop: (serviceId: string): Promise<AutoStopState | null> =>
       ipcRenderer.invoke("messenger-automation-get-auto-stop", serviceId),
+    getPrefs: (serviceId: string): Promise<AutomationPrefs> =>
+      ipcRenderer.invoke("messenger-automation-get-prefs", serviceId),
+    savePrefs: (serviceId: string, prefs: AutomationPrefs): Promise<void> =>
+      ipcRenderer.invoke("messenger-automation-save-prefs", serviceId, prefs),
     setSplitOpen: (open: boolean): void => ipcRenderer.send("set-automation-split", open),
     getSplitWidth: (): Promise<number> => ipcRenderer.invoke("get-automation-split-width"),
     onSplitWidthChanged: (callback: (width: number) => void) => {

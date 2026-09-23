@@ -15,6 +15,7 @@ import { isFromApp } from "../appOrigin";
 import { lastActiveServiceId, reorderServices, withAddedService } from "../serviceList";
 import { toggleEnabled, toggleMute, toggleNotifications } from "./serviceToggles";
 import { registerServiceNavigationIpc } from "./serviceNavigation";
+import { clearAutomationPrefs } from "./automationPrefs";
 import { registerServiceContextMenuIpc } from "./serviceContextMenu";
 
 // IPC: service CRUD, per-service toggles (serviceToggles.ts) and which service
@@ -58,6 +59,7 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     // End its automation now rather than when a task next runs, then clean up
     // the view.
     stopAutomationForService(serviceId);
+    clearAutomationPrefs(serviceId);
     destroyServiceView(serviceId, { clearCounts: true });
 
     // Wipe the service's session partition. Removing a service means forgetting

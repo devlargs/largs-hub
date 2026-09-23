@@ -3,7 +3,7 @@ import { migrateLegacyServiceShape } from "./serviceSchema";
 import { MessageListGroup } from "./messageLists";
 import type { MasterPasswordCredential } from "./masterPassword";
 import type { ThrottleState } from "./lockPolicy";
-import type { AutoStopState, AutomationTask, Service } from "./shared/types";
+import type { AutoStopState, AutomationPrefs, AutomationTask, Service } from "./shared/types";
 
 // Persistent app state (electron-store) and the shapes stored in it.
 // The Service interface is intentionally duplicated in preload.ts and
@@ -63,6 +63,9 @@ export interface StoreSchema {
   // outlive the process that armed it (issue #75).
   automationTasks: AutomationTask[];
   automationAutoStops: AutoStopState[];
+  // The Messenger automation panel's last-used settings, by service id, so it
+  // reopens where it was left (ipc/automationPrefs.ts)
+  automationPrefs: Record<string, AutomationPrefs>;
   // Security controls (issue #102): the workspace lock. The credential is a
   // salted scrypt hash, never the password itself — but electron-store writes
   // plain JSON, so this is a screen lock against casual access, not encryption.
@@ -101,6 +104,7 @@ export const store = new Store<StoreSchema>({
     minimizeToTray: false,
     automationTasks: [],
     automationAutoStops: [],
+    automationPrefs: {},
     securityControlsEnabled: false,
     masterPasswordCredential: null,
     lockDelayMinutes: 10,

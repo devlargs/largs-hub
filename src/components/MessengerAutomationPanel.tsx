@@ -5,6 +5,7 @@ import { TITLEBAR_HEIGHT } from "@shared/layout";
 import { useModalDismiss } from "../hooks/useModalDismiss";
 import {
   AutomationForm,
+  DEFAULT_AUTO_STOP_MINUTES,
   DEFAULT_FORM,
   FUNCTION_TABS,
   TaskType,
@@ -20,6 +21,7 @@ import {
 import TaskForm from "./messenger-automation/TaskForm";
 import AutoStopSection from "./messenger-automation/AutoStopSection";
 import RunningTasks from "./messenger-automation/RunningTasks";
+import { usePanelPrefs } from "./messenger-automation/usePanelPrefs";
 
 interface MessengerAutomationPanelProps {
   serviceId: string;
@@ -41,6 +43,14 @@ export default function MessengerAutomationPanel({
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [autoStopMinutes, setAutoStopMinutes] = useState(DEFAULT_AUTO_STOP_MINUTES);
+
+  // Opens on the settings last used for this service, and keeps them updated
+  usePanelPrefs(serviceId, form, autoStopMinutes, (saved, savedMinutes) => {
+    // A message being typed isn't a setting; it stays where it is
+    setForm((prev) => ({ ...saved, message: prev.message }));
+    setAutoStopMinutes(savedMinutes ?? DEFAULT_AUTO_STOP_MINUTES);
+  });
 
   const serviceTasks = useMemo(
     () => tasks.filter((t) => t.serviceId === serviceId),
@@ -181,6 +191,8 @@ export default function MessengerAutomationPanel({
           autoStop={autoStop}
           onChange={setAutoStop}
           now={now}
+          minutes={autoStopMinutes}
+          onMinutesChange={setAutoStopMinutes}
         />
 
         <RunningTasks serviceId={serviceId} tasks={serviceTasks} now={now} />

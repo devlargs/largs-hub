@@ -1,4 +1,4 @@
-import type { MessageListGroup, NoticeReason, TaskSpec } from "../types";
+import type { AutomationPrefs, MessageListGroup, NoticeReason, TaskSpec } from "../types";
 
 // The Messenger automation panel's form, labels and formatting, kept free of
 // React so they can be unit-tested.
@@ -178,4 +178,36 @@ export function canStart(form: AutomationForm): boolean {
     (form.type !== "sendEmoji" || form.emoji.trim().length > 0) &&
     (form.type !== "sendRandomFromList" || form.listGroup !== null)
   );
+}
+
+// --- Remembered settings -----------------------------------------------------
+
+export const DEFAULT_AUTO_STOP_MINUTES = "30";
+
+// What to remember of the form: everything but the message text, with the
+// chosen list reduced to its id.
+export function prefsFromForm(form: AutomationForm, autoStopMinutes: string): AutomationPrefs {
+  return {
+    type: form.type,
+    time: form.time,
+    fromSec: form.fromSec,
+    toSec: form.toSec,
+    emoji: form.emoji,
+    maxLength: form.maxLength,
+    ringSeconds: form.ringSeconds,
+    ...(form.listGroup ? { listGroupId: form.listGroup.id } : {}),
+    autoStopMinutes,
+  };
+}
+
+// The form as it was left: the saved fields over the defaults. A saved list
+// that has since been deleted is dropped, leaving no list chosen.
+export function formFromPrefs(prefs: AutomationPrefs, groups: MessageListGroup[]): AutomationForm {
+  const { listGroupId, autoStopMinutes: _autoStop, ...fields } = prefs;
+  return {
+    ...DEFAULT_FORM,
+    ...fields,
+    message: "",
+    listGroup: groups.find((g) => g.id === listGroupId) ?? null,
+  };
 }

@@ -8,6 +8,9 @@ interface AutoStopSectionProps {
   autoStop: AutoStopState | null;
   onChange: (state: AutoStopState | null) => void;
   now: number;
+  // The "Clear after" field, owned by the panel so it's remembered
+  minutes: string;
+  onMinutesChange: (minutes: string) => void;
 }
 
 // Clears every task for this service once the countdown expires.
@@ -16,8 +19,9 @@ export default function AutoStopSection({
   autoStop,
   onChange,
   now,
+  minutes,
+  onMinutesChange,
 }: AutoStopSectionProps) {
-  const [minutes, setMinutes] = useState("30");
   const [error, setError] = useState<string | null>(null);
 
   const handleArm = async () => {
@@ -78,7 +82,7 @@ export default function AutoStopSection({
               min={1}
               max={1440}
               value={minutes}
-              onChange={(e) => setMinutes(e.target.value)}
+              onChange={(e) => onMinutesChange(e.target.value)}
               className="text-sm outline-none rounded-lg w-full"
               style={inputStyle}
             />

@@ -12,6 +12,7 @@ import { installAppMenu } from "./devMode";
 import { registerSettingsIpc } from "./ipc/settings";
 import { registerSecurityIpc } from "./ipc/security";
 import { registerListGroupsIpc } from "./ipc/listGroups";
+import { registerAutomationPrefsIpc } from "./ipc/automationPrefs";
 import { addRecentEmoji, sanitizeRecentEmojis } from "./recentEmojis";
 import { initDownloads } from "./downloads";
 import { initNotificationCounts } from "./notificationCounts";
@@ -76,6 +77,7 @@ registerSecurityIpc({
   onLockedChanged: (locked) => setViewsSuppressed(locked),
 });
 registerListGroupsIpc();
+registerAutomationPrefsIpc();
 registerUpdater({ getMainWindow, getUiView });
 registerWindowIpc();
 

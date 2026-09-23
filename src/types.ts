@@ -11,6 +11,7 @@ import type {
   AppSettings,
   AutoStopResult,
   AutoStopState,
+  AutomationPrefs,
   AutoStopUpdate,
   AutomationTask,
   ListGroupsResult,
@@ -119,6 +120,9 @@ export interface ElectronAPI {
     list: () => Promise<AutomationTask[]>;
     setAutoStop: (serviceId: string, minutes: number | null) => Promise<AutoStopResult>;
     getAutoStop: (serviceId: string) => Promise<AutoStopState | null>;
+    // The panel's last-used settings for a service (never the message text)
+    getPrefs: (serviceId: string) => Promise<AutomationPrefs>;
+    savePrefs: (serviceId: string, prefs: AutomationPrefs) => Promise<void>;
     setSplitOpen: (open: boolean) => void;
     getSplitWidth: () => Promise<number>;
     onSplitWidthChanged: (callback: (width: number) => void) => () => void;

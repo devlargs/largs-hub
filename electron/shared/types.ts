@@ -157,6 +157,25 @@ export interface StartResult {
   tasks: AutomationTask[];
 }
 
+// The Messenger automation panel's last-used settings for one service, restored
+// the next time the panel opens. Numbers stay strings, the way the form's
+// inputs hold them; main only checks their shape (automationPrefs.ts). The
+// message text isn't kept: it's content, not a setting, and the panel clears
+// it after each send. Every field is optional, so a stored value that fails
+// the check is simply dropped and the form's default shows instead.
+export interface AutomationPrefs {
+  type?: TaskSpec["type"];
+  time?: string;
+  fromSec?: string;
+  toSec?: string;
+  emoji?: string;
+  maxLength?: string;
+  ringSeconds?: string;
+  // The chosen Random list, by id; resolved against the saved lists on load
+  listGroupId?: string;
+  autoStopMinutes?: string;
+}
+
 export interface AutoStopState {
   serviceId: string;
   minutes: number;
