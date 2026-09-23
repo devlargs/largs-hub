@@ -154,6 +154,7 @@ Starts the Vite dev server, the Electron TypeScript watcher, and Electron itself
 | ----------------------------------------- | ---------------------------------------------------------- |
 | `npm run dev`                             | Run the app in development with hot reload                 |
 | `npm run build`                           | Type-check and build the renderer + Electron bundles       |
+| `npm run clean:electron`                  | Delete `dist-electron/` (`build` and `dev` do this first)  |
 | `npm run electron:build`                  | Build and package an installer for this OS into `release/` |
 | `npm run typecheck`                       | Type-check the renderer, Electron, and test projects       |
 | `npm run lint` / `npm run lint:fix`       | Lint with ESLint                                           |
@@ -175,7 +176,7 @@ Starts the Vite dev server, the Electron TypeScript watcher, and Electron itself
 - **[electron-builder](https://www.electron.build/)** — packaging (NSIS installer on Windows, DMG on macOS)
 - **[Vitest](https://vitest.dev/)** + **ESLint** + **Prettier** — testing and code quality, run in CI on every push and PR
 
-Updates don't use electron-updater: `electron/updater.ts` checks GitHub Releases itself and runs the installer (Windows) or swaps the app bundle in place (macOS, `electron/macUpdate.ts`), since neither build is code-signed.
+Updates don't use electron-updater: `electron/updater/` checks GitHub Releases itself and runs the installer (Windows) or swaps the app bundle in place (macOS, `electron/macUpdate.ts`), since neither build is code-signed.
 
 ## Architecture
 
@@ -196,7 +197,7 @@ largs-hub/
 │   ├── serviceViews/         # Service-view creation, switching, hibernation, calls, overlays
 │   ├── store.ts              # electron-store schema & migrations
 │   ├── downloads.ts          # Download session handling
-│   ├── updater.ts            # GitHub Releases auto-updater
+│   ├── updater/              # GitHub Releases auto-updater
 │   ├── macUpdate.ts          # In-place app replacement on macOS
 │   ├── notificationCounts.ts # Badge state, Windows taskbar badge
 │   ├── tray.ts               # Tray / menu bar icon and menu

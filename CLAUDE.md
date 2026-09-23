@@ -14,7 +14,7 @@ Every change has to work on **Windows and macOS**. When a bug is reported on one
 - **App lifecycle:** `window-all-closed`, `activate` (Dock clicks), tray (notification area on Windows, menu bar on macOS).
 - **Files:** path separators and drive letters (use `path`, never string concatenation), Windows file locks (`EBUSY`/`EPERM` while a file is open), `%TEMP%` vs `/var/folders`.
 - **Keyboard:** Ctrl on Windows vs Cmd on macOS.
-- **Installers and updates:** the NSIS `.exe` on Windows, a `.dmg` on macOS (`pickUpdateAsset` in `electron/updater.ts`). Both are unsigned.
+- **Installers and updates:** the NSIS `.exe` on Windows, a `.dmg` on macOS (`pickUpdateAsset` in `electron/updater/release.ts`). Both are unsigned.
 - **Icons and badges:** `.ico`/taskbar overlay on Windows, `.icns`/Dock on macOS.
 
 Say which platforms you reasoned about when you hand work back.

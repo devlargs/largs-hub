@@ -39,7 +39,7 @@ import {
 //   downloads.ts          per-session download handling + completion toast
 //   notificationCounts.ts badge state, debounce, taskbar overlay
 //   badge-adapters/       per-service unread-count extraction
-//   updater.ts            GitHub release check + installer download
+//   updater/              GitHub release check + installer download
 //   ipc/services.ts       service CRUD/toggles/navigation/context menu
 //   ipc/settings.ts       theme, settings, custom icons, settings menu
 //   ipc/security.ts       workspace lock: master password + auto-lock timer
