@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Report an issue from the Changelog page.** A new **Report an issue** button opens a form that files a GitHub issue on largs-hub, assigned to devlargs. Write the description in markdown, and paste a screenshot straight in: it uploads and turns into an image link, the way it does on GitHub. Filing issues needs a GitHub token, which you paste once in the new **Settings → GitHub** section; the ⓘ there says which permissions it needs. The token is checked with GitHub before it's saved, stored encrypted by the system (Windows DPAPI, the macOS Keychain) and never leaves the app's main process.
 - **Copy a link from the right-click menu.** Right-clicking a link in a service now offers **Copy Link**, just below **View Link**, so you can paste a link somewhere else without opening it first. It works on any link, including email addresses. Applies on Windows and macOS.
 
 ## [0.1.69] (2026-09-23)

@@ -12,6 +12,12 @@ import type {
   AutoStopResult,
   AutoStopState,
   AutomationPrefs,
+  CreateIssueResult,
+  GitHubConnectResult,
+  GitHubResult,
+  GitHubStatus,
+  IssueDraft,
+  UploadImageResult,
   AutoStopUpdate,
   AutomationTask,
   ListGroupsResult,
@@ -113,6 +119,15 @@ export interface ElectronAPI {
   downloadAndInstallUpdate: () => Promise<void>;
   onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
   onDownloadComplete: (callback: (fileName: string) => void) => () => void;
+  // Report an issue (Changelog page) and its token (Settings → GitHub). The
+  // token is sent once, to be saved, and never comes back.
+  github: {
+    getStatus: () => Promise<GitHubStatus>;
+    setToken: (token: string) => Promise<GitHubConnectResult>;
+    clearToken: () => Promise<GitHubResult>;
+    uploadImage: (dataUrl: string) => Promise<UploadImageResult>;
+    createIssue: (draft: IssueDraft) => Promise<CreateIssueResult>;
+  };
   messengerAutomation: {
     start: (serviceId: string, spec: TaskSpec) => Promise<StartResult>;
     stop: (taskId: string) => Promise<AutomationTask[]>;

@@ -3,6 +3,12 @@ import type {
   AutoStopResult,
   AutoStopState,
   AutomationPrefs,
+  CreateIssueResult,
+  GitHubConnectResult,
+  GitHubResult,
+  GitHubStatus,
+  IssueDraft,
+  UploadImageResult,
   AutoStopUpdate,
   AutomationTask,
   ListGroupsResult,
@@ -223,6 +229,17 @@ const api = {
     const handler = (_event: Electron.IpcRendererEvent, fileName: string) => callback(fileName);
     ipcRenderer.on("download-complete", handler);
     return () => ipcRenderer.removeListener("download-complete", handler);
+  },
+
+  github: {
+    getStatus: (): Promise<GitHubStatus> => ipcRenderer.invoke("github-get-status"),
+    setToken: (token: string): Promise<GitHubConnectResult> =>
+      ipcRenderer.invoke("github-set-token", token),
+    clearToken: (): Promise<GitHubResult> => ipcRenderer.invoke("github-clear-token"),
+    uploadImage: (dataUrl: string): Promise<UploadImageResult> =>
+      ipcRenderer.invoke("github-upload-image", dataUrl),
+    createIssue: (draft: IssueDraft): Promise<CreateIssueResult> =>
+      ipcRenderer.invoke("github-create-issue", draft),
   },
 
   messengerAutomation: {

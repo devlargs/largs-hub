@@ -176,6 +176,45 @@ export interface AutomationPrefs {
   autoStopMinutes?: string;
 }
 
+// --- Reporting an issue on GitHub (Changelog → Report an issue) ---------------
+
+// Whether a GitHub token is saved. The token itself never crosses the bridge.
+export interface GitHubStatus {
+  connected: boolean;
+  // The token's GitHub login, when connected
+  login?: string;
+}
+
+export interface GitHubResult {
+  ok: boolean;
+  // Present when ok is false: a sentence to show the user
+  error?: string;
+}
+
+export interface GitHubConnectResult extends GitHubResult {
+  login?: string;
+}
+
+export interface IssueDraft {
+  title: string;
+  // Markdown, as typed; pasted images are already links in it
+  body: string;
+}
+
+export interface IssueCreated {
+  number: number;
+  url: string;
+}
+
+export interface CreateIssueResult extends GitHubResult {
+  issue?: IssueCreated;
+}
+
+export interface UploadImageResult extends GitHubResult {
+  // The image as markdown, ready to put in the description
+  markdown?: string;
+}
+
 export interface AutoStopState {
   serviceId: string;
   minutes: number;

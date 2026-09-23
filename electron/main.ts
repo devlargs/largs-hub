@@ -13,6 +13,7 @@ import { registerSettingsIpc } from "./ipc/settings";
 import { registerSecurityIpc } from "./ipc/security";
 import { registerListGroupsIpc } from "./ipc/listGroups";
 import { registerAutomationPrefsIpc } from "./ipc/automationPrefs";
+import { registerGitHubIpc } from "./ipc/github";
 import { addRecentEmoji, sanitizeRecentEmojis } from "./recentEmojis";
 import { initDownloads } from "./downloads";
 import { initNotificationCounts } from "./notificationCounts";
@@ -78,6 +79,7 @@ registerSecurityIpc({
 });
 registerListGroupsIpc();
 registerAutomationPrefsIpc();
+registerGitHubIpc();
 registerUpdater({ getMainWindow, getUiView });
 registerWindowIpc();
 

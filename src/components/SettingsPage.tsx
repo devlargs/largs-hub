@@ -4,6 +4,7 @@ import SecuritySection from "./settings/SecuritySection";
 import PrivacySection from "./settings/PrivacySection";
 import DownloadsSection from "./settings/DownloadsSection";
 import UpdatesSection from "./settings/UpdatesSection";
+import GitHubSection from "./settings/GitHubSection";
 
 export default function SettingsPage() {
   const appSettings = useAppSettings();
@@ -35,6 +36,7 @@ export default function SettingsPage() {
         <PrivacySection {...appSettings} />
         <DownloadsSection {...appSettings} />
         <UpdatesSection />
+        <GitHubSection />
       </div>
     </div>
   );

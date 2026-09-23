@@ -53,6 +53,7 @@ Juggling a dozen browser tabs for the apps you use all day is noisy and easy to 
 | 🧺 **Tray & startup**       | Close or minimize to the system tray (the menu bar on macOS), with a menu that jumps to any service, and launch at login.                                                                                                                                                          |
 | ✅ **Todo**                 | A daily task list that carries unfinished work forward. The Todo service is the [Tasks](https://tasks.ralphlargo.com) web app, which keeps tasks on the device or in a Notion database you connect.                                                                                |
 | 🤖 **Messenger automation** | Optional automation panel for Messenger: scheduled and interval messages, emoji bursts, and automated in-app call cycles. It remembers each account's last settings.                                                                                                               |
+| 🐞 **Report an issue**      | File a GitHub issue on largs-hub from the Changelog page, assigned to devlargs. The description is markdown, and a pasted screenshot is attached as an image. Needs a GitHub token in Settings.                                                                                    |
 | ⬆️ **Auto-updates**         | Checks GitHub Releases, then downloads and installs the latest version and reopens the app, on Windows and macOS.                                                                                                                                                                  |
 | 🕵️ **Private by design**    | No account and no telemetry. Your services and settings live in a local `electron-store` file, and each service's login stays in its own session on your machine.                                                                                                                  |
 
@@ -121,6 +122,13 @@ When an update is available, the app downloads it, closes, replaces the old vers
 4. Sign in once. Your session is remembered and isolated from every other service.
 
 Right-click a service in the sidebar for its options: enable, blur when inactive and privacy mode; a **Permissions** section with **Notifications**, **Sound**, **Microphone** and **Camera**; then edit, reload, clear data and remove. **Microphone** and **Camera** are separate switches. Both start on for services with calls (Messenger, WhatsApp, Slack, Discord, Telegram, Gmail and Google Chat) and off for everything else, so you can, for example, allow a service your microphone but not your camera. Either way, only the service's own pages can use them, never a sign-in page or embedded content from another site. App-wide settings are behind the gear icon in the title bar.
+
+**Report an issue** (Changelog page) needs a GitHub personal access token, saved once in **Settings → GitHub → GitHub token**. It works the same on Windows and macOS. To create one:
+
+1. On github.com, open **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
+2. Set **Resource owner** to `devlargs` and **Repository access** to **Only select repositories → largs-hub**.
+3. Under **Permissions**, set **Issues** and **Contents** to **Read and write**. Contents is where pasted images go: GitHub's API can't attach files to an issue, so each image is committed to an `issue-images` branch and linked from the issue.
+4. Paste the token into Largs Hub and click **Save**. It's checked with GitHub, then stored encrypted by the system (Windows DPAPI or the macOS Keychain) and only ever used by the app's main process.
 
 Repeat for each app you want in your workspace.
 
@@ -198,6 +206,7 @@ largs-hub/
 │   ├── store.ts              # electron-store schema & migrations
 │   ├── downloads.ts          # Download session handling
 │   ├── updater/              # GitHub Releases auto-updater
+│   ├── github/               # Report an issue: token storage, issue and image upload
 │   ├── macUpdate.ts          # In-place app replacement on macOS
 │   ├── notificationCounts.ts # Badge state, Windows taskbar badge
 │   ├── tray.ts               # Tray / menu bar icon and menu
