@@ -4,7 +4,11 @@ import { isTasksService } from "../shared/types";
 import { getServiceView } from "../serviceViews";
 import { hasAutomationForService } from "../messengerAutomation";
 import { enableToggleNeedsConfirm } from "../serviceFlags";
-import { serviceFlagMenuItems, toggleEnabled } from "./serviceToggles";
+import {
+  serviceDisplayMenuItems,
+  servicePermissionMenuItems,
+  toggleEnabled,
+} from "./serviceToggles";
 
 interface ContextMenuDeps {
   getMainWindow(): BrowserWindow | null;
@@ -54,7 +58,13 @@ export function registerServiceContextMenuIpc(deps: ContextMenuDeps) {
         },
       },
       // None of these mean anything for the Todo service (see isTasksService)
-      ...(isTasksService(service) ? [] : serviceFlagMenuItems(service, sendUpdated)),
+      ...(isTasksService(service)
+        ? []
+        : [
+            ...serviceDisplayMenuItems(service, sendUpdated),
+            { type: "separator" as const },
+            ...servicePermissionMenuItems(service, sendUpdated),
+          ]),
       { type: "separator" },
       {
         label: "Edit service",

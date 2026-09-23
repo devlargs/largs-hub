@@ -3,8 +3,9 @@ import {
   applyServicePatch,
   enableToggleNeedsConfirm,
   nextBlurWhenInactive,
+  nextCameraAllowed,
   nextEnabled,
-  nextMediaAllowed,
+  nextMicrophoneAllowed,
   nextMuted,
   nextNotificationsEnabled,
   nextPrivacyMode,
@@ -107,21 +108,30 @@ describe("flag toggles", () => {
   });
 });
 
-describe("nextMediaAllowed", () => {
+describe("nextCameraAllowed / nextMicrophoneAllowed", () => {
   it("flips what the switch shows, starting from the service's default", () => {
     // Messenger defaults on, so the first toggle turns it off...
-    expect(nextMediaAllowed(service({ url: "https://www.messenger.com" }))).toEqual({
-      mediaAllowed: false,
-    });
+    const messenger = service({ url: "https://www.messenger.com" });
+    expect(nextCameraAllowed(messenger)).toEqual({ cameraAllowed: false });
+    expect(nextMicrophoneAllowed(messenger)).toEqual({ microphoneAllowed: false });
     // ...and a custom service defaults off, so the first toggle turns it on.
-    expect(nextMediaAllowed(service())).toEqual({ mediaAllowed: true });
+    expect(nextCameraAllowed(service())).toEqual({ cameraAllowed: true });
+    expect(nextMicrophoneAllowed(service())).toEqual({ microphoneAllowed: true });
   });
 
   it("flips an explicit value", () => {
-    expect(nextMediaAllowed(service({ mediaAllowed: true }))).toEqual({ mediaAllowed: false });
+    expect(nextCameraAllowed(service({ cameraAllowed: true }))).toEqual({ cameraAllowed: false });
     expect(
-      nextMediaAllowed(service({ url: "https://www.messenger.com", mediaAllowed: false })),
-    ).toEqual({ mediaAllowed: true });
+      nextMicrophoneAllowed(
+        service({ url: "https://www.messenger.com", microphoneAllowed: false }),
+      ),
+    ).toEqual({ microphoneAllowed: true });
+  });
+
+  it("each flips only its own device", () => {
+    const s = service({ cameraAllowed: true, microphoneAllowed: false });
+    expect(Object.keys(nextCameraAllowed(s))).toEqual(["cameraAllowed"]);
+    expect(Object.keys(nextMicrophoneAllowed(s))).toEqual(["microphoneAllowed"]);
   });
 });
 

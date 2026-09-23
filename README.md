@@ -120,7 +120,7 @@ When an update is available, the app downloads it, closes, replaces the old vers
 3. Pick a preset, or choose **Custom** and enter a name and the web app's address (e.g. `https://mail.google.com`), then save.
 4. Sign in once. Your session is remembered and isolated from every other service.
 
-Right-click a service in the sidebar for its options (enable, sound, notifications, privacy, camera & microphone, edit, clear data, remove). **Camera & microphone** starts on for services with calls (Messenger, WhatsApp, Slack, Discord, Telegram, Gmail and Google Chat) and off for everything else. Either way, only the service's own pages can use them, never a sign-in page or embedded content from another site. App-wide settings are behind the gear icon in the title bar.
+Right-click a service in the sidebar for its options: enable, blur when inactive and privacy mode; a **Permissions** section with **Notifications**, **Sound**, **Microphone** and **Camera**; then edit, reload, clear data and remove. **Microphone** and **Camera** are separate switches. Both start on for services with calls (Messenger, WhatsApp, Slack, Discord, Telegram, Gmail and Google Chat) and off for everything else, so you can, for example, allow a service your microphone but not your camera. Either way, only the service's own pages can use them, never a sign-in page or embedded content from another site. App-wide settings are behind the gear icon in the title bar.
 
 Repeat for each app you want in your workspace.
 

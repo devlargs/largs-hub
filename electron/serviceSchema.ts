@@ -27,6 +27,27 @@ export function isSafeServiceUrl(url: unknown): url is string {
 // whether the stored list needs rewriting.
 export function migrateLegacyServiceShape(raw: unknown): unknown {
   if (typeof raw !== "object" || raw === null) return raw;
+  return migrateTodoShape(withSplitMediaSwitch(raw));
+}
+
+// Camera and Microphone used to be one "Camera & microphone" switch
+// (mediaAllowed). A service that set it keeps that choice for each device,
+// unless the new switch is already set. Same object back when there's no old
+// switch to fold in.
+function withSplitMediaSwitch(raw: object): object {
+  const s = raw as Record<string, unknown>;
+  if (!("mediaAllowed" in s)) return raw;
+  const { mediaAllowed, ...rest } = s;
+  if (typeof mediaAllowed !== "boolean") return rest;
+  return {
+    ...rest,
+    cameraAllowed: typeof s.cameraAllowed === "boolean" ? s.cameraAllowed : mediaAllowed,
+    microphoneAllowed:
+      typeof s.microphoneAllowed === "boolean" ? s.microphoneAllowed : mediaAllowed,
+  };
+}
+
+function migrateTodoShape(raw: object): unknown {
   const s = raw as Record<string, unknown>;
   if (s.type !== "pomodoro" && s.type !== "todo") return withoutTasksFlags(raw);
   const { type: _legacyType, ...rest } = s;
@@ -41,8 +62,8 @@ export function migrateLegacyServiceShape(raw: unknown): unknown {
 }
 
 // The Todo service's menu has no Sound, Notifications, Blur when inactive,
-// Privacy mode or Camera & microphone switch, so one left on from before would be stuck on with no
-// way to turn it off. Those fields go back to their defaults. Same object back
+// Privacy mode, Microphone or Camera switch, so one left on from before would
+// be stuck on with no way to turn it off. Those fields go back to their defaults. Same object back
 // when they already are.
 function withoutTasksFlags(raw: unknown): unknown {
   const s = raw as Record<string, unknown>;
@@ -52,14 +73,16 @@ function withoutTasksFlags(raw: unknown): unknown {
     s.notificationsEnabled === false ||
     s.blurWhenInactive === true ||
     s.privacyMode === true ||
-    s.mediaAllowed === true;
+    s.cameraAllowed === true ||
+    s.microphoneAllowed === true;
   if (!set) return raw;
   const {
     muted: _muted,
     notificationsEnabled: _notifications,
     blurWhenInactive: _blur,
     privacyMode: _privacy,
-    mediaAllowed: _media,
+    cameraAllowed: _camera,
+    microphoneAllowed: _microphone,
     ...rest
   } = s;
   return rest;
@@ -86,7 +109,8 @@ export function sanitizeService(raw: unknown): Service | null {
     blurWhenInactive: s.blurWhenInactive === true,
     privacyMode: s.privacyMode === true,
     // Kept only when set, so an unset switch keeps following the default.
-    ...(typeof s.mediaAllowed === "boolean" ? { mediaAllowed: s.mediaAllowed } : {}),
+    ...(typeof s.cameraAllowed === "boolean" ? { cameraAllowed: s.cameraAllowed } : {}),
+    ...(typeof s.microphoneAllowed === "boolean" ? { microphoneAllowed: s.microphoneAllowed } : {}),
     ...(type ? { type } : {}),
   };
 }

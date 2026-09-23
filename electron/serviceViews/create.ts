@@ -86,7 +86,7 @@ export function createServiceView(
 
   // Deny-by-default permission policy (servicePermissions.ts). Both handlers
   // read the service from the store on every call rather than this captured
-  // copy, so flipping its Notifications or Camera & microphone switch takes
+  // copy, so flipping its Notifications, Microphone or Camera switch takes
   // effect at once: Chromium asks the check handler before it shows each
   // notification. They judge the frame that's asking, not the service's URL,
   // so an auth page or third-party iframe in the view can't use the service's
@@ -95,10 +95,16 @@ export function createServiceView(
   // idempotent per session, so calling it again on view recreation is safe.
   const liveService = () => store.get("services").find((s) => s.id === service.id);
   view.webContents.session.setPermissionRequestHandler((_wc, permission, callback, details) => {
-    callback(isPermissionAllowed(liveService(), permission, details.requestingUrl));
+    const mediaTypes = "mediaTypes" in details ? (details.mediaTypes ?? []) : [];
+    callback(isPermissionAllowed(liveService(), permission, details.requestingUrl, mediaTypes));
   });
-  view.webContents.session.setPermissionCheckHandler((_wc, permission, requestingOrigin) =>
-    isPermissionAllowed(liveService(), permission, requestingOrigin),
+  view.webContents.session.setPermissionCheckHandler((_wc, permission, requestingOrigin, details) =>
+    isPermissionAllowed(
+      liveService(),
+      permission,
+      requestingOrigin,
+      details.mediaType ? [details.mediaType] : [],
+    ),
   );
 
   // Messenger/Facebook calls reopen in an in-app call window (callWindow.ts).

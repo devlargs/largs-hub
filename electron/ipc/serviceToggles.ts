@@ -10,20 +10,21 @@ import {
 } from "../serviceViews";
 import { quietNotificationsScript } from "../quietNotifications";
 import { stopAutomationForService } from "../messengerAutomation";
-import { isMediaAllowed } from "../servicePermissions";
+import { isDeviceAllowed } from "../servicePermissions";
 import {
   applyServicePatch,
   nextBlurWhenInactive,
+  nextCameraAllowed,
   nextEnabled,
-  nextMediaAllowed,
+  nextMicrophoneAllowed,
   nextMuted,
   nextNotificationsEnabled,
   nextPrivacyMode,
 } from "../serviceFlags";
 
 // --- Per-service flag toggles ------------------------------------------------
-// Every per-service flag (enabled, muted, notifications, blur, privacy, camera
-// & mic) used to be written out twice — once as an IPC handler, once as a
+// Every per-service flag (enabled, muted, notifications, blur, privacy,
+// microphone, camera) used to be written out twice — once as an IPC handler, once as a
 // context-menu item — with near-identical copies of the same map/set/push, and
 // the two copies had already drifted (issue #83). Each toggle here pairs the
 // store patch with its live-view side effect, and both the IPC handlers and the
@@ -99,40 +100,74 @@ function togglePrivacyMode(serviceId: string): Service[] | null {
   return updated;
 }
 
-function toggleMediaAllowed(serviceId: string): Service[] | null {
-  // No live-view side effect: the session's permission handlers read the
-  // flag on every request. A call already running keeps its devices until
-  // it ends; the next one is refused.
-  return patchService(serviceId, nextMediaAllowed);
+// No live-view side effect for either device: the session's permission
+// handlers read the flags on every request. A call already running keeps its
+// devices until it ends; the next one is refused.
+function toggleCameraAllowed(serviceId: string): Service[] | null {
+  return patchService(serviceId, nextCameraAllowed);
 }
 
-/**
- * The service's switch items for its native context menu: Sound,
- * Notifications, Blur when inactive, Privacy mode and Camera & microphone.
- * `onChange` runs after a switch actually flipped, to push the new list to
- * the renderer.
- */
-export function serviceFlagMenuItems(
+function toggleMicrophoneAllowed(serviceId: string): Service[] | null {
+  return patchService(serviceId, nextMicrophoneAllowed);
+}
+
+type MenuItem = Electron.MenuItemConstructorOptions;
+
+// A checkbox item that flips one flag. `onChange` runs after the switch
+// actually flipped, to push the new list to the renderer.
+function flagItem(
   service: Service,
   onChange: () => void,
-): Electron.MenuItemConstructorOptions[] {
-  const item = (
-    label: string,
-    checked: boolean,
-    toggle: (serviceId: string) => Service[] | null,
-  ): Electron.MenuItemConstructorOptions => ({
+  label: string,
+  checked: boolean,
+  toggle: (serviceId: string) => Service[] | null,
+): MenuItem {
+  return {
     label,
     type: "checkbox",
     checked,
     click: () => {
       if (toggle(service.id)) onChange();
     },
-  });
+  };
+}
+
+/** How the service's page is shown: Blur when inactive and Privacy mode. */
+export function serviceDisplayMenuItems(service: Service, onChange: () => void): MenuItem[] {
   return [
-    item("Sound", !service.muted, toggleMute),
-    item("Notifications", service.notificationsEnabled !== false, toggleNotifications),
-    item("Blur when inactive", service.blurWhenInactive === true, toggleBlurWhenInactive),
-    item("Privacy mode", service.privacyMode === true, togglePrivacyMode),
-    item("Camera & microphone", isMediaAllowed(service), toggleMediaAllowed),
+    flagItem(
+      service,
+      onChange,
+      "Blur when inactive",
+      service.blurWhenInactive === true,
+      toggleBlurWhenInactive,
+    ),
+    flagItem(service, onChange, "Privacy mode", service.privacyMode === true, togglePrivacyMode),
+  ];
+}
+
+/**
+ * What the service may do: Notifications, Sound, Microphone and Camera, under
+ * a "Permissions" heading.
+ */
+export function servicePermissionMenuItems(service: Service, onChange: () => void): MenuItem[] {
+  return [
+    { label: "Permissions", enabled: false },
+    flagItem(
+      service,
+      onChange,
+      "Notifications",
+      service.notificationsEnabled !== false,
+      toggleNotifications,
+    ),
+    flagItem(service, onChange, "Sound", !service.muted, toggleMute),
+    flagItem(
+      service,
+      onChange,
+      "Microphone",
+      isDeviceAllowed(service, "microphone"),
+      toggleMicrophoneAllowed,
+    ),
+    flagItem(service, onChange, "Camera", isDeviceAllowed(service, "camera"), toggleCameraAllowed),
   ];
 }

@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Microphone and Camera are now separate switches, in a new Permissions section.** Right-click a service: **Notifications**, **Sound**, **Microphone** and **Camera** now sit together under their own **Permissions** heading, apart from **Blur when inactive** and **Privacy mode**. The single **Camera & microphone** switch is split in two, so a service can have your microphone without your camera, or the other way round. A page asking for a device that's switched off is refused that device. If you had changed **Camera & microphone** for a service, both new switches start where it was. Applies on Windows and macOS.
 
 ## [0.1.68] (2026-09-23)
 - **Services show up again.** In 0.1.67 every service (Messenger, WhatsApp, Todo and the rest) could stay blank, and so could link previews and Messenger call windows. Before loading a page, the app first tells it to look like Chrome, and it waited for that step to finish. When the step never finished, the page never loaded. Now it waits at most a second, then loads the page regardless. Applies on Windows and macOS.

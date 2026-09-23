@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  isMediaAllowed,
+  isDeviceAllowed,
   isPermissionAllowed,
   isServiceOrigin,
 } from "../electron/servicePermissions";
@@ -88,19 +88,52 @@ describe("camera and mic", () => {
     expect(isPermissionAllowed(messenger, "media", "not a url")).toBe(false);
   });
 
-  it("refuses everything once the service's switch is off", () => {
-    const off = service({ url: "https://www.messenger.com", mediaAllowed: false });
+  it("refuses everything once both switches are off", () => {
+    const off = service({
+      url: "https://www.messenger.com",
+      cameraAllowed: false,
+      microphoneAllowed: false,
+    });
     expect(isPermissionAllowed(off, "media", "https://www.messenger.com/t/1")).toBe(false);
+    expect(isPermissionAllowed(off, "media", "https://www.messenger.com/t/1", ["audio"])).toBe(
+      false,
+    );
   });
 
-  it("grants a custom service its own origin once the switch is turned on", () => {
-    const custom = service({ url: "https://meet.example.org", mediaAllowed: true });
+  it("grants a custom service its own origin once a switch is turned on", () => {
+    const custom = service({ url: "https://meet.example.org", cameraAllowed: true });
     expect(isPermissionAllowed(custom, "media", "https://meet.example.org/room")).toBe(true);
     expect(isPermissionAllowed(custom, "media", "https://accounts.google.com")).toBe(false);
   });
 });
 
-describe("isMediaAllowed", () => {
+describe("camera and mic, each on its own switch", () => {
+  const SELF_CALL = "https://www.messenger.com/t/1";
+  const micOnly = service({ url: "https://www.messenger.com", cameraAllowed: false });
+  const cameraOnly = service({ url: "https://www.messenger.com", microphoneAllowed: false });
+
+  it("grants the microphone but not the camera when only Microphone is on", () => {
+    expect(isPermissionAllowed(micOnly, "media", SELF_CALL, ["audio"])).toBe(true);
+    expect(isPermissionAllowed(micOnly, "media", SELF_CALL, ["video"])).toBe(false);
+  });
+
+  it("grants the camera but not the microphone when only Camera is on", () => {
+    expect(isPermissionAllowed(cameraOnly, "media", SELF_CALL, ["video"])).toBe(true);
+    expect(isPermissionAllowed(cameraOnly, "media", SELF_CALL, ["audio"])).toBe(false);
+  });
+
+  it("refuses a request for both when either is off", () => {
+    expect(isPermissionAllowed(micOnly, "media", SELF_CALL, ["audio", "video"])).toBe(false);
+    expect(isPermissionAllowed(cameraOnly, "media", SELF_CALL, ["video", "audio"])).toBe(false);
+  });
+
+  it("lets a request with no known device through when either is on", () => {
+    expect(isPermissionAllowed(micOnly, "media", SELF_CALL, ["unknown"])).toBe(true);
+    expect(isPermissionAllowed(cameraOnly, "media", SELF_CALL)).toBe(true);
+  });
+});
+
+describe("isDeviceAllowed", () => {
   it("defaults on for services with calls", () => {
     for (const url of [
       "https://www.messenger.com",
@@ -113,7 +146,8 @@ describe("isMediaAllowed", () => {
       "https://mail.google.com/mail/u/0",
       "https://chat.google.com",
     ]) {
-      expect(isMediaAllowed({ url }), url).toBe(true);
+      expect(isDeviceAllowed({ url }, "camera"), url).toBe(true);
+      expect(isDeviceAllowed({ url }, "microphone"), url).toBe(true);
     }
   });
 
@@ -125,13 +159,18 @@ describe("isMediaAllowed", () => {
       "https://github.com",
       "not a url",
     ]) {
-      expect(isMediaAllowed({ url }), url).toBe(false);
+      expect(isDeviceAllowed({ url }, "camera"), url).toBe(false);
+      expect(isDeviceAllowed({ url }, "microphone"), url).toBe(false);
     }
   });
 
-  it("follows the switch once it's set, either way", () => {
-    expect(isMediaAllowed({ url: "https://www.messenger.com", mediaAllowed: false })).toBe(false);
-    expect(isMediaAllowed({ url: "https://mail.example.com", mediaAllowed: true })).toBe(true);
+  it("follows each switch once it's set, either way", () => {
+    const messenger = { url: "https://www.messenger.com", cameraAllowed: false };
+    expect(isDeviceAllowed(messenger, "camera")).toBe(false);
+    expect(isDeviceAllowed(messenger, "microphone")).toBe(true);
+    const custom = { url: "https://mail.example.com", microphoneAllowed: true };
+    expect(isDeviceAllowed(custom, "microphone")).toBe(true);
+    expect(isDeviceAllowed(custom, "camera")).toBe(false);
   });
 });
 

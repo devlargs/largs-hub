@@ -1,5 +1,5 @@
 import { isInternalService, type Service } from "./shared/types";
-import { isMediaAllowed } from "./servicePermissions";
+import { isDeviceAllowed } from "./servicePermissions";
 
 // The pure half of a per-service flag toggle: given the current list, produce
 // the next one with a patch merged into a single service.
@@ -58,8 +58,12 @@ export const nextBlurWhenInactive = (s: Service): Partial<Service> => ({
 
 export const nextPrivacyMode = (s: Service): Partial<Service> => ({ privacyMode: !s.privacyMode });
 
-// Flips what the switch currently shows, which for an unset flag is the
-// service's default (isMediaAllowed), and stores it explicitly from then on.
-export const nextMediaAllowed = (s: Service): Partial<Service> => ({
-  mediaAllowed: !isMediaAllowed(s),
+// Flip what the switch currently shows, which for an unset flag is the
+// service's default (isDeviceAllowed), and store it explicitly from then on.
+export const nextCameraAllowed = (s: Service): Partial<Service> => ({
+  cameraAllowed: !isDeviceAllowed(s, "camera"),
+});
+
+export const nextMicrophoneAllowed = (s: Service): Partial<Service> => ({
+  microphoneAllowed: !isDeviceAllowed(s, "microphone"),
 });

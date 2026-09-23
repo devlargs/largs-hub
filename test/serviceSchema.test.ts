@@ -77,12 +77,35 @@ describe("sanitizeService", () => {
     });
   });
 
-  it("keeps a set Camera & microphone switch and leaves an unset one unset", () => {
-    expect(sanitizeService({ ...valid, mediaAllowed: false })?.mediaAllowed).toBe(false);
-    expect(sanitizeService({ ...valid, mediaAllowed: true })?.mediaAllowed).toBe(true);
-    // Unset (or junk) follows the default in isMediaAllowed, so it isn't stored.
-    expect(sanitizeService(valid)).not.toHaveProperty("mediaAllowed");
-    expect(sanitizeService({ ...valid, mediaAllowed: "yes" })).not.toHaveProperty("mediaAllowed");
+  it("keeps set Camera and Microphone switches and leaves unset ones unset", () => {
+    const set = sanitizeService({ ...valid, cameraAllowed: false, microphoneAllowed: true });
+    expect(set).toMatchObject({ cameraAllowed: false, microphoneAllowed: true });
+    // Unset (or junk) follows the default in isDeviceAllowed, so it isn't stored.
+    expect(sanitizeService(valid)).not.toHaveProperty("cameraAllowed");
+    expect(sanitizeService(valid)).not.toHaveProperty("microphoneAllowed");
+    expect(sanitizeService({ ...valid, cameraAllowed: "yes" })).not.toHaveProperty("cameraAllowed");
+  });
+
+  it("carries the old Camera & microphone switch over to both new ones", () => {
+    const off = sanitizeService({ ...valid, mediaAllowed: false });
+    expect(off).toMatchObject({ cameraAllowed: false, microphoneAllowed: false });
+    expect(off).not.toHaveProperty("mediaAllowed");
+    const on = sanitizeService({ ...valid, mediaAllowed: true });
+    expect(on).toMatchObject({ cameraAllowed: true, microphoneAllowed: true });
+  });
+
+  it("splits the old switch in the launch-time migration too", () => {
+    const stored = { ...valid, mediaAllowed: false };
+    const migrated = migrateLegacyServiceShape(stored);
+    expect(migrated).toMatchObject({ cameraAllowed: false, microphoneAllowed: false });
+    expect(migrated).not.toHaveProperty("mediaAllowed");
+    // Nothing to fold in: the same object back, so the store isn't rewritten.
+    expect(migrateLegacyServiceShape(valid)).toBe(valid);
+  });
+
+  it("prefers a new switch over the old one it replaced", () => {
+    const service = sanitizeService({ ...valid, mediaAllowed: true, cameraAllowed: false });
+    expect(service).toMatchObject({ cameraAllowed: false, microphoneAllowed: true });
   });
 
   it("always resets the notification count — it is runtime state, not stored", () => {
@@ -245,7 +268,7 @@ describe("isTasksService", () => {
 });
 
 // The Todo service's menu has no Sound, Notifications, Blur when inactive,
-// Privacy mode or Camera & microphone switch, so none of them may be left on
+// Privacy mode, Microphone or Camera switch, so none of them may be left on
 // for it.
 describe("Todo service flags", () => {
   const flagsOn = {
@@ -253,7 +276,8 @@ describe("Todo service flags", () => {
     notificationsEnabled: false,
     blurWhenInactive: true,
     privacyMode: true,
-    mediaAllowed: true,
+    cameraAllowed: true,
+    microphoneAllowed: true,
   };
 
   it("resets them on a stored tasks web service", () => {
@@ -270,7 +294,8 @@ describe("Todo service flags", () => {
       blurWhenInactive: false,
       privacyMode: false,
     });
-    expect(service).not.toHaveProperty("mediaAllowed");
+    expect(service).not.toHaveProperty("cameraAllowed");
+    expect(service).not.toHaveProperty("microphoneAllowed");
   });
 
   it("resets them while folding a built-in Todo service over", () => {

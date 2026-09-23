@@ -9,7 +9,7 @@ import { isSameDomain, normalizeHost } from "./navigationPolicy";
 
 // Services with calls in the browser, and the domains their calls run on. A
 // service whose host falls under one of these gets camera and mic by default
-// (its "Camera & microphone" switch starts on), and any of the preset's
+// (its Camera and Microphone switches start on), and any of the preset's
 // domains may ask for them — Messenger calls are served from facebook.com as
 // well as messenger.com, Gmail's calls from meet.google.com.
 const CALL_PRESETS: readonly (readonly string[])[] = [
@@ -35,14 +35,33 @@ function callPresetFor(serviceHost: string): readonly string[] | undefined {
   return CALL_PRESETS.find((domains) => domains.some((d) => isSameDomain(serviceHost, d)));
 }
 
+export type MediaDevice = "camera" | "microphone";
+
 /**
- * Whether the service's "Camera & microphone" switch is on. Unset means the
+ * Whether the service's Camera or Microphone switch is on. Unset means the
  * default: on for the call services above, off for everything else, including
- * custom services (issue #114).
+ * custom services (issue #114). The two used to be one "Camera & microphone"
+ * switch; a service that set it has both flags seeded from it on load
+ * (serviceSchema.ts).
  */
-export function isMediaAllowed(service: Pick<Service, "url" | "mediaAllowed">): boolean {
-  if (typeof service.mediaAllowed === "boolean") return service.mediaAllowed;
+export function isDeviceAllowed(
+  service: Pick<Service, "url" | "cameraAllowed" | "microphoneAllowed">,
+  device: MediaDevice,
+): boolean {
+  const flag = device === "camera" ? service.cameraAllowed : service.microphoneAllowed;
+  if (typeof flag === "boolean") return flag;
   return callPresetFor(hostOf(service.url)) !== undefined;
+}
+
+// Chromium names the devices by media type: "video" is the camera, "audio"
+// the microphone. Anything else ("unknown", or no type at all, as when a page
+// only lists its devices) needs at least one of the two switched on.
+function mediaTypesAllowed(service: Service, mediaTypes: readonly string[]): boolean {
+  const known = mediaTypes.filter((t) => t === "video" || t === "audio");
+  if (known.length === 0) {
+    return isDeviceAllowed(service, "camera") || isDeviceAllowed(service, "microphone");
+  }
+  return known.every((t) => isDeviceAllowed(service, t === "video" ? "camera" : "microphone"));
 }
 
 /**
@@ -65,12 +84,15 @@ export function isServiceOrigin(serviceUrl: string, requestingUrl: string): bool
  * requesting frame's URL or origin). Notifications follow the service's
  * Notifications toggle: turned off, the page is refused the permission, so
  * Chromium drops its notifications instead of showing them natively. Camera
- * and mic need the service's switch on and a request from the service itself.
+ * and mic each need their own switch on and a request from the service itself.
+ * `mediaTypes` are the devices a "media" request is for: Electron's
+ * `mediaTypes` on a request, or its single `mediaType` on a check.
  */
 export function isPermissionAllowed(
   service: Service | undefined,
   permission: string,
   requestingUrl: string,
+  mediaTypes: readonly string[] = [],
 ): boolean {
   if (!service) return false;
   switch (permission) {
@@ -80,7 +102,7 @@ export function isPermissionAllowed(
     case "clipboard-sanitized-write":
       return true;
     case "media":
-      return isMediaAllowed(service) && isServiceOrigin(service.url, requestingUrl);
+      return mediaTypesAllowed(service, mediaTypes) && isServiceOrigin(service.url, requestingUrl);
     default:
       return false;
   }
