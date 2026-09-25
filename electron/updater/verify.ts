@@ -16,6 +16,11 @@ export function parseContentLength(header: string | undefined): number | null {
   return Number.isSafeInteger(bytes) ? bytes : null;
 }
 
+/** Whether two hex sha256 digests match, ignoring case. */
+export function sameSha256(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
 export interface DownloadResult {
   expectedSha256: string;
   actualSha256: string;
@@ -38,7 +43,7 @@ export function downloadProblem({
   if (expectedBytes !== null && receivedBytes !== expectedBytes) {
     return `Update download incomplete: got ${receivedBytes} of ${expectedBytes} bytes`;
   }
-  if (actualSha256.toLowerCase() !== expectedSha256.toLowerCase()) {
+  if (!sameSha256(actualSha256, expectedSha256)) {
     return "Update rejected: checksum mismatch";
   }
   return null;

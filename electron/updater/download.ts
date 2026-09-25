@@ -116,3 +116,14 @@ export function downloadVerified(
     follow(url, MAX_REDIRECTS);
   });
 }
+
+/** The sha256 of the file at `filePath`, as lowercase hex. */
+export function hashFile(filePath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash("sha256");
+    fs.createReadStream(filePath)
+      .on("error", reject)
+      .on("data", (chunk) => hash.update(chunk))
+      .on("end", () => resolve(hash.digest("hex")));
+  });
+}

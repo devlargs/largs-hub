@@ -41,7 +41,9 @@ function errorText(err: unknown): string {
 }
 
 export function registerGitHubIpc() {
-  ipcMain.handle("github-get-status", async (): Promise<GitHubStatus> => {
+  ipcMain.handle("github-get-status", async (event): Promise<GitHubStatus> => {
+    // Checking the status sends the token to GitHub, so it answers the app only
+    if (!isFromApp(event)) return { connected: false };
     const saved = token.load();
     if (!saved) return { connected: false };
     if (!cachedLogin) {

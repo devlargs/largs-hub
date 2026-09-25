@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { downloadProblem, isRedirectStatus, parseContentLength } from "../electron/updater/verify";
+import {
+  downloadProblem,
+  isRedirectStatus,
+  parseContentLength,
+  sameSha256,
+} from "../electron/updater/verify";
 
 const SHA = "b".repeat(64);
 
@@ -49,5 +54,12 @@ describe("downloadProblem", () => {
 
   it("rejects a checksum mismatch", () => {
     expect(downloadProblem({ ...ok, actualSha256: "c".repeat(64) })).toMatch(/checksum mismatch/);
+  });
+});
+
+describe("sameSha256", () => {
+  it("matches digests regardless of case", () => {
+    expect(sameSha256("ABCDEF01", "abcdef01")).toBe(true);
+    expect(sameSha256("abcdef01", "abcdef02")).toBe(false);
   });
 });
