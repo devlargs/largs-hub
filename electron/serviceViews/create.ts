@@ -19,6 +19,7 @@ import { applyPrivacyToView, isPrivacyMode } from "./overlays";
 import { attachCallPopupHandler } from "./callWindow";
 import { attachContextMenu } from "./contextMenu";
 import { attachBadgeExtraction } from "./polling";
+import { attachNavigationGuard } from "./navigationGuard";
 
 // Build one service's WebContentsView: session partition, UA spoofing,
 // permission policy, per-load re-injection, popups and keyboard shortcuts.
@@ -185,8 +186,8 @@ export function createServiceView(
     }
   });
 
-  // External-link policy shared by the popup handler and the will-navigate
-  // guard below. A URL "stays in view" only if it's the service's own domain or
+  // External-link policy for the popup handler (the navigation guard applies
+  // the same rule). A URL "stays in view" only if it's the service's own domain or
   // an allowlisted auth provider; everything else is treated as an external
   // link and opened in the in-app preview popup.
   const keepInView = (targetUrl: string): boolean => shouldKeepInView(targetUrl, serviceHost);
@@ -218,14 +219,9 @@ export function createServiceView(
     return { action: "deny" };
   });
 
-  // A plain in-page link click to an external site would navigate the whole
-  // service view away and blank the service. Cancel it so the service stays put;
-  // the link can still be opened via the "View Link" context menu.
-  view.webContents.on("will-navigate", (event, url) => {
-    if (/^https?:/i.test(url) && !keepInView(url)) {
-      event.preventDefault();
-    }
-  });
+  // Link clicks, script navigations and server redirects to anywhere else are
+  // cancelled, so the service stays put (navigationGuard.ts).
+  attachNavigationGuard(view, service.url, serviceHost);
 
   return view;
 }

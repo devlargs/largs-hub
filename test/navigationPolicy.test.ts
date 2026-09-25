@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { isSameDomain, normalizeHost, shouldKeepInView } from "../electron/navigationPolicy";
+import {
+  isSameDomain,
+  mayRedirectInView,
+  mayShowInView,
+  normalizeHost,
+  shouldKeepInView,
+} from "../electron/navigationPolicy";
 
 describe("isSameDomain", () => {
   it("matches the domain itself and its subdomains", () => {
@@ -69,5 +75,81 @@ describe("normalizeHost", () => {
   it("drops a leading www.", () => {
     expect(normalizeHost("www.notion.so")).toBe("notion.so");
     expect(normalizeHost("notion.so")).toBe("notion.so");
+  });
+});
+
+describe("mayShowInView", () => {
+  it("shows the service's own pages and allowlisted sign-in pages", () => {
+    expect(mayShowInView("https://mail.google.com/mail/u/0", "mail.google.com")).toBe(true);
+    expect(mayShowInView("https://accounts.google.com/signin", "mail.google.com")).toBe(true);
+    expect(mayShowInView("http://notion.so/page", "notion.so")).toBe(true);
+  });
+
+  it("refuses other sites", () => {
+    expect(mayShowInView("https://evil.example/phish", "mail.google.com")).toBe(false);
+  });
+
+  it("refuses every non-http(s) scheme, even on the service's host", () => {
+    for (const url of [
+      "file:///C:/Windows/System32/calc.exe",
+      "file:///etc/passwd",
+      "data:text/html,<script>alert(1)</script>",
+      "about:blank",
+      "javascript:alert(1)",
+      "ftp://notion.so/file",
+      "chrome://settings",
+      "ms-msdt:/id PCWDiagnostic",
+      "not a url",
+    ]) {
+      expect(mayShowInView(url, "notion.so"), url).toBe(false);
+    }
+  });
+
+  it("shows a blob URL only when the page that made it stays in view", () => {
+    expect(mayShowInView("blob:https://web.whatsapp.com/1234-abcd", "web.whatsapp.com")).toBe(true);
+    expect(mayShowInView("blob:https://evil.example/1234-abcd", "web.whatsapp.com")).toBe(false);
+    expect(mayShowInView("blob:null/1234-abcd", "web.whatsapp.com")).toBe(false);
+  });
+});
+
+describe("mayRedirectInView", () => {
+  const home = "https://mail.google.com/mail/";
+  const redirect = (url: string, startUrl: string | null, pageInitiated = true) =>
+    mayRedirectInView({
+      url,
+      serviceHost: "mail.google.com",
+      startUrl,
+      pageInitiated,
+      homeUrl: home,
+    });
+
+  it("follows a redirect that stays on the service or its sign-in", () => {
+    expect(redirect("https://accounts.google.com/ServiceLogin", home)).toBe(true);
+    expect(redirect("https://accounts.youtube.com/accounts/SetSID", home)).toBe(true);
+    expect(redirect("https://mail.google.com/mail/u/0/", "https://mail.google.com/")).toBe(true);
+  });
+
+  it("stops an open redirect bouncing the view onto another site (#123)", () => {
+    // A same-domain link the page follows, which the server 302s elsewhere
+    const viaGoogle = "https://www.google.com/url?q=https://evil.example/";
+    const viaFacebook = "https://l.facebook.com/l.php?u=https://evil.example/";
+    expect(redirect("https://evil.example/", viaGoogle)).toBe(false);
+    expect(redirect("https://evil.example/", viaFacebook)).toBe(false);
+    // Even when the app loaded that link (a same-domain window.open)
+    expect(redirect("https://evil.example/", viaGoogle, false)).toBe(false);
+  });
+
+  it("stops a redirect to a non-http(s) scheme", () => {
+    expect(redirect("file:///C:/Users/me/secret.txt", home)).toBe(false);
+    expect(redirect("data:text/html,hi", home, false)).toBe(false);
+  });
+
+  it("lets the app's own load of the service URL follow its server anywhere", () => {
+    expect(redirect("https://sso.example.org/login", home, false)).toBe(true);
+  });
+
+  it("gives no such pass when a page started the navigation", () => {
+    expect(redirect("https://evil.example/", home, true)).toBe(false);
+    expect(redirect("https://evil.example/", null, false)).toBe(false);
   });
 });

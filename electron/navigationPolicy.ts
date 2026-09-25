@@ -11,9 +11,14 @@
 //
 // Pure and Electron-free so it can be unit-tested (test/navigationPolicy.test.ts).
 
-// Auth and CDN domains that a service may legitimately hand off to.
+// Auth and CDN domains that a service may legitimately hand off to. Sign-in
+// also passes through some of these by server redirect (Google sets its cookie
+// on youtube.com, Microsoft hops between live.com, office.com and
+// microsoftonline.com), and since redirects are checked too (issue #123) each
+// hop has to be listed.
 export const IN_VIEW_ALLOWED_DOMAINS = [
   "google.com",
+  "youtube.com",
   "googleapis.com",
   "gstatic.com",
   "facebook.com",
@@ -24,6 +29,8 @@ export const IN_VIEW_ALLOWED_DOMAINS = [
   "microsoft.com",
   "live.com",
   "microsoftonline.com",
+  "office.com",
+  "office365.com",
   "github.com",
   "slack.com",
   "discord.com",
@@ -81,4 +88,70 @@ export function shouldKeepInView(
     if (isSameDomain(host, service) || isSameDomain(service, host)) return true;
   }
   return allowedDomains.some((domain) => isSameDomain(host, domain));
+}
+
+/**
+ * Whether the service view's main frame may show `url` at all (issue #123):
+ * an http(s) page that stays in view, or a blob: URL minted by such a page.
+ * Every other scheme (file:, data:, about:, custom handlers) is refused, so the
+ * view never renders something that isn't the service or its sign-in.
+ */
+export function mayShowInView(
+  url: string,
+  serviceHost: string | null | undefined,
+  allowedDomains: readonly string[] = IN_VIEW_ALLOWED_DOMAINS,
+): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol === "blob:") {
+    // A blob URL carries its creator's origin ("blob:https://host/uuid").
+    const origin = parsed.origin;
+    return /^https?:/.test(origin) && shouldKeepInView(origin, serviceHost, allowedDomains);
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+  return shouldKeepInView(url, serviceHost, allowedDomains);
+}
+
+export interface RedirectContext {
+  /** Where the redirect goes. */
+  url: string;
+  serviceHost: string | null | undefined;
+  /** The URL this main-frame navigation started at, before any redirect. */
+  startUrl: string | null;
+  /** True when a page started the navigation, false when the app did. */
+  pageInitiated: boolean;
+  /** The service's own URL, as the user set it up. */
+  homeUrl: string;
+}
+
+function sameUrl(a: string | null, b: string): boolean {
+  if (!a) return false;
+  try {
+    return new URL(a).href === new URL(b).href;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether a server redirect of the service view's main frame may be followed
+ * (issue #123). Open redirects are common on the allowlisted domains
+ * (google.com/url?q=…, l.facebook.com), so a link that stays in view could
+ * otherwise bounce the view onto any site, logged-in cookies and all. A
+ * redirect has to land somewhere the view may show, with one exception: the
+ * app loading the service's own URL may follow wherever that server sends it,
+ * the way the user's browser would, so a service set up at a URL that forwards
+ * to its real home or sign-in still opens.
+ */
+export function mayRedirectInView(
+  { url, serviceHost, startUrl, pageInitiated, homeUrl }: RedirectContext,
+  allowedDomains: readonly string[] = IN_VIEW_ALLOWED_DOMAINS,
+): boolean {
+  if (mayShowInView(url, serviceHost, allowedDomains)) return true;
+  if (pageInitiated) return false;
+  return sameUrl(startUrl, homeUrl) && /^https?:/i.test(url);
 }
