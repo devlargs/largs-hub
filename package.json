@@ -49,7 +49,7 @@
     "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^9.2.4",
     "electron": "^44.4.5",
-    "electron-builder": "^25.1.8",
+    "electron-builder": "^26.15.3",
     "electronmon": "^2.0.4",
     "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
@@ -78,7 +78,6 @@
     },
     "win": {
       "target": "nsis",
-      "sign": false,
       "icon": "assets/ico/icon.ico"
     },
     "afterPack": "scripts/mac-adhoc-sign.cjs",

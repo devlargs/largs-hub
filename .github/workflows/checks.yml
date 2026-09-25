@@ -27,6 +27,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Only what ships in the app, and only high or critical advisories: a
+      # dev-only or low-severity finding shouldn't hold a release back. Runs
+      # for releases too, since they use these checks.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Typecheck
         run: npm run typecheck
 
