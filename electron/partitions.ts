@@ -16,6 +16,12 @@ export function servicePartition(serviceId: string): string {
   return `persist:${PARTITION_PREFIX}${serviceId}`;
 }
 
+// The link preview's session (issue #125). No `persist:` prefix, so it lives
+// only in memory: nothing a previewed site stores ever reaches disk, and it
+// shares nothing with any service's logged-in partition. It is also wiped each
+// time the preview closes (window/linkPreview.ts).
+export const LINK_PREVIEW_PARTITION = "link-preview";
+
 export function partitionsDir(): string {
   return path.join(app.getPath("userData"), "Partitions");
 }

@@ -5,7 +5,7 @@ import { getServiceZoom, openFindBarFor, stepServiceZoom } from "./findZoom";
 
 // The native right-click menu for a service view. HTML menus can't render
 // above a WebContentsView, so this is built in main (see CLAUDE.md).
-export function attachContextMenu(view: WebContentsView, serviceId: string, partition: string) {
+export function attachContextMenu(view: WebContentsView, serviceId: string) {
   view.webContents.on("context-menu", (_event, params) => {
     const menuItems: Electron.MenuItemConstructorOptions[] = [];
 
@@ -72,7 +72,7 @@ export function attachContextMenu(view: WebContentsView, serviceId: string, part
       if (/^https?:/i.test(params.linkURL)) {
         menuItems.push({
           label: "View Link",
-          click: () => getDeps()?.openLinkPreview(params.linkURL, partition),
+          click: () => getDeps()?.openLinkPreview(params.linkURL),
         });
       }
       menuItems.push({

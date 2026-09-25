@@ -141,7 +141,7 @@ export function createServiceView(
     if (isPrivacyMode(service.id)) applyPrivacyToView(view);
   });
 
-  attachContextMenu(view, service.id, partition);
+  attachContextMenu(view, service.id);
   attachBadgeExtraction(view, service, serviceHost);
 
   // Browser shortcuts have to be intercepted here too — a service view with

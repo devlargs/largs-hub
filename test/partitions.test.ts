@@ -1,6 +1,7 @@
 import path from "path";
 import { describe, expect, it } from "vitest";
 import {
+  LINK_PREVIEW_PARTITION,
   PartitionSweepFs,
   orphanedPartitionDirs,
   servicePartition,
@@ -29,6 +30,16 @@ function fakeFs(
 describe("servicePartition", () => {
   it("namespaces the id under a persistent partition", () => {
     expect(servicePartition("abc")).toBe("persist:service-abc");
+  });
+});
+
+describe("LINK_PREVIEW_PARTITION", () => {
+  it("is in-memory and shares nothing with a service's partition (#125)", () => {
+    expect(LINK_PREVIEW_PARTITION.startsWith("persist:")).toBe(false);
+    expect(LINK_PREVIEW_PARTITION.startsWith("service-")).toBe(false);
+    for (const id of ["a", "link-preview", ""]) {
+      expect(LINK_PREVIEW_PARTITION).not.toBe(servicePartition(id));
+    }
   });
 });
 

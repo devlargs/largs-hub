@@ -7,7 +7,7 @@ import { BrowserWindow, WebContentsView } from "electron";
 export interface ServiceViewDeps {
   getMainWindow(): BrowserWindow | null;
   getUiView(): WebContentsView | null;
-  openLinkPreview(url: string, partition: string): void;
+  openLinkPreview(url: string): void;
   // Every key a service view sees, for the Ctrl shortcut hints
   onKeyInput(input: Electron.Input): void;
 }
