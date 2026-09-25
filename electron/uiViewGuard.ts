@@ -2,6 +2,7 @@ import { WebContents, shell } from "electron";
 import path from "path";
 import { pathToFileURL } from "url";
 import { isAppUrl, setAppEntryUrl } from "./appOrigin";
+import { externalWebUrl } from "./externalLinks";
 import { IS_DEV } from "./devMode";
 
 // Keeps the UI view on the app (issue #112). The UI view holds
@@ -31,7 +32,8 @@ export function guardUiView(webContents: WebContents): void {
   webContents.on("will-navigate", stayOnApp);
   webContents.on("will-redirect", stayOnApp);
   webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https?:/i.test(url)) shell.openExternal(url);
+    const external = externalWebUrl(url);
+    if (external) shell.openExternal(external);
     return { action: "deny" };
   });
   // No <webview> either: it would be a second page inside the one with the

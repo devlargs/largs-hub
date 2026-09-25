@@ -1,6 +1,7 @@
 import { WebContentsView, shell } from "electron";
 import { linkPreviewBounds } from "../shared/layout";
 import { loadWithChromeIdentity } from "../chromeIdentity";
+import { externalWebUrl } from "../externalLinks";
 import { shortcutHints, windowState } from "./state";
 
 // Link preview modal: the page renders in a WebContentsView layered on top,
@@ -35,9 +36,12 @@ export function openLinkPreview(url: string, partition: string) {
 
   view.setBackgroundColor("#1e1e2e");
 
-  // Anything that tries to open a new window goes to the system browser
+  // A web link that tries to open a new window goes to the system browser.
+  // Nothing else does: the preview shows arbitrary sites, so any other scheme
+  // could launch an OS handler (issue #119).
   view.webContents.setWindowOpenHandler(({ url: popupUrl }) => {
-    shell.openExternal(popupUrl);
+    const external = externalWebUrl(popupUrl);
+    if (external) shell.openExternal(external);
     return { action: "deny" };
   });
 

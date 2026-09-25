@@ -1,5 +1,6 @@
 import { ipcMain, shell } from "electron";
 import { createUiLayerCounter } from "../uiLayer";
+import { externalWebUrl } from "../externalLinks";
 import { setActiveViewVisible, setAutomationSplitOpen } from "../serviceViews";
 import { closeLinkPreview } from "./linkPreview";
 import { windowState } from "./state";
@@ -16,10 +17,9 @@ export function registerWindowIpc() {
     closeLinkPreview();
   });
 
-  ipcMain.on("open-link-external", (_event, url: string) => {
-    if (typeof url === "string" && /^https?:/i.test(url)) {
-      shell.openExternal(url);
-    }
+  ipcMain.on("open-link-external", (_event, url: unknown) => {
+    const external = externalWebUrl(url);
+    if (external) shell.openExternal(external);
   });
 
   // Split the layout into service (left) + automation panel (right) by resizing

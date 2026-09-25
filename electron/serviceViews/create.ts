@@ -1,6 +1,7 @@
 import { WebContentsView, shell } from "electron";
 import { store, Service, isSafeServiceUrl } from "../store";
 import { shouldKeepInView } from "../navigationPolicy";
+import { externalServiceUrl } from "../externalLinks";
 import { hookDownloadSession } from "../downloads";
 import { messengerAdapter } from "../badge-adapters/messenger";
 import { DEFAULT_ZOOM } from "../zoom";
@@ -210,8 +211,10 @@ export function createServiceView(
       if (keepInView(url)) view.webContents.loadURL(url);
       return { action: "deny" };
     }
-    // Non-http schemes (mailto:, tel:, …) still hand off to the OS.
-    shell.openExternal(url);
+    // mailto: and tel: still hand off to the OS. Any other scheme is dropped:
+    // ms-msdt:, search-ms:, file: and the like launch OS handlers (issue #119).
+    const external = externalServiceUrl(url);
+    if (external) shell.openExternal(external);
     return { action: "deny" };
   });
 

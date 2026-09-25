@@ -1,5 +1,6 @@
 import { BrowserWindow, WebContentsView, shell } from "electron";
 import { applyChromeIdentity } from "../chromeIdentity";
+import { externalWebUrl } from "../externalLinks";
 import { getDeps, partitionFor } from "./state";
 import {
   AUTO_START_CALL_SCRIPT,
@@ -130,10 +131,11 @@ function openCallWindow(callUrl: string, partition: string) {
       callWindow.show();
     }
   });
-  // Keep the call contained: nested popups go to the system browser rather than
-  // spawning more app windows.
+  // Keep the call contained: nested web popups go to the system browser rather
+  // than spawning more app windows, and any other scheme is dropped (issue #119).
   callWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    const external = externalWebUrl(url);
+    if (external) shell.openExternal(external);
     return { action: "deny" };
   });
   // Messenger's call page arms a beforeunload guard while a call is live, which
