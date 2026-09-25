@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Behind the scenes: built with Vite 8.** The tool that bundles the app's interface moves from Vite 6 to Vite 8, which uses the new Rolldown bundler, together with version 6 of its React plugin (the two have to move together, since the plugin needs Vite 8). Nothing should look or behave differently on Windows or macOS.
 
 ## [0.1.71] (2026-09-25)
 - **Signing in to Google works again.** Google Chat, Gmail and the other Google services could stop at "Couldn't sign you in — this browser or app may not be secure". Largs Hub already presented itself as Chrome, but Google's sign-in page also checks for parts of Chrome that only the real Chrome browser has, and refused when they were missing. On Google's sign-in page, services now present themselves as Firefox, which Google doesn't check that way, and switch back to Chrome once you're signed in. Applies on Windows and macOS.
