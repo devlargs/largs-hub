@@ -66,12 +66,15 @@ function sendOverride(webContents: WebContents, useSignIn: boolean): Promise<unk
 // Switches a view between the Chrome and sign-in identities as its top-level
 // page moves on or off a sign-in host. The override is sent when the
 // navigation starts (or is redirected), well before the new page commits.
+//
+// Never call webContents.setUserAgent() here: Chromium reloads a page whose UA
+// changes while it's loading, so switching mid-navigation (e.g. Gmail
+// redirecting to sign-in) reloaded the service, which redirected and switched
+// again, in a loop that crashed the app. The override covers the page and the
+// session's header rewrite covers the requests, and neither reloads anything.
 function switchIdentity(webContents: WebContents, useSignIn: boolean): void {
   if (webContents.isDestroyed() || onSignInPage.get(webContents.id) === useSignIn) return;
   onSignInPage.set(webContents.id, useSignIn);
-  webContents.setUserAgent(
-    useSignIn ? currentSignInIdentity().userAgent : currentChromeIdentity().userAgent,
-  );
   try {
     sendOverride(webContents, useSignIn).catch((err) =>
       console.warn("[chromeIdentity] UA override switch failed:", err),
