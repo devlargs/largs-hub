@@ -20,7 +20,7 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version-file: .nvmrc
 
       - name: Check the Electron major is still supported
         run: node scripts/check-electron-support.cjs

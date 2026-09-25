@@ -136,7 +136,7 @@ Repeat for each app you want in your workspace.
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 22 (the version CI uses; the test runner needs 20 or newer)
+- [Node.js](https://nodejs.org/) 24.21.0, exactly. It's pinned in `.nvmrc` (`nvm use` or `fnm use` picks it up) and in `package.json`'s `engines`, and `.npmrc` sets `engine-strict`, so `npm install` refuses to run on any other version. CI uses the same version.
 - npm
 - To package the macOS app: a Mac (the build ad-hoc signs the bundle with `codesign`)
 
