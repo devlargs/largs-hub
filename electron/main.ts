@@ -15,6 +15,7 @@ import { registerListGroupsIpc } from "./ipc/listGroups";
 import { registerAutomationPrefsIpc } from "./ipc/automationPrefs";
 import { registerGitHubIpc } from "./ipc/github";
 import { addRecentEmoji, sanitizeRecentEmojis } from "./recentEmojis";
+import { appUserModelId } from "./appUserModelId";
 import { initDownloads } from "./downloads";
 import { initNotificationCounts } from "./notificationCounts";
 import {
@@ -49,9 +50,8 @@ import {
 //   ipc/security.ts       workspace lock: master password + auto-lock timer
 
 app.setName("Largs Hub");
-// Must match build.appId in package.json — Windows keys taskbar overlays and
-// toast notifications off this ID, and a mismatch breaks both silently (#58).
-app.setAppUserModelId("com.largshub.app");
+// build.appId when installed, a separate ID from source (appUserModelId.ts)
+app.setAppUserModelId(appUserModelId(app.isPackaged));
 
 // --- Module wiring -----------------------------------------------------------
 
