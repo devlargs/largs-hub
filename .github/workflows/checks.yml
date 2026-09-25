@@ -1,0 +1,40 @@
+name: Checks
+
+# Typecheck, lint, format and tests, shared by CI and Release so a release can
+# never ship a commit that CI would have failed. No concurrency group here: the
+# calling workflow owns that.
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Commit to check out. Empty means the commit that triggered the caller.
+        type: string
+        default: ""
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format
+        run: npm run format:check
+
+      - name: Test
+        run: npm test

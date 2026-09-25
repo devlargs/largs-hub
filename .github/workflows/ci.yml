@@ -13,29 +13,7 @@ concurrency:
 
 jobs:
   checks:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Format
-        run: npm run format:check
-
-      - name: Test
-        run: npm test
+    uses: ./.github/workflows/checks.yml
 
   # The shipped artifact is built on Windows, so a packaging break has to be
   # caught on Windows too — checks alone never compile the Electron bundle.
