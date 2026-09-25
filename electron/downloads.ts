@@ -1,4 +1,6 @@
 import { BrowserWindow, WebContentsView, shell } from "electron";
+import path from "path";
+import { isSafeToAutoOpen } from "./autoOpenPolicy";
 import { store } from "./store";
 import { uniqueSavePath } from "./uniqueFilename";
 import {
@@ -67,8 +69,17 @@ export function hookDownloadSession(view: WebContentsView, partition: string) {
         return;
       }
       const savePath = item.getSavePath();
-      if (store.get("openFolderOnFinish")) shell.showItemInFolder(savePath);
-      if (store.get("openFileOnFinish")) shell.openPath(savePath);
+      const openFolder = store.get("openFolderOnFinish");
+      if (openFolder) shell.showItemInFolder(savePath);
+      if (store.get("openFileOnFinish")) {
+        // Only a file the user clicked to download, of a type that can't run
+        // code, is opened. Anything else is shown in its folder instead, so the
+        // user decides whether to open it (issue #120).
+        const safe =
+          item.hasUserGesture() && isSafeToAutoOpen(path.basename(savePath), process.platform);
+        if (safe) void shell.openPath(savePath);
+        else if (!openFolder) shell.showItemInFolder(savePath);
+      }
       if (store.get("downloadAlertOnFinish") && deps?.getMainWindow()) {
         showDownloadToast(item.getFilename());
       }

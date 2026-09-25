@@ -47,7 +47,7 @@ export default function DownloadsSection({ settings, save, toggle, preview }: Ap
 
       <SettingRow
         label="Open file on finish"
-        info="When a download finishes, opens the file with the app your computer uses for that kind of file."
+        info={`When a download you clicked finishes, opens it with the app your computer uses for that kind of file. Only documents (PDF, Word, Excel, PowerPoint, text, CSV), images, audio and video open this way. Programs, scripts, installers, archives and anything else are shown in ${window.electronAPI?.platform === "darwin" ? "Finder" : "File Explorer"} instead, for you to open yourself.`}
       >
         <Toggle checked={settings.openFileOnFinish} onChange={() => toggle("openFileOnFinish")} />
       </SettingRow>
