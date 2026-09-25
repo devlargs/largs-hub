@@ -54,7 +54,7 @@ export default function DownloadsSection({ settings, save, toggle, preview }: Ap
 
       <SettingRow
         label="Download alert"
-        info="Shows a small alert with the file's name in the corner of the window when a download finishes."
+        info={`Shows a small alert with the file's name in the corner of the window when a download finishes. Its ${window.electronAPI?.platform === "darwin" ? "Show in Finder" : "Open file location"} link shows the file in its folder.`}
       >
         <Toggle
           checked={settings.downloadAlertOnFinish}

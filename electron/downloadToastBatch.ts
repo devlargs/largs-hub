@@ -3,7 +3,7 @@
 // One toast is shown at a time and reused, so it has to say how many downloads
 // it stands for: "Downloaded 1/2" while the second is still coming in,
 // "Downloaded 2/2" once it lands. Pure, so the counting is unit-tested without
-// an Electron runtime (CLAUDE.md); the window itself lives in downloads.ts.
+// an Electron runtime (CLAUDE.md); the window itself lives in downloadToast.ts.
 
 export interface ToastBatch {
   /** Downloads begun in this batch that are still expected to finish. */
