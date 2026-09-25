@@ -1,5 +1,14 @@
+import os from "os";
 import { Session, WebContents } from "electron";
-import { currentChromeIdentity, withChromeIdentityHeaders } from "./userAgent";
+import { currentChromeIdentity, detectHostPlatform, withChromeIdentityHeaders } from "./userAgent";
+import {
+  SignInIdentity,
+  firefoxVersion,
+  isSignInUrl,
+  requestUsesSignInIdentity,
+  signInIdentity,
+  withSignInHeaders,
+} from "./signInIdentity";
 import { settleWithin } from "./settleWithin";
 
 // How long a first load waits for the UA override before going ahead anyway.
@@ -16,6 +25,79 @@ const OVERRIDE_WAIT_MS = 1000;
 // navigator.userAgentData (getHighEntropyValues() included) from one piece of
 // metadata. Because Chromium produces the values natively, nothing in the page
 // looks patched, which a JS getter override would.
+//
+// Google's sign-in page still refuses that Chrome, so while a view's top-level
+// page is on it, the view calls itself Firefox instead (signInIdentity.ts).
+
+let signIn: SignInIdentity | null = null;
+
+function currentSignInIdentity(): SignInIdentity {
+  signIn ??= signInIdentity(
+    detectHostPlatform(process.platform, os.release(), process.arch).os,
+    firefoxVersion(new Date()),
+  );
+  return signIn;
+}
+
+// webContents id → whether its top-level page is a sign-in page. Set for every
+// webContents the identity is applied to, and read by the header rewrite.
+const onSignInPage = new Map<number, boolean>();
+
+// Sends the page-visible half of the identity through Chromium's UA override.
+// Throws when the debugger can't attach.
+function sendOverride(webContents: WebContents, useSignIn: boolean): Promise<unknown> {
+  if (!webContents.debugger.isAttached()) webContents.debugger.attach("1.3");
+  if (useSignIn) {
+    // No metadata: Firefox has no Client Hints for Chromium to report
+    const { userAgent, navigatorPlatform } = currentSignInIdentity();
+    return webContents.debugger.sendCommand("Emulation.setUserAgentOverride", {
+      userAgent,
+      platform: navigatorPlatform,
+    });
+  }
+  const identity = currentChromeIdentity();
+  return webContents.debugger.sendCommand("Emulation.setUserAgentOverride", {
+    userAgent: identity.userAgent,
+    platform: identity.navigatorPlatform,
+    userAgentMetadata: identity.metadata,
+  });
+}
+
+// Switches a view between the Chrome and sign-in identities as its top-level
+// page moves on or off a sign-in host. The override is sent when the
+// navigation starts (or is redirected), well before the new page commits.
+function switchIdentity(webContents: WebContents, useSignIn: boolean): void {
+  if (webContents.isDestroyed() || onSignInPage.get(webContents.id) === useSignIn) return;
+  onSignInPage.set(webContents.id, useSignIn);
+  webContents.setUserAgent(
+    useSignIn ? currentSignInIdentity().userAgent : currentChromeIdentity().userAgent,
+  );
+  try {
+    sendOverride(webContents, useSignIn).catch((err) =>
+      console.warn("[chromeIdentity] UA override switch failed:", err),
+    );
+  } catch (err) {
+    console.warn("[chromeIdentity] UA override switch unavailable:", err);
+  }
+}
+
+function watchNavigations(webContents: WebContents): void {
+  if (onSignInPage.has(webContents.id)) return;
+  onSignInPage.set(webContents.id, false);
+  const id = webContents.id;
+  const onNavigation = (details: {
+    url: string;
+    isMainFrame: boolean;
+    isSameDocument: boolean;
+  }) => {
+    if (details.isMainFrame && !details.isSameDocument) {
+      switchIdentity(webContents, isSignInUrl(details.url));
+    }
+  };
+  webContents.on("did-start-navigation", onNavigation);
+  webContents.on("did-redirect-navigation", onNavigation);
+  webContents.once("destroyed", () => onSignInPage.delete(id));
+}
 
 /**
  * Give one webContents the Chrome identity. Resolves once the override is in
@@ -27,16 +109,11 @@ const OVERRIDE_WAIT_MS = 1000;
  * the page-visible metadata falls back.
  */
 export async function applyChromeIdentity(webContents: WebContents): Promise<void> {
-  const identity = currentChromeIdentity();
-  webContents.setUserAgent(identity.userAgent);
+  webContents.setUserAgent(currentChromeIdentity().userAgent);
+  watchNavigations(webContents);
   let override: Promise<unknown>;
   try {
-    if (!webContents.debugger.isAttached()) webContents.debugger.attach("1.3");
-    override = webContents.debugger.sendCommand("Emulation.setUserAgentOverride", {
-      userAgent: identity.userAgent,
-      platform: identity.navigatorPlatform,
-      userAgentMetadata: identity.metadata,
-    });
+    override = sendOverride(webContents, onSignInPage.get(webContents.id) === true);
   } catch (err) {
     console.warn("[chromeIdentity] UA metadata override unavailable:", err);
     return;
@@ -64,6 +141,17 @@ export function applyChromeIdentityToSession(session: Session): void {
   const identity = currentChromeIdentity();
   session.setUserAgent(identity.userAgent);
   session.webRequest.onBeforeSendHeaders((details, callback) => {
-    callback({ requestHeaders: withChromeIdentityHeaders(details.requestHeaders, identity) });
+    const page = details.webContents;
+    const useSignIn = requestUsesSignInIdentity({
+      url: details.url,
+      resourceType: details.resourceType,
+      pageIsSignIn: page ? onSignInPage.get(page.id) : undefined,
+      pageUrl: page && !page.isDestroyed() ? page.getURL() : undefined,
+    });
+    callback({
+      requestHeaders: useSignIn
+        ? withSignInHeaders(details.requestHeaders, currentSignInIdentity())
+        : withChromeIdentityHeaders(details.requestHeaders, identity),
+    });
   });
 }
