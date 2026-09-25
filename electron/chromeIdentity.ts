@@ -65,23 +65,49 @@ function sendOverride(webContents: WebContents, useSignIn: boolean): Promise<unk
 
 // Switches a view between the Chrome and sign-in identities as its top-level
 // page moves on or off a sign-in host. The override is sent when the
-// navigation starts (or is redirected), well before the new page commits.
+// navigation starts, before its request goes out. Resolves once the override
+// has landed (or failed, or OVERRIDE_WAIT_MS passed); never rejects.
 //
 // Never call webContents.setUserAgent() here: Chromium reloads a page whose UA
 // changes while it's loading, so switching mid-navigation (e.g. Gmail
 // redirecting to sign-in) reloaded the service, which redirected and switched
 // again, in a loop that crashed the app. The override covers the page and the
 // session's header rewrite covers the requests, and neither reloads anything.
-function switchIdentity(webContents: WebContents, useSignIn: boolean): void {
+async function switchIdentity(webContents: WebContents, useSignIn: boolean): Promise<void> {
   if (webContents.isDestroyed() || onSignInPage.get(webContents.id) === useSignIn) return;
   onSignInPage.set(webContents.id, useSignIn);
+  let override: Promise<unknown>;
   try {
-    sendOverride(webContents, useSignIn).catch((err) =>
-      console.warn("[chromeIdentity] UA override switch failed:", err),
-    );
+    override = sendOverride(webContents, useSignIn);
   } catch (err) {
     console.warn("[chromeIdentity] UA override switch unavailable:", err);
+    return;
   }
+  override.catch((err) => console.warn("[chromeIdentity] UA override switch failed:", err));
+  await settleWithin(override, OVERRIDE_WAIT_MS);
+}
+
+/**
+ * Whether the view's main frame arriving at `url` changes which identity it
+ * presents. False for a webContents the identity was never applied to.
+ */
+export function identityChangesAt(webContents: WebContents, url: string): boolean {
+  const current = onSignInPage.get(webContents.id);
+  return current !== undefined && current !== isSignInUrl(url);
+}
+
+/**
+ * Switches the identity for `url`, waits for it to land, then loads `url` as a
+ * fresh navigation. For a main-frame server redirect that crosses onto or off
+ * a sign-in page (Google Chat, signed out, redirects straight to
+ * accounts.google.com): the caller cancels the redirect and calls this. The
+ * page a redirect lands on keeps what its navigation started with, so
+ * switching mid-redirect left Google's sign-in page seeing Chrome in
+ * navigator.userAgent next to Firefox headers, and it refused to sign in.
+ */
+export async function loadWithIdentityFor(webContents: WebContents, url: string): Promise<void> {
+  await switchIdentity(webContents, isSignInUrl(url));
+  if (!webContents.isDestroyed()) void webContents.loadURL(url);
 }
 
 function watchNavigations(webContents: WebContents): void {
@@ -94,10 +120,13 @@ function watchNavigations(webContents: WebContents): void {
     isSameDocument: boolean;
   }) => {
     if (details.isMainFrame && !details.isSameDocument) {
-      switchIdentity(webContents, isSignInUrl(details.url));
+      void switchIdentity(webContents, isSignInUrl(details.url));
     }
   };
   webContents.on("did-start-navigation", onNavigation);
+  // A redirect the view's navigation guard didn't restart with
+  // loadWithIdentityFor (link previews, the call window): switching now is
+  // late for the page, but still right for its requests.
   webContents.on("did-redirect-navigation", onNavigation);
   webContents.once("destroyed", () => onSignInPage.delete(id));
 }
