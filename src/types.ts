@@ -113,7 +113,9 @@ export interface ElectronAPI {
   checkForUpdates: () => Promise<{
     updateAvailable: boolean;
     version?: string;
-    downloadUrl?: string;
+    /** False when GitHub gave no checksum: offer the release page instead. */
+    canInstall?: boolean;
+    releaseUrl?: string;
   }>;
   getAppVersion: () => Promise<string>;
   downloadAndInstallUpdate: () => Promise<void>;

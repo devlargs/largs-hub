@@ -1,7 +1,10 @@
 // What the Settings page's "Software update" row says at each step of an
 // update, kept pure so it can be unit-tested.
 
-export type UpdateStatus = "idle" | "checking" | "available" | "downloading" | "latest" | "error";
+// "manual": a newer version exists but GitHub gave no checksum for it, so it
+// can't be verified and is only offered as a download from the release page.
+export type UpdateStatus =
+  "idle" | "checking" | "available" | "manual" | "downloading" | "latest" | "error";
 
 export interface UpdateProgress {
   status: UpdateStatus;
@@ -25,6 +28,8 @@ export function updateDescription({
       return `v${currentVersion} — Up to date`;
     case "available":
       return `v${currentVersion} → v${newVersion} available`;
+    case "manual":
+      return `v${newVersion} available — download it from GitHub`;
     case "downloading":
       return `Downloading v${newVersion}... ${percent}%`;
     case "error":
@@ -40,6 +45,7 @@ export function updateStatusColor(status: UpdateStatus): string | undefined {
     case "error":
       return "#f38ba8";
     case "available":
+    case "manual":
       return "var(--accent)";
     default:
       return undefined;

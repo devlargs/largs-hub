@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { resolveUpdate } from "../electron/updater";
+import { parseSha256Digest, releasePageUrl, resolveUpdate } from "../electron/updater";
+
+const SHA = "a".repeat(64);
 
 const exe = {
   name: "Largs-Hub-Setup-0.2.0.exe",
   browser_download_url:
     "https://github.com/devlargs/largs-hub/releases/download/v0.2.0/Largs-Hub-Setup-0.2.0.exe",
-  digest: "sha256:abc123",
+  digest: `sha256:${SHA}`,
 };
 const armDmg = {
   name: "Largs-Hub-0.2.0-arm64.dmg",
@@ -24,7 +26,7 @@ describe("resolveUpdate", () => {
     expect(resolveUpdate(release(), "0.1.66", "win32", "x64")).toEqual({
       version: "0.2.0",
       url: exe.browser_download_url,
-      sha256: "abc123",
+      sha256: SHA,
     });
   });
 
@@ -66,5 +68,31 @@ describe("resolveUpdate", () => {
     expect(resolveUpdate(null, "0.1.0", "win32", "x64")).toBeNull();
     expect(resolveUpdate({ tag_name: 42 }, "0.1.0", "win32", "x64")).toBeNull();
     expect(resolveUpdate({ tag_name: "v9.9.9" }, "0.1.0", "win32", "x64")).toBeNull();
+  });
+});
+
+describe("parseSha256Digest", () => {
+  it("takes the hex from a sha256 digest, lowercased", () => {
+    expect(parseSha256Digest(`sha256:${SHA}`)).toBe(SHA);
+    expect(parseSha256Digest(`SHA256:${"AB".repeat(32)}`)).toBe("ab".repeat(32));
+  });
+
+  it("refuses anything that isn't a whole sha256", () => {
+    expect(parseSha256Digest(undefined)).toBeNull();
+    expect(parseSha256Digest("")).toBeNull();
+    expect(parseSha256Digest("sha256:")).toBeNull();
+    expect(parseSha256Digest("sha256:abc123")).toBeNull();
+    expect(parseSha256Digest(`sha256:${SHA}0`)).toBeNull();
+    expect(parseSha256Digest(`sha256:${"g".repeat(64)}`)).toBeNull();
+    expect(parseSha256Digest(`md5:${SHA}`)).toBeNull();
+    expect(parseSha256Digest(42)).toBeNull();
+  });
+});
+
+describe("releasePageUrl", () => {
+  it("links the release's tag page", () => {
+    expect(releasePageUrl("0.2.0")).toBe(
+      "https://github.com/devlargs/largs-hub/releases/tag/v0.2.0",
+    );
   });
 });

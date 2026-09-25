@@ -7,6 +7,7 @@ export default function UpdatesSection() {
   const [currentVersion, setCurrentVersion] = useState("");
   const [newVersion, setNewVersion] = useState("");
   const [percent, setPercent] = useState(0);
+  const [releaseUrl, setReleaseUrl] = useState("");
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -23,7 +24,8 @@ export default function UpdatesSection() {
       .then((result) => {
         if (result.updateAvailable && result.version) {
           setNewVersion(result.version);
-          setStatus("available");
+          setReleaseUrl(result.releaseUrl ?? "");
+          setStatus(result.canInstall ? "available" : "manual");
         } else {
           setStatus("latest");
         }
@@ -44,7 +46,7 @@ export default function UpdatesSection() {
     <Section title="Updates">
       <SettingRow
         label="Software update"
-        info="Checks GitHub for a newer version of Largs Hub. Update Now downloads it, checks it against the checksum GitHub publishes, then closes the app to install it and reopens on the new version."
+        info="Checks GitHub for a newer version of Largs Hub. Update Now downloads it, checks it against the checksum GitHub publishes, then closes the app to install it and reopens on the new version. If GitHub has no checksum for it, the update can't be checked, so it isn't installed: Download opens its GitHub page instead."
         status={updateDescription({ status, currentVersion, newVersion, percent })}
         statusColor={updateStatusColor(status)}
       >
@@ -52,6 +54,10 @@ export default function UpdatesSection() {
           <ProgressBar percent={percent} />
         ) : status === "checking" ? (
           <Spinner />
+        ) : status === "manual" ? (
+          <SecondaryButton onClick={() => window.electronAPI.openLinkExternal(releaseUrl)}>
+            Download
+          </SecondaryButton>
         ) : status === "available" ? (
           <button
             onClick={handleUpdate}

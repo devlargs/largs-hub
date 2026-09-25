@@ -52,8 +52,22 @@ export function isAllowedUpdateUrl(rawUrl: string): boolean {
 export interface PendingUpdate {
   version: string;
   url: string;
-  // Hex sha256 the download must match, or null when GitHub gave none
+  // Lowercase hex sha256 the download must match, or null when GitHub gave none
+  // (or gave something that isn't one). Such an update is offered for manual
+  // download only, never installed (issue #122).
   sha256: string | null;
+}
+
+/** The hex sha256 from a GitHub asset digest ("sha256:<64 hex>"), or null. */
+export function parseSha256Digest(digest: unknown): string | null {
+  if (typeof digest !== "string") return null;
+  const match = /^sha256:([0-9a-f]{64})$/i.exec(digest.trim());
+  return match ? match[1].toLowerCase() : null;
+}
+
+/** The GitHub page of a release, for downloading it by hand. */
+export function releasePageUrl(version: string): string {
+  return `https://github.com/devlargs/largs-hub/releases/tag/v${encodeURIComponent(version)}`;
 }
 
 /**
@@ -75,10 +89,5 @@ export function resolveUpdate(
   const url = asset?.browser_download_url;
   if (!url || !isAllowedUpdateUrl(url)) return null;
   // GitHub publishes a sha256 digest per release asset
-  const digest = asset?.digest;
-  return {
-    version: latest,
-    url,
-    sha256: digest?.startsWith("sha256:") ? digest.slice("sha256:".length) : null,
-  };
+  return { version: latest, url, sha256: parseSha256Digest(asset?.digest) };
 }

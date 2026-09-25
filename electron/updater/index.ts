@@ -1,5 +1,5 @@
 import { app, ipcMain, WebContentsView } from "electron";
-import { PendingUpdate, resolveUpdate } from "./release";
+import { PendingUpdate, releasePageUrl, resolveUpdate } from "./release";
 import { downloadVerified } from "./download";
 import { installUpdate, removeStaleInstaller, updateInstallerPath } from "./install";
 
@@ -14,10 +14,11 @@ import { installUpdate, removeStaleInstaller, updateInstallerPath } from "./inst
 //   version.ts   version parsing and comparison (pure)
 //   release.ts   picking the asset and checksum from a release (pure)
 //   download.ts  the allowlisted, checksum-verified download
+//   verify.ts    redirect, size and checksum rules for that download (pure)
 //   install.ts   running the installer / swap script, installer cleanup
 
 export { parseVersion, isNewerVersion } from "./version";
-export { pickUpdateAsset, resolveUpdate } from "./release";
+export { pickUpdateAsset, resolveUpdate, parseSha256Digest, releasePageUrl } from "./release";
 export type { ReleaseAsset, PendingUpdate } from "./release";
 export {
   UPDATE_INSTALLER_NAME,
@@ -61,7 +62,15 @@ export function registerUpdater(deps: UpdaterDeps) {
       );
       if (!update) return { updateAvailable: false };
       pendingUpdate = update;
-      return { updateAvailable: true, version: update.version, downloadUrl: update.url };
+      // No checksum means nothing to verify the download against, and the
+      // builds aren't signed either, so it's offered for manual download only
+      // (issue #122).
+      return {
+        updateAvailable: true,
+        version: update.version,
+        canInstall: update.sha256 !== null,
+        releaseUrl: releasePageUrl(update.version),
+      };
     } catch {
       return { updateAvailable: false };
     }
@@ -76,6 +85,7 @@ export function registerUpdater(deps: UpdaterDeps) {
     // the renderer.
     if (!pendingUpdate) throw new Error("No update available. Run a check first.");
     const { url, sha256 } = pendingUpdate;
+    if (!sha256) throw new Error("Update has no checksum to verify; download it manually.");
     const filePath = updateInstallerPath();
     await downloadVerified(url, sha256, filePath, (percent) => {
       if (deps.getMainWindow()) {

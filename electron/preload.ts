@@ -215,7 +215,9 @@ const api = {
   checkForUpdates: (): Promise<{
     updateAvailable: boolean;
     version?: string;
-    downloadUrl?: string;
+    /** False when GitHub gave no checksum: offer the release page instead. */
+    canInstall?: boolean;
+    releaseUrl?: string;
   }> => ipcRenderer.invoke("check-for-updates"),
   getAppVersion: (): Promise<string> => ipcRenderer.invoke("get-app-version"),
   downloadAndInstallUpdate: (): Promise<void> => ipcRenderer.invoke("download-and-install-update"),
