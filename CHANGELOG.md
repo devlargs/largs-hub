@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Behind the scenes: TypeScript 7 is on hold.** The linter's TypeScript support (typescript-eslint) doesn't work with TypeScript 7 yet, so Dependabot no longer offers it until it does. The app is unchanged on Windows and macOS.
 - **Behind the scenes: built with Vite 8.** The tool that bundles the app's interface moves from Vite 6 to Vite 8, which uses the new Rolldown bundler, together with version 6 of its React plugin (the two have to move together, since the plugin needs Vite 8). Nothing should look or behave differently on Windows or macOS.
 
 ## [0.1.71] (2026-09-25)
