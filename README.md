@@ -65,7 +65,7 @@ Juggling a dozen browser tabs for the apps you use all day is noisy and easy to 
 
 ### ⬇️ [Download the latest Largs Hub installer](https://github.com/devlargs/largs-hub/releases/latest/download/Largs%20Hub%20Setup.exe)
 
-That link always gives you the newest version. Once it downloads:
+That link always gives you the newest version. It needs 64-bit Windows 10 or later. Once it downloads:
 
 1. Open the downloaded **`Largs Hub Setup.exe`**.
 2. If Windows shows a "Windows protected your PC" prompt, click **More info → Run anyway** (this appears because the app isn't code-signed yet).
@@ -89,7 +89,7 @@ Prefer to see all versions and release notes? Browse the [**Releases**](https://
 
 ### Download (macOS)
 
-Pick the build for your Mac:
+It needs macOS 13 (Ventura) or later. Pick the build for your Mac:
 
 - **Apple Silicon (M1 and later):** [⬇️ `Largs-Hub-arm64.dmg`](https://github.com/devlargs/largs-hub/releases/latest/download/Largs-Hub-arm64.dmg)
 - **Intel:** [⬇️ `Largs-Hub-x64.dmg`](https://github.com/devlargs/largs-hub/releases/latest/download/Largs-Hub-x64.dmg)
@@ -175,7 +175,7 @@ Starts the Vite dev server, the Electron TypeScript watcher, and Electron itself
 
 ## Tech Stack
 
-- **[Electron](https://www.electronjs.org/)** — desktop shell with a layered `WebContentsView` architecture
+- **[Electron](https://www.electronjs.org/) 44** — desktop shell with a layered `WebContentsView` architecture. A weekly workflow (`electron-support.yml`) fails once the Electron major drops out of Electron's supported window
 - **[React 19](https://react.dev/)** + **[TypeScript](https://www.typescriptlang.org/)** — renderer UI, fully typed across main/preload/renderer
 - **[Vite](https://vite.dev/)** — dev server and bundler
 - **[Tailwind CSS 4](https://tailwindcss.com/)** — styling with Catppuccin-style theme variables
@@ -222,7 +222,7 @@ largs-hub/
 │   ├── types.ts              # The window.electronAPI interface
 │   ├── App.tsx
 │   └── index.css
-├── scripts/                  # Build helpers (macOS ad-hoc signing, changelog stamping)
+├── scripts/                  # Build helpers (macOS ad-hoc signing, changelog stamping, Electron support check)
 ├── test/                     # Vitest unit tests
 └── assets/                   # App & service icons
 ```

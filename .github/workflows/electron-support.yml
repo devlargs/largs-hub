@@ -1,0 +1,26 @@
+name: Electron support
+
+# Electron supports only its latest three majors. Once ours falls out of that
+# window it stops getting Chromium security fixes, which matters here: every
+# service view runs logged-in third-party pages. This run fails when that
+# happens (and warns one major earlier), so GitHub emails a reminder.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Check the Electron major is still supported
+        run: node scripts/check-electron-support.cjs
