@@ -1,0 +1,5 @@
+{
+  // For the editor only; see electron/tsconfig.json. The tests' real config is
+  // the root tsconfig.test.json.
+  "extends": "../tsconfig.test.json"
+}

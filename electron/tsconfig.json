@@ -1,0 +1,7 @@
+{
+  // For the editor only: VS Code gives a file the nearest tsconfig.json, which
+  // for electron/ was the renderer's (src only, no Node types), so NodeJS.*
+  // showed as missing. The build and `npm run typecheck` use the root
+  // tsconfig.electron.json directly; this just points the editor at it.
+  "extends": "../tsconfig.electron.json"
+}
