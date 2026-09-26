@@ -1,4 +1,4 @@
-import { BrowserWindow, WebContentsView } from "electron";
+import { app, BrowserWindow, WebContentsView } from "electron";
 import path from "path";
 import { store, StoreSchema } from "../store";
 import { restoreAutomationState } from "../messengerAutomation";
@@ -59,11 +59,17 @@ export function createWindow() {
     // custom titlebar. Windows draws its own buttons in React.
     ...(process.platform === "darwin" ? { trafficLightPosition: MAC_TRAFFIC_LIGHT_POSITION } : {}),
     backgroundColor: "#181825",
-    ...(process.env.NODE_ENV !== "development" && !process.argv.includes("--dev")
-      ? { icon: path.join(__dirname, "../../assets/ico/icon.ico") }
-      : {}),
+    // Set in dev too: `npm run dev` runs the stock electron.exe, so without it
+    // the taskbar button shows Electron's atom. macOS ignores this option.
+    icon: path.join(app.getAppPath(), "assets", "ico", "icon.ico"),
   });
   windowState.mainWindow = mainWindow;
+
+  // A packaged Mac app gets its Dock icon from the bundle's icon.icns; from
+  // source the Dock would show Electron's, so set it by hand.
+  if (process.platform === "darwin" && !app.isPackaged) {
+    app.dock?.setIcon(path.join(app.getAppPath(), "assets", "ico", "icon.png"));
+  }
 
   // Restore the last window state rather than always maximizing — an
   // auto-update relaunches the app, and coming back maximized when you weren't
