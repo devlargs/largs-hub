@@ -9,10 +9,9 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "types": ["node"],
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@shared/*": ["electron/shared/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["./electron/shared/*"]
     }
   },
   "include": ["test", "electron"]

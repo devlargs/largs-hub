@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Behind the scenes: built with TypeScript 6.** TypeScript 6 deprecates the `baseUrl` setting the build relied on for its `@/` and `@shared/` import shortcuts, and refused to build while it was there. The shortcuts now work without it. The app is unchanged on Windows and macOS.
 
 ## [0.1.74] (2026-09-25)
 - **The taskbar shows the Largs Hub icon again (Windows).** The installed app could show Electron's default atom icon on its taskbar button. The development build (`npm run dev`) registered with Windows under the same app ID as the installed app, and Windows then remembered the development build's atom icon for both. The development build now uses its own ID, so this can't happen again. If the atom still shows after updating, Windows is holding on to the old icon: run `ie4uinit.exe -show` or sign out and back in. macOS is unaffected; the Dock icon comes from the app bundle.
