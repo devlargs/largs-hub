@@ -25,6 +25,9 @@ export interface StoreSchema {
   // The service shown when the app was last used, reopened on launch instead
   // of always landing on the Welcome screen (issue #89)
   lastActiveServiceId: string | null;
+  // The service the user last signed in to Google from. A new service starts
+  // with that service's Google login (googleLoginShare.ts).
+  lastGoogleSignInServiceId: string | null;
   theme: "dark" | "light";
   downloadFolder: string;
   wakeServicesAutomatically: boolean;
@@ -88,6 +91,7 @@ export const store = new Store<StoreSchema>({
     windowBounds: { width: 1200, height: 800 },
     windowMaximized: true,
     lastActiveServiceId: null,
+    lastGoogleSignInServiceId: null,
     theme: "dark",
     downloadFolder: "",
     wakeServicesAutomatically: true,

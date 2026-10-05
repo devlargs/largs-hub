@@ -12,6 +12,7 @@ import { deleteCustomIconFile } from "../customIcons";
 import { supersededIconFile } from "../iconCleanup";
 import { stopAutomationForService } from "../messengerAutomation";
 import { isFromApp } from "../appOrigin";
+import { seedGoogleLogin } from "../googleLoginShare";
 import { lastActiveServiceId, reorderServices, withAddedService } from "../serviceList";
 import { toggleEnabled, toggleMute, toggleNotifications } from "./serviceToggles";
 import { registerServiceNavigationIpc } from "./serviceNavigation";
@@ -35,13 +36,17 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
   // Adding, changing and removing services (which loads URLs into logged-in
   // partitions and wipes session data) only answers the app's own page
   // (issue #112).
-  ipcMain.handle("add-service", (event, rawService: unknown) => {
+  ipcMain.handle("add-service", async (event, rawService: unknown) => {
     const services = store.get("services");
     if (!isFromApp(event)) return services;
     const service = sanitizeService(rawService);
     if (!service) return services;
-    const added = withAddedService(services, service);
-    if (!added) return services;
+    if (!withAddedService(services, service)) return services;
+    // Before the service is saved, so its view can't load ahead of the login.
+    await seedGoogleLogin(service.id);
+    // Re-read: the list may have changed while the cookies were copied.
+    const added = withAddedService(store.get("services"), service);
+    if (!added) return store.get("services");
     store.set("services", added);
     return added;
   });

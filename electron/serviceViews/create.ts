@@ -3,6 +3,7 @@ import { store, Service, isSafeServiceUrl } from "../store";
 import { isSignInPopup, shouldKeepInView } from "../navigationPolicy";
 import { externalServiceUrl } from "../externalLinks";
 import { hookDownloadSession } from "../downloads";
+import { trackGoogleSignIns } from "../googleLoginShare";
 import { messengerAdapter } from "../badge-adapters/messenger";
 import { DEFAULT_ZOOM } from "../zoom";
 import { isPermissionAllowed } from "../servicePermissions";
@@ -60,6 +61,8 @@ export function createServiceView(
   // half (applied before the first load, below) covers the page's own view
   // of navigator.userAgentData.
   applyChromeIdentityToSession(view.webContents.session);
+  // A new service starts with the latest Google sign-in (googleLoginShare.ts).
+  trackGoogleSignIns(view.webContents.session, service.id);
 
   // Electron underlines misspellings but only once a dictionary is chosen.
   // macOS uses the OS spellchecker and rejects the call, hence the guard.
