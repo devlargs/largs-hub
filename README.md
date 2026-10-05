@@ -202,7 +202,7 @@ largs-hub/
 │   ├── main.ts               # Entry point: module wiring and app lifecycle
 │   ├── window/               # The window, UI layer, link-preview overlay and window IPC
 │   ├── preload.ts            # Typed contextBridge API
-│   ├── serviceViews/         # Service-view creation, switching, hibernation, calls, overlays
+│   ├── serviceViews/         # Service-view creation, switching, hibernation, calls, sign-in popups, overlays
 │   ├── store.ts              # electron-store schema & migrations
 │   ├── downloads.ts          # Download session handling
 │   ├── downloadToast.ts      # Download-complete toast

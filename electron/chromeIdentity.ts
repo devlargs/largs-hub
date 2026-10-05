@@ -110,9 +110,9 @@ export async function loadWithIdentityFor(webContents: WebContents, url: string)
   if (!webContents.isDestroyed()) void webContents.loadURL(url);
 }
 
-function watchNavigations(webContents: WebContents): void {
+function watchNavigations(webContents: WebContents, startUrl?: string): void {
   if (onSignInPage.has(webContents.id)) return;
-  onSignInPage.set(webContents.id, false);
+  onSignInPage.set(webContents.id, isSignInUrl(startUrl));
   const id = webContents.id;
   const onNavigation = (details: {
     url: string;
@@ -139,10 +139,16 @@ function watchNavigations(webContents: WebContents): void {
  * left to land when it does. If the debugger can't attach (e.g. DevTools holds
  * it), the UA string and the rewritten request headers still apply, and only
  * the page-visible metadata falls back.
+ *
+ * `startUrl` is where the webContents is already headed, for a popup Chromium
+ * opened itself: one bound for a sign-in page starts in the sign-in identity.
  */
-export async function applyChromeIdentity(webContents: WebContents): Promise<void> {
+export async function applyChromeIdentity(
+  webContents: WebContents,
+  startUrl?: string,
+): Promise<void> {
   webContents.setUserAgent(currentChromeIdentity().userAgent);
-  watchNavigations(webContents);
+  watchNavigations(webContents, startUrl);
   let override: Promise<unknown>;
   try {
     override = sendOverride(webContents, onSignInPage.get(webContents.id) === true);

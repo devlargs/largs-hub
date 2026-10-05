@@ -1,6 +1,6 @@
 import { WebContentsView, shell } from "electron";
 import { store, Service, isSafeServiceUrl } from "../store";
-import { isPopupOnlyUrl, shouldKeepInView } from "../navigationPolicy";
+import { isSignInPopup, shouldKeepInView } from "../navigationPolicy";
 import { externalServiceUrl } from "../externalLinks";
 import { hookDownloadSession } from "../downloads";
 import { messengerAdapter } from "../badge-adapters/messenger";
@@ -20,6 +20,7 @@ import { attachCallPopupHandler } from "./callWindow";
 import { attachContextMenu } from "./contextMenu";
 import { attachBadgeExtraction } from "./polling";
 import { attachNavigationGuard } from "./navigationGuard";
+import { attachSignInPopups, signInPopupOptions } from "./signInPopup";
 
 // Build one service's WebContentsView: session partition, UA spoofing,
 // permission policy, per-load re-injection, popups and keyboard shortcuts.
@@ -197,6 +198,11 @@ export function createServiceView(
   // browser. To open one, users right-click it and choose "View Link" (which
   // opens the preview popup directly).
   view.webContents.setWindowOpenHandler(({ url, disposition }) => {
+    // "Sign in with Google" only works as a real popup that can report back to
+    // its opener; loaded in place it blanked the service (signInPopup.ts).
+    if (isSignInPopup(url, disposition)) {
+      return { action: "allow", overrideBrowserWindowOptions: signInPopupOptions() };
+    }
     // Messenger/Facebook launch a call with window.open("about:blank", …) and
     // then point the popup at their /groupcall/ page. We can't recognise it by
     // the popup URL (it's about:blank), so we key on the new-window disposition
@@ -206,9 +212,6 @@ export function createServiceView(
     if (disposition === "new-window" && isCallService) {
       return { action: "allow", overrideBrowserWindowOptions: { show: false } };
     }
-    // Google's "Sign in with Google" picker only works as a real popup; loaded
-    // in place it replaced the service with a blank page (Reddit).
-    if (isPopupOnlyUrl(url)) return { action: "deny" };
     if (/^https?:/i.test(url)) {
       // Same-domain / auth links navigate in place; external http(s) links are
       // ignored so users open them via the "View Link" context menu instead.
@@ -225,6 +228,7 @@ export function createServiceView(
   // Link clicks, script navigations and server redirects to anywhere else are
   // cancelled, so the service stays put (navigationGuard.ts).
   attachNavigationGuard(view, service.url, serviceHost);
+  attachSignInPopups(view, serviceHost);
 
   return view;
 }

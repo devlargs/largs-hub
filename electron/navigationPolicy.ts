@@ -157,19 +157,22 @@ export function mayRedirectInView(
 }
 
 /**
- * Whether `url` is a page that only works as a popup or iframe, talking back
- * to the page that opened it. Google Identity Services (the "Sign in with
- * Google" prompt that Reddit and many other sites show) opens its account
- * picker at accounts.google.com/gsi/… with window.open. Loading that in the
- * service view instead, as same-domain popups are, replaces the service with
- * a picker that has no opener to report to: it throws and the view goes blank.
+ * Whether a window.open() from a service page is Google's sign-in popup, which
+ * has to open as a real popup window. "Sign in with Google" (Reddit's account
+ * picker and "Sign in as …" button, and many other sites) opens
+ * accounts.google.com in a sized popup and posts the result back to its
+ * opener. Loaded in place of the service, as other same-domain popups are, it
+ * has no opener to report to: it throws and the view goes blank.
+ *
+ * Only sized popups ("new-window"): a plain link to accounts.google.com, such
+ * as Gmail's "Manage your Google Account", still opens in the view.
  */
-export function isPopupOnlyUrl(url: string): boolean {
-  let parsed: URL;
+export function isSignInPopup(url: string, disposition: string): boolean {
+  if (disposition !== "new-window") return false;
   try {
-    parsed = new URL(url);
+    const { protocol, hostname } = new URL(url);
+    return protocol === "https:" && hostname.toLowerCase() === "accounts.google.com";
   } catch {
     return false;
   }
-  return parsed.hostname === "accounts.google.com" && parsed.pathname.startsWith("/gsi/");
 }

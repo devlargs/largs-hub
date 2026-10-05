@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  isPopupOnlyUrl,
   isSameDomain,
+  isSignInPopup,
   mayRedirectInView,
   mayShowInView,
   normalizeHost,
@@ -155,21 +155,27 @@ describe("mayRedirectInView", () => {
   });
 });
 
-describe("isPopupOnlyUrl", () => {
-  it("matches Google Identity Services pages", () => {
+describe("isSignInPopup", () => {
+  it("matches Google sign-in opened as a sized popup", () => {
     expect(
-      isPopupOnlyUrl(
+      isSignInPopup(
         "https://accounts.google.com/gsi/select?client_id=705.apps.googleusercontent.com&origin=https%3A%2F%2Fwww.reddit.com",
+        "new-window",
       ),
     ).toBe(true);
-    expect(isPopupOnlyUrl("https://accounts.google.com/gsi/iframe/select")).toBe(true);
+    expect(isSignInPopup("https://accounts.google.com/o/oauth2/v2/auth", "new-window")).toBe(true);
   });
 
-  it("leaves the regular Google sign-in and other pages alone", () => {
-    expect(isPopupOnlyUrl("https://accounts.google.com/v3/signin/identifier")).toBe(false);
-    expect(isPopupOnlyUrl("https://accounts.google.com/o/oauth2/v2/auth")).toBe(false);
-    expect(isPopupOnlyUrl("https://evil.com/gsi/select")).toBe(false);
-    expect(isPopupOnlyUrl("https://www.reddit.com/gsi/")).toBe(false);
-    expect(isPopupOnlyUrl("not a url")).toBe(false);
+  it("leaves plain links to Google's account pages in the view", () => {
+    expect(isSignInPopup("https://accounts.google.com/SignOutOptions", "foreground-tab")).toBe(
+      false,
+    );
+  });
+
+  it("ignores other hosts and schemes", () => {
+    expect(isSignInPopup("https://evil.com/gsi/select", "new-window")).toBe(false);
+    expect(isSignInPopup("https://accounts.google.com.evil.com/", "new-window")).toBe(false);
+    expect(isSignInPopup("http://accounts.google.com/", "new-window")).toBe(false);
+    expect(isSignInPopup("not a url", "new-window")).toBe(false);
   });
 });

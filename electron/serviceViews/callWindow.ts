@@ -1,6 +1,7 @@
 import { BrowserWindow, WebContentsView, shell } from "electron";
 import { applyChromeIdentity } from "../chromeIdentity";
 import { externalWebUrl } from "../externalLinks";
+import { isSignInPopup } from "../navigationPolicy";
 import { getDeps, partitionFor } from "./state";
 import {
   AUTO_START_CALL_SCRIPT,
@@ -41,7 +42,9 @@ export function armAutomationCall(serviceId: string) {
 // The view's setWindowOpenHandler allows the hidden popup so this navigation
 // can be observed.
 export function attachCallPopupHandler(view: WebContentsView, partition: string) {
-  view.webContents.on("did-create-window", (childWindow) => {
+  view.webContents.on("did-create-window", (childWindow, details) => {
+    // Google sign-in popups are set up by signInPopup.ts and stay visible.
+    if (isSignInPopup(details.url, details.disposition)) return;
     childWindow.hide(); // keep it hidden until we know what it is
     let settled = false;
     const onNavigate = (event: Electron.Event, navUrl: string) => {
