@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.77] (2026-10-05)
 - **The lock screen has window controls.** While the workspace was locked, the lock screen covered the title bar, so on Windows there was no way to minimize, maximize or close the window, and on either platform the window couldn't be dragged. The lock screen now has its own title bar: drag it to move the window, and use the minimize, maximize and close buttons on Windows or the traffic lights on macOS. The workspace stays locked.
 - **New services start signed in to Google.** Each service keeps its own login, so after signing in to Google in Gmail you had to sign in again in every service you added next. A newly added service now starts with the Google account you last signed in with in any service, so Google Chat, YouTube, or Reddit's "Sign in with Google" are ready to go. Services you already have keep their own accounts, so different services can still use different Google accounts, and you can switch or sign out inside the new one as usual. Applies on Windows and macOS.
 - **"Sign in with Google" works on Reddit and other sites.** Clicking Reddit's "Sign in as …" or picking a Google account left the service on a blank page. Google's sign-in opens in a popup and hands the result back to the page that opened it, but Largs Hub loaded that popup in place of the service, where it had nothing to hand back to. Google's sign-in now opens in its own small window above Largs Hub, signed in to the same service, and closes itself once you choose an account. Applies on Windows and macOS.
