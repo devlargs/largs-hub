@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { IoLockClosed } from "react-icons/io5";
+import { TITLEBAR_HEIGHT } from "@shared/layout";
 import PasswordInput from "./ui/PasswordInput";
+import WindowControls from "./WindowControls";
 
 // The workspace lock's front door (issue #102). Covers the whole window, over
 // the top of the sidebar and titlebar, until the master password is entered.
@@ -9,6 +11,10 @@ import PasswordInput from "./ui/PasswordInput";
 // suppresses every service view for as long as the lock is on (see
 // setViewsSuppressed in serviceViews.ts), which is stricter than the overlay
 // ref-count and can't be unbalanced by a modal closing behind the lock.
+//
+// Covering the titlebar covers the window buttons too, so the lock screen has
+// its own titlebar strip: draggable, with the minimize/maximize/close buttons
+// on Windows, and room for the native traffic lights on macOS.
 
 type Phase = "idle" | "checking" | "error" | "unlocked";
 
@@ -87,6 +93,14 @@ export default function LockScreen() {
       aria-modal="true"
       aria-label="Workspace locked"
     >
+      <div
+        className="titlebar-drag absolute inset-x-0 top-0 flex justify-end"
+        style={{ height: TITLEBAR_HEIGHT, paddingRight: 8 }}
+      >
+        <div className="titlebar-no-drag flex items-center">
+          <WindowControls />
+        </div>
+      </div>
       <form
         onSubmit={submit}
         className="flex w-full flex-col items-center"
