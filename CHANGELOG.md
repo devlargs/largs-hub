@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Reddit no longer opens to a blank page.** Reddit offers "Sign in with Google" as soon as it loads, and Google's account picker for that opens as a popup. Largs Hub loaded the picker in place of Reddit, where it can't work on its own, so the service showed nothing. That picker is now ignored and Reddit loads normally; sign in with your Reddit username and password or an emailed link. The same applies to any other service that shows Google's sign-in prompt. Applies on Windows and macOS.
 
 ## [0.1.76] (2026-09-26)
 - **Behind the scenes: the development build shows the Largs Hub icon.** Running from source (`npm run dev`) used to show Electron's atom on the taskbar button (Windows) and in the Dock (macOS). It now shows the app's own icon, like the installed app.

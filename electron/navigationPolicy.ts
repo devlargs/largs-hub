@@ -155,3 +155,21 @@ export function mayRedirectInView(
   if (pageInitiated) return false;
   return sameUrl(startUrl, homeUrl) && /^https?:/i.test(url);
 }
+
+/**
+ * Whether `url` is a page that only works as a popup or iframe, talking back
+ * to the page that opened it. Google Identity Services (the "Sign in with
+ * Google" prompt that Reddit and many other sites show) opens its account
+ * picker at accounts.google.com/gsi/… with window.open. Loading that in the
+ * service view instead, as same-domain popups are, replaces the service with
+ * a picker that has no opener to report to: it throws and the view goes blank.
+ */
+export function isPopupOnlyUrl(url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  return parsed.hostname === "accounts.google.com" && parsed.pathname.startsWith("/gsi/");
+}

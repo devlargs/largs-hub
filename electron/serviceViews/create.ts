@@ -1,6 +1,6 @@
 import { WebContentsView, shell } from "electron";
 import { store, Service, isSafeServiceUrl } from "../store";
-import { shouldKeepInView } from "../navigationPolicy";
+import { isPopupOnlyUrl, shouldKeepInView } from "../navigationPolicy";
 import { externalServiceUrl } from "../externalLinks";
 import { hookDownloadSession } from "../downloads";
 import { messengerAdapter } from "../badge-adapters/messenger";
@@ -206,6 +206,9 @@ export function createServiceView(
     if (disposition === "new-window" && isCallService) {
       return { action: "allow", overrideBrowserWindowOptions: { show: false } };
     }
+    // Google's "Sign in with Google" picker only works as a real popup; loaded
+    // in place it replaced the service with a blank page (Reddit).
+    if (isPopupOnlyUrl(url)) return { action: "deny" };
     if (/^https?:/i.test(url)) {
       // Same-domain / auth links navigate in place; external http(s) links are
       // ignored so users open them via the "View Link" context menu instead.

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isPopupOnlyUrl,
   isSameDomain,
   mayRedirectInView,
   mayShowInView,
@@ -151,5 +152,24 @@ describe("mayRedirectInView", () => {
   it("gives no such pass when a page started the navigation", () => {
     expect(redirect("https://evil.example/", home, true)).toBe(false);
     expect(redirect("https://evil.example/", null, false)).toBe(false);
+  });
+});
+
+describe("isPopupOnlyUrl", () => {
+  it("matches Google Identity Services pages", () => {
+    expect(
+      isPopupOnlyUrl(
+        "https://accounts.google.com/gsi/select?client_id=705.apps.googleusercontent.com&origin=https%3A%2F%2Fwww.reddit.com",
+      ),
+    ).toBe(true);
+    expect(isPopupOnlyUrl("https://accounts.google.com/gsi/iframe/select")).toBe(true);
+  });
+
+  it("leaves the regular Google sign-in and other pages alone", () => {
+    expect(isPopupOnlyUrl("https://accounts.google.com/v3/signin/identifier")).toBe(false);
+    expect(isPopupOnlyUrl("https://accounts.google.com/o/oauth2/v2/auth")).toBe(false);
+    expect(isPopupOnlyUrl("https://evil.com/gsi/select")).toBe(false);
+    expect(isPopupOnlyUrl("https://www.reddit.com/gsi/")).toBe(false);
+    expect(isPopupOnlyUrl("not a url")).toBe(false);
   });
 });
