@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **The close button's X stays visible on hover.** Hovering the window's close button turned it red but left the X in its dim grey, so it all but disappeared. The X now turns white on the red. Windows only; macOS uses its own traffic lights.
 - **Ctrl+1 goes Home.** Ctrl+1 now opens the Home screen, the top button in the sidebar, and the services move up one: Ctrl+2 is the first service, Ctrl+3 the second, up to Ctrl+9 for the eighth. Hold Ctrl and the numbers on the sidebar show the new order, Home included. It works whether the keyboard is in a service or anywhere else in the app, on Windows and macOS.
 
 ## [0.1.77] (2026-10-05)
