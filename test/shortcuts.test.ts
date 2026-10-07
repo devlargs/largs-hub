@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shortcutNumberFor, switchTargetFor } from "../electron/shared/shortcuts";
+import { resolveSwitch, shortcutNumberFor, switchTargetFor } from "../electron/shared/shortcuts";
 
 describe("switchTargetFor", () => {
   it("sends Ctrl+1 Home", () => {
@@ -35,5 +35,29 @@ describe("shortcutNumberFor", () => {
         index,
       });
     }
+  });
+});
+
+describe("resolveSwitch", () => {
+  const ids = ["gmail", "slack"];
+
+  it("does nothing for Ctrl on its own or any other Ctrl key", () => {
+    for (const key of ["Control", "c", "v", "0", "f", "Tab"]) {
+      expect(resolveSwitch(key, ids)).toBeNull();
+    }
+  });
+
+  it("goes Home on Ctrl+1, even with no services", () => {
+    expect(resolveSwitch("1", ids)).toEqual({ kind: "home" });
+    expect(resolveSwitch("1", [])).toEqual({ kind: "home" });
+  });
+
+  it("opens the service at Ctrl+2 onwards", () => {
+    expect(resolveSwitch("2", ids)).toEqual({ kind: "service", id: "gmail" });
+    expect(resolveSwitch("3", ids)).toEqual({ kind: "service", id: "slack" });
+  });
+
+  it("does nothing for a number past the last service", () => {
+    expect(resolveSwitch("4", ids)).toBeNull();
   });
 });

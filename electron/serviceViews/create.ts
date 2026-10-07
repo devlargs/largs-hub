@@ -13,7 +13,7 @@ import {
   applyChromeIdentityToSession,
   loadWithChromeIdentity,
 } from "../chromeIdentity";
-import { switchTargetFor } from "../shared/shortcuts";
+import { resolveSwitch } from "../shared/shortcuts";
 import { getDeps, partitionFor } from "./state";
 import { isFindBarOpen } from "./layout";
 import { ZOOM_KEYS, getServiceZoom, openFindBarFor, stepServiceZoom } from "./findZoom";
@@ -178,10 +178,10 @@ export function createServiceView(
         openFindBarFor(service.id);
         return;
       }
-      const target = switchTargetFor(input.key);
-      const targetId =
-        target?.kind === "home" ? null : target && store.get("services")[target.index]?.id;
-      if (targetId !== undefined) {
+      const ids = store.get("services").map((s) => s.id);
+      const target = resolveSwitch(input.key, ids);
+      if (target) {
+        const targetId = target.kind === "home" ? null : target.id;
         event.preventDefault();
         switchTo(targetId);
         deps?.getUiView()?.webContents.send("service-switched", targetId);

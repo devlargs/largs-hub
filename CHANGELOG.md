@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Pressing Ctrl no longer jumps to Home.** Since Ctrl+1 became Home in 0.1.78, pressing Ctrl on its own, or any other Ctrl shortcut such as Ctrl+C, while a service had the keyboard went to the Home screen. Only Ctrl+1 goes Home now, on Windows and macOS.
 
 ## [0.1.78] (2026-10-07)
 - **The close button's X stays visible on hover.** Hovering the window's close button turned it red but left the X in its dim grey, so it all but disappeared. The X now turns white on the red. Windows only; macOS uses its own traffic lights.
