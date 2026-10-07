@@ -54,9 +54,16 @@ describe("appShortcutFor", () => {
     expect(appShortcutFor(ctrl("f", { shiftKey: true }))).toBeNull();
   });
 
-  it("maps Ctrl+1-9 to a zero-based sidebar position", () => {
-    expect(appShortcutFor(ctrl("1"))).toEqual({ kind: "switch", index: 0 });
-    expect(appShortcutFor(ctrl("9"))).toEqual({ kind: "switch", index: 8 });
+  it("maps Ctrl+1 to Home and Ctrl+2-9 to a zero-based sidebar position", () => {
+    expect(appShortcutFor(ctrl("1"))).toEqual({ kind: "switch", target: { kind: "home" } });
+    expect(appShortcutFor(ctrl("2"))).toEqual({
+      kind: "switch",
+      target: { kind: "service", index: 0 },
+    });
+    expect(appShortcutFor(ctrl("9"))).toEqual({
+      kind: "switch",
+      target: { kind: "service", index: 7 },
+    });
   });
 
   it("ignores everything else", () => {

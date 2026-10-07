@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Ctrl+1 goes Home.** Ctrl+1 now opens the Home screen, the top button in the sidebar, and the services move up one: Ctrl+2 is the first service, Ctrl+3 the second, up to Ctrl+9 for the eighth. Hold Ctrl and the numbers on the sidebar show the new order, Home included. It works whether the keyboard is in a service or anywhere else in the app, on Windows and macOS.
 
 ## [0.1.77] (2026-10-05)
 - **The lock screen has window controls.** While the workspace was locked, the lock screen covered the title bar, so on Windows there was no way to minimize, maximize or close the window, and on either platform the window couldn't be dragged. The lock screen now has its own title bar: drag it to move the window, and use the minimize, maximize and close buttons on Windows or the traffic lights on macOS. The workspace stays locked.

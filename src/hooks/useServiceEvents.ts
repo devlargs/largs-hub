@@ -10,6 +10,8 @@ interface ServiceEventHandlers {
   onRestored: (serviceId: string) => void;
   // A service became active from main's side (Ctrl+1-9 in a view, a menu)
   onActivated: (serviceId: string) => void;
+  // Ctrl+1 in a service view went Home
+  onHome: () => void;
   onEdit: (service: Service) => void;
   onConfirm: (prompt: ConfirmPrompt, onConfirm: () => void) => void;
   onRemove: (serviceId: string) => void;
@@ -46,9 +48,9 @@ export function useServiceEvents(handlers: ServiceEventHandlers): void {
     const unsubServices = api.onServicesUpdated((updated) => latest.current.setServices(updated));
 
     // Ctrl+Number service switches from the main process (fired when a
-    // service WebContentsView has focus)
+    // service WebContentsView has focus); null is Ctrl+1, Home
     const unsubSwitched = api.onServiceSwitched((serviceId) =>
-      latest.current.onActivated(serviceId),
+      serviceId ? latest.current.onActivated(serviceId) : latest.current.onHome(),
     );
 
     const unsubActions = api.onContextMenuAction(({ action, serviceId }) => {

@@ -53,7 +53,8 @@ export interface ElectronAPI {
   onContextMenuAction: (
     callback: (data: { action: string; serviceId: string }) => void,
   ) => () => void;
-  onServiceSwitched: (callback: (serviceId: string) => void) => () => void;
+  // null: Ctrl+1 in a service view went Home
+  onServiceSwitched: (callback: (serviceId: string | null) => void) => () => void;
   // True while Ctrl is held long enough to show the Ctrl+1-9 numbers
   onShortcutHintsChanged: (callback: (visible: boolean) => void) => () => void;
   reloadService: (serviceId: string) => void;

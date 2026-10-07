@@ -2,6 +2,8 @@ import type { Service } from "../../types";
 import { resolveIcon } from "../../assets/serviceIcons";
 import { badgeText, serviceLabel } from "../../lib/serviceLabel";
 import type { useServiceDrag } from "../../hooks/useServiceDrag";
+import { shortcutNumberFor } from "@shared/shortcuts";
+import ShortcutHint from "./ShortcutHint";
 
 interface ServiceButtonProps {
   service: Service;
@@ -33,11 +35,13 @@ export default function ServiceButton({
   onContextMenu,
   onKeyDown,
 }: ServiceButtonProps) {
+  const shortcut = shortcutNumberFor(index);
   return (
     <button
-      // Ctrl+N picks the Nth service in sidebar order, disabled ones
-      // included — the same lookup main and the app shell use.
-      aria-keyshortcuts={index < 9 ? `Control+${index + 1}` : undefined}
+      // Ctrl+1 is Home, so Ctrl+N picks the (N-1)th service in sidebar
+      // order, disabled ones included — the same lookup main and the app
+      // shell use.
+      aria-keyshortcuts={shortcut ? `Control+${shortcut}` : undefined}
       {...dragProps}
       onClick={onClick}
       onContextMenu={onContextMenu}
@@ -63,21 +67,8 @@ export default function ServiceButton({
         </span>
       )}
 
-      {/* Shortcut number, while Ctrl is held. Bottom-right so it never
-          covers the notification count in the top-right. */}
-      {showShortcutHint && index < 9 && (
-        <span
-          aria-hidden="true"
-          className="absolute -bottom-1 -right-1 rounded-md min-w-[18px] h-[18px] flex items-center justify-center px-1 text-[11px] font-bold tabular-nums"
-          style={{
-            color: "var(--sidebar)",
-            background: "var(--text-primary)",
-            boxShadow: "0 0 0 2px var(--sidebar)",
-          }}
-        >
-          {index + 1}
-        </span>
-      )}
+      {/* Shortcut number, while Ctrl is held */}
+      {showShortcutHint && shortcut && <ShortcutHint number={shortcut} />}
 
       {/* Active indicator */}
       {active && (

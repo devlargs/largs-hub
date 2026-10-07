@@ -13,6 +13,7 @@ import {
   applyChromeIdentityToSession,
   loadWithChromeIdentity,
 } from "../chromeIdentity";
+import { switchTargetFor } from "../shared/shortcuts";
 import { getDeps, partitionFor } from "./state";
 import { isFindBarOpen } from "./layout";
 import { ZOOM_KEYS, getServiceZoom, openFindBarFor, stepServiceZoom } from "./findZoom";
@@ -27,11 +28,11 @@ import { attachSignInPopups, signInPopupOptions } from "./signInPopup";
 // permission policy, per-load re-injection, popups and keyboard shortcuts.
 // Session-level listeners must only be registered once per partition.
 //
-// `switchToService` is how Ctrl+1-9 inside the page switches services; it's
-// passed in by visibility.ts, which owns switching.
+// `switchTo` is how Ctrl+1-9 inside the page switches services (null is
+// Ctrl+1, Home); it's passed in by visibility.ts, which owns switching.
 export function createServiceView(
   service: Service,
-  switchToService: (serviceId: string) => void,
+  switchTo: (serviceId: string | null) => void,
 ): WebContentsView {
   const partition = partitionFor(service.id);
 
@@ -177,15 +178,13 @@ export function createServiceView(
         openFindBarFor(service.id);
         return;
       }
-      const num = parseInt(input.key, 10);
-      if (num >= 1 && num <= 9) {
-        const services = store.get("services");
-        const target = services[num - 1];
-        if (target) {
-          event.preventDefault();
-          switchToService(target.id);
-          deps?.getUiView()?.webContents.send("service-switched", target.id);
-        }
+      const target = switchTargetFor(input.key);
+      const targetId =
+        target?.kind === "home" ? null : target && store.get("services")[target.index]?.id;
+      if (targetId !== undefined) {
+        event.preventDefault();
+        switchTo(targetId);
+        deps?.getUiView()?.webContents.send("service-switched", targetId);
       }
     }
   });

@@ -1,16 +1,17 @@
 import { useEffect, useRef } from "react";
 import { appShortcutFor } from "../lib/appActions";
+import type { SwitchTarget } from "@shared/shortcuts";
 
 interface AppShortcutOptions {
   locked: boolean;
   activeServiceId: string | null;
   onFind: (serviceId: string) => void;
-  // Zero-based sidebar position of the service to switch to
-  onSwitch: (index: number) => void;
+  // Home, or the zero-based sidebar position of the service to switch to
+  onSwitch: (target: SwitchTarget) => void;
 }
 
 // Ctrl shortcuts while the interface (not a service view) has focus: zoom,
-// find in page and Ctrl+1-9. Service views handle the same keys in main.
+// find in page and Ctrl+1-9 (1 is Home). Service views handle the same keys in main.
 export function useAppShortcuts(options: AppShortcutOptions): void {
   // Read inside the window-level key handler, which is registered once and
   // must not re-bind on every service switch.
@@ -39,7 +40,7 @@ export function useAppShortcuts(options: AppShortcutOptions): void {
           return;
         case "switch":
           e.preventDefault();
-          onSwitch(shortcut.index);
+          onSwitch(shortcut.target);
           return;
       }
     };

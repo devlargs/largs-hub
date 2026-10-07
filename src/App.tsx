@@ -63,6 +63,12 @@ function App() {
     await window.electronAPI?.hideService();
   }, []);
 
+  // The sidebar's Home button and Ctrl+1
+  const goHome = useCallback(() => {
+    setEditingService(null);
+    return showAppPage(null);
+  }, [showAppPage]);
+
   const handleRemoveService = useCallback(
     async (serviceId: string) => {
       const updated = await window.electronAPI.removeService(serviceId);
@@ -103,6 +109,12 @@ function App() {
       setActiveServiceId(serviceId);
       setAppPage(null);
     },
+    // Ctrl+1 in a service view: main has already hidden it
+    onHome: () => {
+      setEditingService(null);
+      setActiveServiceId(null);
+      setAppPage(null);
+    },
     onEdit: (svc) => {
       setEditingService(svc);
       setShowAddModal(true);
@@ -116,10 +128,15 @@ function App() {
     locked,
     activeServiceId,
     onFind: openFind,
-    // Ctrl+N picks the Nth service in sidebar order, disabled ones included
-    onSwitch: (index) => {
+    // Ctrl+1 is Home; Ctrl+N picks the (N-1)th service in sidebar order,
+    // disabled ones included
+    onSwitch: (target) => {
+      if (target.kind === "home") {
+        void goHome();
+        return;
+      }
       setServices((current) => {
-        const service = current[index];
+        const service = current[target.index];
         if (service) handleSelectService(service.id);
         return current;
       });
@@ -172,10 +189,7 @@ function App() {
           activeServiceId={activeServiceId}
           showShortcutHints={shortcutHints && !locked}
           onSelectService={handleSelectService}
-          onAddService={() => {
-            setEditingService(null);
-            return showAppPage(null);
-          }}
+          onAddService={goHome}
           onReorderServices={handleReorderServices}
         />
         <ContentPane

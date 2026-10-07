@@ -86,7 +86,7 @@ export function showService(serviceId: string) {
   // Show or create requested view
   let view = serviceViews.get(serviceId);
   if (!view) {
-    view = createServiceView(requested, showService);
+    view = createServiceView(requested, switchTo);
     serviceViews.set(serviceId, view);
     serviceLastActive.set(serviceId, Date.now());
     mainWindow.contentView.addChildView(view);
@@ -104,6 +104,12 @@ export function showService(serviceId: string) {
   }
   viewState.activeServiceId = serviceId;
   refreshPollRates(); // the newly active view polls faster, the old one slower
+}
+
+// Ctrl+1-9 from inside a service view: a service, or null for Home
+function switchTo(serviceId: string | null) {
+  if (serviceId) showService(serviceId);
+  else hideActiveService();
 }
 
 export function hideActiveService() {
@@ -157,7 +163,7 @@ export function preloadServices() {
   for (const service of services) {
     if (isInternalService(service)) continue; // internal — no web view
     if (!serviceViews.has(service.id) && mainWindow && service.enabled !== false) {
-      const view = createServiceView(service, showService);
+      const view = createServiceView(service, switchTo);
       serviceViews.set(service.id, view);
       serviceLastActive.set(service.id, Date.now());
       mainWindow.contentView.addChildView(view);

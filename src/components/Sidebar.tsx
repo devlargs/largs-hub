@@ -7,11 +7,12 @@ import { moveBy } from "../lib/serviceOrder";
 import { useServiceDrag } from "../hooks/useServiceDrag";
 import ServiceButton from "./sidebar/ServiceButton";
 import ThemeToggle from "./sidebar/ThemeToggle";
+import ShortcutHint from "./sidebar/ShortcutHint";
 
 interface SidebarProps {
   services: Service[];
   activeServiceId: string | null;
-  // Ctrl is held: number the services Ctrl+1-9 would switch to
+  // Ctrl is held: number Home (Ctrl+1) and the services Ctrl+2-9 switch to
   showShortcutHints: boolean;
   onSelectService: (id: string) => void;
   onAddService: () => void;
@@ -53,8 +54,9 @@ export default function Sidebar({
       {/* Home button */}
       <button
         onClick={onAddService}
+        aria-keyshortcuts="Control+1"
         className={`
-          w-12 h-12 rounded-xl flex items-center justify-center
+          relative w-12 h-12 rounded-xl flex items-center justify-center
           transition-all duration-200 cursor-pointer
           ${!activeServiceId ? "bg-accent/20 ring-2 ring-accent" : "hover:bg-sidebar-hover"}
         `}
@@ -63,6 +65,7 @@ export default function Sidebar({
         style={{ color: !activeServiceId ? "var(--accent)" : "var(--text-muted)" }}
       >
         <IoHome size={22} />
+        {showShortcutHints && <ShortcutHint number={1} />}
       </button>
 
       {services.map((service, index) => (

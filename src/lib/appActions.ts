@@ -1,4 +1,5 @@
 import type { Service } from "../types";
+import { switchTargetFor, type SwitchTarget } from "@shared/shortcuts";
 
 // Decisions the app shell makes about keys, context-menu requests and services, kept
 // free of React so they can be unit-tested.
@@ -29,8 +30,8 @@ const ZOOM_KEYS: Record<string, ZoomDirection> = {
 export type AppShortcut =
   | { kind: "zoom"; direction: ZoomDirection }
   | { kind: "find" }
-  // Zero-based position in the sidebar, disabled services included
-  | { kind: "switch"; index: number };
+  // Ctrl+1 is Home, Ctrl+2-9 the services in sidebar order
+  | { kind: "switch"; target: SwitchTarget };
 
 export interface ShortcutKey {
   key: string;
@@ -49,9 +50,8 @@ export function appShortcutFor(e: ShortcutKey): AppShortcut | null {
   if (direction) return { kind: "zoom", direction };
   if (e.shiftKey) return null;
   if (e.key.toLowerCase() === "f") return { kind: "find" };
-  const num = parseInt(e.key, 10);
-  if (num >= 1 && num <= 9) return { kind: "switch", index: num - 1 };
-  return null;
+  const target = switchTargetFor(e.key);
+  return target ? { kind: "switch", target } : null;
 }
 
 // The context-menu actions that ask before doing something destructive
