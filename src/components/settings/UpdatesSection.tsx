@@ -1,46 +1,10 @@
-import { useEffect, useState } from "react";
-import { UpdateStatus, updateDescription, updateStatusColor } from "../../lib/updateStatus";
+import { useUpdateCheck } from "../../hooks/useUpdateCheck";
+import { updateDescription, updateStatusColor } from "../../lib/updateStatus";
 import { SecondaryButton, Section, SettingRow } from "./controls";
 
 export default function UpdatesSection() {
-  const [status, setStatus] = useState<UpdateStatus>("idle");
-  const [currentVersion, setCurrentVersion] = useState("");
-  const [newVersion, setNewVersion] = useState("");
-  const [percent, setPercent] = useState(0);
-  const [releaseUrl, setReleaseUrl] = useState("");
-
-  useEffect(() => {
-    if (!window.electronAPI) return;
-    window.electronAPI.getAppVersion().then(setCurrentVersion);
-    return window.electronAPI.onUpdateDownloadProgress((info) => {
-      setPercent(info.percent);
-    });
-  }, []);
-
-  const handleCheck = () => {
-    setStatus("checking");
-    window.electronAPI
-      .checkForUpdates()
-      .then((result) => {
-        if (result.updateAvailable && result.version) {
-          setNewVersion(result.version);
-          setReleaseUrl(result.releaseUrl ?? "");
-          setStatus(result.canInstall ? "available" : "manual");
-        } else {
-          setStatus("latest");
-        }
-      })
-      .catch(() => setStatus("error"));
-  };
-
-  const handleUpdate = () => {
-    setStatus("downloading");
-    setPercent(0);
-    // The download URL is resolved and verified in the main process
-    window.electronAPI.downloadAndInstallUpdate().catch(() => {
-      setStatus("error");
-    });
-  };
+  const { status, currentVersion, newVersion, percent, check, install, openReleasePage } =
+    useUpdateCheck();
 
   return (
     <Section title="Updates">
@@ -55,12 +19,10 @@ export default function UpdatesSection() {
         ) : status === "checking" ? (
           <Spinner />
         ) : status === "manual" ? (
-          <SecondaryButton onClick={() => window.electronAPI.openLinkExternal(releaseUrl)}>
-            Download
-          </SecondaryButton>
+          <SecondaryButton onClick={openReleasePage}>Download</SecondaryButton>
         ) : status === "available" ? (
           <button
-            onClick={handleUpdate}
+            onClick={install}
             className="rounded-lg text-sm font-semibold transition-opacity cursor-pointer hover:opacity-90"
             style={{
               padding: "6px 16px",
@@ -71,7 +33,7 @@ export default function UpdatesSection() {
             Update Now
           </button>
         ) : (
-          <SecondaryButton onClick={handleCheck}>Check for Updates</SecondaryButton>
+          <SecondaryButton onClick={check}>Check for Updates</SecondaryButton>
         )}
       </SettingRow>
     </Section>

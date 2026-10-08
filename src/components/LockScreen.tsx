@@ -3,6 +3,7 @@ import { IoLockClosed } from "react-icons/io5";
 import { TITLEBAR_HEIGHT } from "@shared/layout";
 import PasswordInput from "./ui/PasswordInput";
 import WindowControls from "./WindowControls";
+import LockUpdateCheck from "./lock-screen/LockUpdateCheck";
 
 // The workspace lock's front door (issue #102). Covers the whole window, over
 // the top of the sidebar and titlebar, until the master password is entered.
@@ -209,6 +210,7 @@ export default function LockScreen() {
           {phase === "checking" ? "Unlocking\u2026" : phase === "unlocked" ? "Unlocked" : "Unlock"}
         </button>
       </form>
+      <LockUpdateCheck />
     </div>
   );
 }

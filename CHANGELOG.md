@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Check for updates from the lock screen.** With a master password on, the lock screen now has a "Check for updates" button at the bottom, so you can see your version and install a new one without unlocking first. The app closes to install and reopens locked, as usual. Applies on Windows and macOS.
 
 ## [0.1.79] (2026-10-07)
 - **Pressing Ctrl no longer jumps to Home.** Since Ctrl+1 became Home in 0.1.78, pressing Ctrl on its own, or any other Ctrl shortcut such as Ctrl+C, while a service had the keyboard went to the Home screen. Only Ctrl+1 goes Home now, on Windows and macOS.
