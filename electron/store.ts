@@ -28,7 +28,6 @@ export interface StoreSchema {
   // The service the user last signed in to Google from. A new service starts
   // with that service's Google login (googleLoginShare.ts).
   lastGoogleSignInServiceId: string | null;
-  theme: "dark" | "light";
   downloadFolder: string;
   wakeServicesAutomatically: boolean;
   launchAtStartup: boolean;
@@ -92,7 +91,6 @@ export const store = new Store<StoreSchema>({
     windowMaximized: true,
     lastActiveServiceId: null,
     lastGoogleSignInServiceId: null,
-    theme: "dark",
     downloadFolder: "",
     wakeServicesAutomatically: true,
     launchAtStartup: false,
@@ -162,6 +160,8 @@ for (const key of [
   "pomodoroFocusMinutes",
   "pomodoroBreakMinutes",
   "pomodoroTimer",
+  // The light theme and its toggle were removed; the app is dark only.
+  "theme",
 ]) {
   if (legacyStore.has(key)) legacyStore.delete(key);
 }

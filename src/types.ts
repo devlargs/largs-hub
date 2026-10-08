@@ -92,8 +92,6 @@ export interface ElectronAPI {
   onNotificationUpdate: (
     callback: (data: { serviceId: string; count: number }) => void,
   ) => () => void;
-  getTheme: () => Promise<"dark" | "light">;
-  setTheme: (theme: "dark" | "light") => Promise<void>;
   getSettings: () => Promise<AppSettings>;
   updateSetting: (key: string, value: unknown) => Promise<void>;
   selectDownloadFolder: () => Promise<string | null>;
@@ -107,6 +105,7 @@ export interface ElectronAPI {
       confirm: string;
     }) => Promise<SecurityResult>;
     unlock: (password: string) => Promise<SecurityResult>;
+    lockNow: () => Promise<SecurityState>;
     onStateChanged: (callback: (state: SecurityState) => void) => () => void;
   };
   saveCustomIcon: (fileName: string, dataUrl: string) => Promise<string>;

@@ -6,7 +6,7 @@ import { SIDEBAR_WIDTH } from "@shared/layout";
 import { moveBy } from "../lib/serviceOrder";
 import { useServiceDrag } from "../hooks/useServiceDrag";
 import ServiceButton from "./sidebar/ServiceButton";
-import ThemeToggle from "./sidebar/ThemeToggle";
+import LockButton from "./sidebar/LockButton";
 import ShortcutHint from "./sidebar/ShortcutHint";
 
 interface SidebarProps {
@@ -14,6 +14,8 @@ interface SidebarProps {
   activeServiceId: string | null;
   // Ctrl is held: number Home (Ctrl+1) and the services Ctrl+2-9 switch to
   showShortcutHints: boolean;
+  // Security controls are on with a password set: show the lock button
+  canLock: boolean;
   onSelectService: (id: string) => void;
   onAddService: () => void;
   onReorderServices: (serviceIds: string[]) => void;
@@ -23,6 +25,7 @@ export default function Sidebar({
   services,
   activeServiceId,
   showShortcutHints,
+  canLock,
   onSelectService,
   onAddService,
   onReorderServices,
@@ -93,7 +96,7 @@ export default function Sidebar({
       {/* Spacer */}
       <div className="flex-1" />
 
-      <ThemeToggle />
+      {canLock && <LockButton />}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { AutomationTask } from "../types";
+import type { AutomationTask, SecurityState } from "../types";
 import { useNotificationStore } from "../store/notifications";
 
 // State the main process owns and the interface only mirrors: each hook reads
@@ -18,15 +18,19 @@ export function useUiLayer(open: boolean): void {
 }
 
 // The workspace lock (issue #102). Main owns the state — a fresh launch, the
-// auto-lock countdown and every unlock are decided there.
-export function useWorkspaceLock(): boolean {
-  const [locked, setLocked] = useState(false);
+// auto-lock countdown and every unlock are decided there. `canLock`: the
+// "Add Security Controls" toggle is on and a password is set, so the sidebar
+// shows its lock button.
+export function useWorkspaceLock(): { locked: boolean; canLock: boolean } {
+  const [lock, setLock] = useState({ locked: false, canLock: false });
   useEffect(() => {
     if (!window.electronAPI) return;
-    window.electronAPI.security.getState().then((state) => setLocked(state.locked));
-    return window.electronAPI.security.onStateChanged((state) => setLocked(state.locked));
+    const apply = (state: SecurityState) =>
+      setLock({ locked: state.locked, canLock: state.enabled && state.hasPassword });
+    window.electronAPI.security.getState().then(apply);
+    return window.electronAPI.security.onStateChanged(apply);
   }, []);
-  return locked;
+  return lock;
 }
 
 // Ctrl held down: the sidebar numbers its first nine services (main decides

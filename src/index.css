@@ -15,37 +15,16 @@
   --context-bg: #1e1e2e;
   --context-hover: #313244;
 
-  /* Status hues, per theme — Mocha here, Latte below. Components reference
-     these rather than inlining the hex, so the light theme actually switches. */
+  /* Status hues (Catppuccin Mocha). Components reference these rather than
+     inlining the hex, so the palette stays in one place. */
   --success: #a6e3a1;
   --danger: #f38ba8;
   --warning: #f9e2af;
 }
 
-:root.light {
-  --sidebar: #e6e9ef;
-  --sidebar-hover: #ccd0da;
-  --sidebar-active: #bcc0cc;
-  --surface: #eff1f5;
-  --accent: #1e66f5;
-  --panel: #dce0e8;
-  --border: #ccd0da;
-  --text-primary: #4c4f69;
-  --text-secondary: #5c5f77;
-  --text-muted: #8c8fa1;
-  --stat-ring-bg: #ccd0da;
-  --context-bg: #e6e9ef;
-  --context-hover: #ccd0da;
-
-  --success: #40a02b;
-  --danger: #d20f39;
-  --warning: #df8e1d;
-}
-
 /* --- Scales -----------------------------------------------------------------
-   Type, space, and motion scales shared by the app. Colour stays in the two
-   blocks above so the light/dark switch keeps working; everything here is
-   theme-independent. */
+   Type, space, and motion scales shared by the app. Colour stays in the
+   block above. */
 :root {
   /* Type — major third (1.25), anchored on a 13px UI base */
   --text-3xs: 0.625rem; /* 10 */

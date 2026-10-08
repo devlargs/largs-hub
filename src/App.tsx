@@ -35,7 +35,7 @@ function App() {
   const [confirm, setConfirm] = useState<(ConfirmPrompt & { onConfirm: () => void }) | null>(null);
   const removeNotificationService = useNotificationStore((s) => s.removeService);
 
-  const locked = useWorkspaceLock();
+  const { locked, canLock } = useWorkspaceLock();
   const shortcutHints = useShortcutHints();
   const automationTasks = useAutomationTasks();
   const linkPreviewUrl = useLinkPreview();
@@ -188,6 +188,7 @@ function App() {
           services={services}
           activeServiceId={activeServiceId}
           showShortcutHints={shortcutHints && !locked}
+          canLock={canLock}
           onSelectService={handleSelectService}
           onAddService={goHome}
           onReorderServices={handleReorderServices}

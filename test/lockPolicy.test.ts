@@ -110,6 +110,17 @@ describe("reduceLock", () => {
     ).toEqual(INITIAL_LOCK_STATE);
   });
 
+  it("locks straight away from the lock button, dropping any countdown", () => {
+    const armed = reduceLock(INITIAL_LOCK_STATE, "away", NOW, OPTIONS);
+    expect(reduceLock(armed, "manual", NOW, OPTIONS)).toEqual({ armedAt: null, locked: true });
+  });
+
+  it("ignores the lock button while the lock is off", () => {
+    expect(reduceLock(INITIAL_LOCK_STATE, "manual", NOW, { ...OPTIONS, enabled: false })).toEqual(
+      INITIAL_LOCK_STATE,
+    );
+  });
+
   it("honours the delay it is given", () => {
     const armed = reduceLock(INITIAL_LOCK_STATE, "away", NOW, { ...OPTIONS, delayMinutes: 5 });
     expect(

@@ -230,6 +230,13 @@ export function registerSecurityIpc(d: SecurityIpcDeps) {
     },
   );
 
+  // The sidebar's lock button. Does nothing unless the lock is on and has a
+  // password (reduceLock checks), since there'd be no way back in.
+  ipcMain.handle("lock-now", (event): SecurityState => {
+    if (isFromApp(event)) handleLockEvent("manual");
+    return securityState();
+  });
+
   ipcMain.handle("unlock-app", async (event, password: unknown): Promise<SecurityResult> => {
     if (!isFromApp(event)) return { ok: false, error: "Not allowed." };
     if (!lockState.locked) return { ok: true };

@@ -91,11 +91,11 @@ Keep new logic in the module that owns it, and follow the file-size rule under C
 
 ### State
 
-All persistence is `electron-store` in the main process (`StoreSchema` in `electron/store.ts`): services, window bounds, theme, download settings. React holds runtime state only and syncs via IPC; there is a small zustand store for notification counts (`src/store/notifications.ts`).
+All persistence is `electron-store` in the main process (`StoreSchema` in `electron/store.ts`): services, window bounds, download settings. React holds runtime state only and syncs via IPC; there are small zustand stores for notification counts (`src/store/notifications.ts`) and the update download (`src/store/update.ts`).
 
 ### Styling
 
-Tailwind 4 + Catppuccin-style CSS variables defined in `src/index.css` (`--text-primary`, `--panel`, `--border`, …) with a `.light` root class for theming. Components mix Tailwind utility classes (e.g. `bg-sidebar`) with inline styles referencing the CSS variables — follow that pattern rather than hardcoding colors.
+Tailwind 4 + Catppuccin-style CSS variables defined in `src/index.css` (`--text-primary`, `--panel`, `--border`, …). The app is dark only; there is no light theme. Components mix Tailwind utility classes (e.g. `bg-sidebar`) with inline styles referencing the CSS variables — follow that pattern rather than hardcoding colors.
 
 ## Development Guidelines
 

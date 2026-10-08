@@ -46,7 +46,7 @@ import {
 //   updater/              GitHub release check + installer download
 //   ipc/services.ts       service CRUD/toggles, plus serviceNavigation.ts and
 //                         serviceContextMenu.ts (find, zoom, back/forward, menu)
-//   ipc/settings.ts       theme, settings, custom icons, settings menu
+//   ipc/settings.ts       settings, custom icons, settings menu
 //   ipc/security.ts       workspace lock: master password + auto-lock timer
 
 app.setName("Largs Hub");

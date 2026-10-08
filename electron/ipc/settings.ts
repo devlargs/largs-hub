@@ -10,7 +10,7 @@ import {
   deleteCustomIconFile,
 } from "../customIcons";
 
-// IPC: theme, app settings, download folder picker, custom icon storage, and
+// IPC: app settings, download folder picker, custom icon storage, and
 // the native settings menu.
 
 interface SettingsIpcDeps {
@@ -19,12 +19,6 @@ interface SettingsIpcDeps {
 }
 
 export function registerSettingsIpc(deps: SettingsIpcDeps) {
-  // Theme
-  ipcMain.handle("get-theme", () => store.get("theme"));
-  ipcMain.handle("set-theme", (_event, theme: "dark" | "light") => {
-    store.set("theme", theme);
-  });
-
   // Settings
   ipcMain.handle("get-settings", () => {
     return {

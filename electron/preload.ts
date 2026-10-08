@@ -172,10 +172,6 @@ const api = {
     return () => ipcRenderer.removeListener("notification-update", handler);
   },
 
-  // Theme
-  getTheme: (): Promise<"dark" | "light"> => ipcRenderer.invoke("get-theme"),
-  setTheme: (theme: "dark" | "light"): Promise<void> => ipcRenderer.invoke("set-theme", theme),
-
   // Settings
   getSettings: (): Promise<{ downloadFolder: string; wakeServicesAutomatically: boolean }> =>
     ipcRenderer.invoke("get-settings"),
@@ -199,6 +195,7 @@ const api = {
     }): Promise<SecurityResult> => ipcRenderer.invoke("set-master-password", payload),
     unlock: (password: string): Promise<SecurityResult> =>
       ipcRenderer.invoke("unlock-app", password),
+    lockNow: (): Promise<SecurityState> => ipcRenderer.invoke("lock-now"),
     onStateChanged: (callback: (state: SecurityState) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, state: SecurityState) => callback(state);
       ipcRenderer.on("security-state-changed", handler);

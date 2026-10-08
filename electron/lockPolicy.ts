@@ -28,7 +28,8 @@ export const INITIAL_LOCK_STATE: LockState = { armedAt: null, locked: false };
 // focus. "elapsed" is the timer firing. Checking the clock on "back" as well as
 // on "elapsed" is what keeps a slept machine honest — its timer may never fire.
 // "session-locked" is the OS lock screen coming up, which skips the countdown.
-export type LockEvent = "away" | "back" | "elapsed" | "session-locked";
+// "manual" is the sidebar's lock button: lock now, the same way.
+export type LockEvent = "away" | "back" | "elapsed" | "session-locked" | "manual";
 
 export interface LockOptions {
   enabled: boolean;
@@ -46,6 +47,7 @@ export function reduceLock(
 
   switch (event) {
     case "session-locked":
+    case "manual":
       // Locking the machine is the user saying they have walked away, so there
       // is nothing left to wait for: lock now, whatever the countdown was doing.
       return { armedAt: null, locked: true };
