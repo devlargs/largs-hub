@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { UpdateStatus } from "../lib/updateStatus";
+import type { UpdateDownloadState } from "../types";
 
 // The software-update flow shared by Settings → Updates and the lock screen.
 // It lives in a store rather than component state because the download runs
@@ -48,6 +49,17 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
   },
 }));
 
+// Main's view of the download wins: if it is downloading, so is this row,
+// whatever this page last thought (see UpdateDownloadState).
+export function applyMainDownloadState(main: UpdateDownloadState) {
+  if (!main.downloading) return;
+  useUpdateStore.setState({
+    status: "downloading",
+    newVersion: main.version ?? useUpdateStore.getState().newVersion,
+    percent: main.percent,
+  });
+}
+
 // One app-wide subscription, so progress keeps arriving while no update UI is
 // mounted. Started by the first component that shows the update row.
 let started = false;
@@ -57,6 +69,7 @@ export function startUpdateTracking() {
   window.electronAPI.getAppVersion().then((currentVersion) => {
     useUpdateStore.setState({ currentVersion });
   });
+  window.electronAPI.getUpdateDownloadState().then(applyMainDownloadState);
   window.electronAPI.onUpdateDownloadProgress((info) => {
     useUpdateStore.setState({ percent: info.percent });
   });

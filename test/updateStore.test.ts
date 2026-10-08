@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useUpdateStore } from "../src/store/update";
+import { applyMainDownloadState, useUpdateStore } from "../src/store/update";
 
 const api = {
   checkForUpdates: vi.fn(),
@@ -52,5 +52,25 @@ describe("update store", () => {
 
     useUpdateStore.getState().install();
     await vi.waitFor(() => expect(useUpdateStore.getState().status).toBe("error"));
+  });
+
+  it("picks up a download main is already running, so Update now isn't offered again", () => {
+    useUpdateStore.setState({ status: "available", newVersion: "0.1.82" });
+
+    applyMainDownloadState({ downloading: true, version: "0.1.82", percent: 28 });
+
+    expect(useUpdateStore.getState()).toMatchObject({
+      status: "downloading",
+      newVersion: "0.1.82",
+      percent: 28,
+    });
+    useUpdateStore.getState().install();
+    expect(api.downloadAndInstallUpdate).not.toHaveBeenCalled();
+  });
+
+  it("leaves the row alone when main isn't downloading", () => {
+    useUpdateStore.setState({ status: "latest" });
+    applyMainDownloadState({ downloading: false, version: null, percent: 0 });
+    expect(useUpdateStore.getState().status).toBe("latest");
   });
 });

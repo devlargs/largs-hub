@@ -20,6 +20,7 @@ import type {
   Service,
   StartResult,
   TaskSpec,
+  UpdateDownloadState,
 } from "./shared/types";
 
 // The bridge's payload types are the shared declarations the main process and
@@ -218,6 +219,8 @@ const api = {
     releaseUrl?: string;
   }> => ipcRenderer.invoke("check-for-updates"),
   getAppVersion: (): Promise<string> => ipcRenderer.invoke("get-app-version"),
+  getUpdateDownloadState: (): Promise<UpdateDownloadState> =>
+    ipcRenderer.invoke("get-update-download-state"),
   downloadAndInstallUpdate: (): Promise<void> => ipcRenderer.invoke("download-and-install-update"),
   onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, info: { percent: number }) =>

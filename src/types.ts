@@ -29,6 +29,7 @@ import type {
   Service,
   StartResult,
   TaskSpec,
+  UpdateDownloadState,
 } from "@shared/types";
 
 export interface ElectronAPI {
@@ -118,6 +119,7 @@ export interface ElectronAPI {
     releaseUrl?: string;
   }>;
   getAppVersion: () => Promise<string>;
+  getUpdateDownloadState: () => Promise<UpdateDownloadState>;
   downloadAndInstallUpdate: () => Promise<void>;
   onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
   onDownloadComplete: (callback: (fileName: string) => void) => () => void;

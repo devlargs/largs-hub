@@ -4,6 +4,7 @@ import { PendingUpdate, releasePageUrl, resolveUpdate } from "./release";
 import { downloadVerified } from "./download";
 import { createUpdateDir, installUpdate, installerPathIn, removeStaleUpdates } from "./install";
 import { singleFlight } from "./singleFlight";
+import type { UpdateDownloadState } from "../shared/types";
 
 // In-app updater: checks the latest GitHub release for devlargs/largs-hub and
 // downloads + launches the NSIS installer on Windows. On macOS it downloads the
@@ -41,6 +42,8 @@ interface UpdaterDeps {
 let pendingUpdate: PendingUpdate | null = null;
 // The directory of the download in progress, which cleanup must leave alone
 let currentUpdateDir: string | null = null;
+// The running download's last reported percentage
+let downloadPercent = 0;
 
 // Long enough that the installer which relaunched us has exited.
 const STALE_INSTALLER_DELAY_MS = 15_000;
@@ -97,6 +100,12 @@ export function registerUpdater(deps: UpdaterDeps) {
     return app.getVersion();
   });
 
+  ipcMain.handle("get-update-download-state", (): UpdateDownloadState => ({
+    downloading: installFlight.isRunning(),
+    version: installFlight.isRunning() ? (pendingUpdate?.version ?? null) : null,
+    percent: installFlight.isRunning() ? downloadPercent : 0,
+  }));
+
   // The download carries on in main whatever the renderer shows; a second
   // request while it runs joins it rather than downloading the update again.
   const installFlight = singleFlight(async () => {
@@ -105,11 +114,13 @@ export function registerUpdater(deps: UpdaterDeps) {
     if (!pendingUpdate) throw new Error("No update available. Run a check first.");
     const { url, sha256 } = pendingUpdate;
     if (!sha256) throw new Error("Update has no checksum to verify; download it manually.");
+    downloadPercent = 0;
     const dir = await createUpdateDir();
     currentUpdateDir = dir;
     try {
       const filePath = installerPathIn(dir);
       await downloadVerified(url, sha256, filePath, (percent) => {
+        downloadPercent = percent;
         if (deps.getMainWindow()) {
           deps.getUiView()?.webContents.send("update-download-progress", { percent });
         }

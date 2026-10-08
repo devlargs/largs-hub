@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **"Update now" can't be pressed twice.** Starting an update on the lock screen, then unlocking and opening Settings, could offer "Update now" again, and a second download ran alongside the first, so the progress bar jumped back and forth. Settings and the lock screen now ask the app whether a download is already running and show its progress instead, even if the window was closed and reopened in the meantime. Applies on Windows and macOS.
 
 ## [0.1.82] (2026-10-08)
 - **Lock the workspace from the sidebar.** The light/dark button at the bottom of the sidebar is now a lock button: click it to lock Largs Hub straight away, behind your master password. It only shows while "Add Security Controls" is on and a password is set. Applies on Windows and macOS.

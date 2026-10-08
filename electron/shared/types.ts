@@ -33,6 +33,16 @@ export interface AppSettings {
 
 // --- Security controls (workspace lock) --------------------------------------
 
+// The update download main is running, if any. The renderer seeds its update
+// row from this, so a page that was reloaded or recreated mid-download (the
+// window reopened from the macOS Dock, say) shows the download rather than
+// offering "Update now" again.
+export interface UpdateDownloadState {
+  downloading: boolean;
+  version: string | null;
+  percent: number;
+}
+
 // What the renderer is allowed to know about the lock. The stored credential
 // never crosses the bridge — only whether one exists.
 export interface SecurityState {
