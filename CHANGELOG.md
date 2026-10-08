@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.80] (2026-10-08)
 - **Check for updates from the lock screen.** With a master password on, the lock screen now has a "Check for updates" button at the bottom, so you can see your version and install a new one without unlocking first. The app closes to install and reopens locked, as usual. Applies on Windows and macOS.
 
 ## [0.1.79] (2026-10-07)
