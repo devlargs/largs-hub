@@ -3,6 +3,7 @@ import fs from "fs";
 import { PendingUpdate, releasePageUrl, resolveUpdate } from "./release";
 import { downloadVerified } from "./download";
 import { createUpdateDir, installUpdate, installerPathIn, removeStaleUpdates } from "./install";
+import { singleFlight } from "./singleFlight";
 
 // In-app updater: checks the latest GitHub release for devlargs/largs-hub and
 // downloads + launches the NSIS installer on Windows. On macOS it downloads the
@@ -18,6 +19,7 @@ import { createUpdateDir, installUpdate, installerPathIn, removeStaleUpdates } f
 //   verify.ts    redirect, size and checksum rules for that download (pure)
 //   paths.ts     where a download goes, and what cleanup removes (pure)
 //   install.ts   running the installer / swap script, installer cleanup
+//   singleFlight.ts  one download at a time (pure)
 
 export { parseVersion, isNewerVersion } from "./version";
 export { pickUpdateAsset, resolveUpdate, parseSha256Digest, releasePageUrl } from "./release";
@@ -55,6 +57,16 @@ export function registerUpdater(deps: UpdaterDeps) {
   cleanupTimer.unref?.();
 
   ipcMain.handle("check-for-updates", async () => {
+    // Mid-download, report the update being downloaded rather than swapping
+    // pendingUpdate out from under it.
+    if (installFlight.isRunning() && pendingUpdate) {
+      return {
+        updateAvailable: true,
+        version: pendingUpdate.version,
+        canInstall: true,
+        releaseUrl: releasePageUrl(pendingUpdate.version),
+      };
+    }
     pendingUpdate = null;
     try {
       const response = await fetch(LATEST_RELEASE_URL);
@@ -85,7 +97,9 @@ export function registerUpdater(deps: UpdaterDeps) {
     return app.getVersion();
   });
 
-  ipcMain.handle("download-and-install-update", async () => {
+  // The download carries on in main whatever the renderer shows; a second
+  // request while it runs joins it rather than downloading the update again.
+  const installFlight = singleFlight(async () => {
     // The URL comes from the main-process check-for-updates result, never from
     // the renderer.
     if (!pendingUpdate) throw new Error("No update available. Run a check first.");
@@ -108,4 +122,6 @@ export function registerUpdater(deps: UpdaterDeps) {
       throw err;
     }
   });
+
+  ipcMain.handle("download-and-install-update", () => installFlight.run());
 }

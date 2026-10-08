@@ -1,48 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
-import { UpdateStatus } from "../lib/updateStatus";
+import { useCallback, useEffect } from "react";
+import { startUpdateTracking, useUpdateStore } from "../store/update";
 
-// The software-update flow shared by Settings → Updates and the lock screen:
-// check GitHub, then install (or offer the release page when there's no
-// checksum). What gets downloaded is decided in main; this only tracks state.
+// The update row's state and actions, from the app-wide update store (see
+// src/store/update.ts), so every place that shows it agrees and none of them
+// loses a download in progress by unmounting.
 export function useUpdateCheck() {
-  const [status, setStatus] = useState<UpdateStatus>("idle");
-  const [currentVersion, setCurrentVersion] = useState("");
-  const [newVersion, setNewVersion] = useState("");
-  const [percent, setPercent] = useState(0);
-  const [releaseUrl, setReleaseUrl] = useState("");
+  const { status, currentVersion, newVersion, percent, releaseUrl, check, install } =
+    useUpdateStore();
 
-  useEffect(() => {
-    if (!window.electronAPI) return;
-    window.electronAPI.getAppVersion().then(setCurrentVersion);
-    return window.electronAPI.onUpdateDownloadProgress((info) => {
-      setPercent(info.percent);
-    });
-  }, []);
-
-  const check = useCallback(() => {
-    setStatus("checking");
-    window.electronAPI
-      .checkForUpdates()
-      .then((result) => {
-        if (result.updateAvailable && result.version) {
-          setNewVersion(result.version);
-          setReleaseUrl(result.releaseUrl ?? "");
-          setStatus(result.canInstall ? "available" : "manual");
-        } else {
-          setStatus("latest");
-        }
-      })
-      .catch(() => setStatus("error"));
-  }, []);
-
-  const install = useCallback(() => {
-    setStatus("downloading");
-    setPercent(0);
-    // The download URL is resolved and verified in the main process
-    window.electronAPI.downloadAndInstallUpdate().catch(() => {
-      setStatus("error");
-    });
-  }, []);
+  useEffect(startUpdateTracking, []);
 
   const openReleasePage = useCallback(() => {
     if (releaseUrl) window.electronAPI.openLinkExternal(releaseUrl);

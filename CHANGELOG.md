@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **An update keeps downloading when you leave Settings.** After pressing Update Now, switching to a service or another page reset the update row to "Check for updates", even though the download was still running. Pressing it again started a second download, leaving an extra copy of the update in your temp folder. The row now keeps showing the download's progress wherever you go, on the lock screen too, and the app never downloads the same update twice at once. Applies on Windows and macOS.
 
 ## [0.1.80] (2026-10-08)
 - **Check for updates from the lock screen.** With a master password on, the lock screen now has a "Check for updates" button at the bottom, so you can see your version and install a new one without unlocking first. The app closes to install and reopens locked, as usual. Applies on Windows and macOS.
