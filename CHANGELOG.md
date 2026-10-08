@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.82] (2026-10-08)
 - **Lock the workspace from the sidebar.** The light/dark button at the bottom of the sidebar is now a lock button: click it to lock Largs Hub straight away, behind your master password. It only shows while "Add Security Controls" is on and a password is set. Applies on Windows and macOS.
 - **The light theme is gone.** Largs Hub is dark only now. If you had switched to light, it opens in dark after this update.
 
