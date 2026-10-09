@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.83] (2026-10-09)
 - **"Update now" can't be pressed twice.** Starting an update on the lock screen, then unlocking and opening Settings, could offer "Update now" again, and a second download ran alongside the first, so the progress bar jumped back and forth. Settings and the lock screen now ask the app whether a download is already running and show its progress instead, even if the window was closed and reopened in the meantime. Applies on Windows and macOS.
 
 ## [0.1.82] (2026-10-08)
