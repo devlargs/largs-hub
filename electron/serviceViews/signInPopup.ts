@@ -15,6 +15,14 @@ import { getDeps } from "./state";
 // service's session, so the opener link survives and the popup closes itself
 // once the user picks an account.
 
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host || "(no host)";
+  } catch {
+    return "(unparseable URL)";
+  }
+}
+
 /** Window options for a sign-in popup; Chromium adds the page's requested size. */
 export function signInPopupOptions(): Electron.BrowserWindowConstructorOptions {
   const mainWindow = getDeps()?.getMainWindow();
@@ -37,11 +45,17 @@ export function attachSignInPopups(view: WebContentsView, serviceHost: string) {
     const contents = child.webContents;
     child.setMenuBarVisibility(false);
     void applyChromeIdentity(contents, details.url);
+    // A refused hop leaves the popup on a page that looks like it's still
+    // loading, so say which host it was (the URL itself carries sign-in tokens).
+    const refuse = (event: Electron.Event, url: string) => {
+      event.preventDefault();
+      console.warn("[signInPopup] refused navigation to", hostOf(url));
+    };
     contents.on("will-navigate", (event) => {
-      if (!mayShowInView(event.url, serviceHost)) event.preventDefault();
+      if (!mayShowInView(event.url, serviceHost)) refuse(event, event.url);
     });
     contents.on("will-redirect", (event) => {
-      if (event.isMainFrame && !mayShowInView(event.url, serviceHost)) event.preventDefault();
+      if (event.isMainFrame && !mayShowInView(event.url, serviceHost)) refuse(event, event.url);
     });
     contents.setWindowOpenHandler(({ url }) => {
       const external = externalWebUrl(url);

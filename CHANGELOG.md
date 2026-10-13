@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **"Sign in with Google" finishes after 2-Step Verification.** Signing in to Google from inside Reddit's (or another site's) sign-in window could stop on the 2-Step Verification page after you entered a correct code: the page dimmed and the window never went back to the site. Once you're signed in, Google also saves the login on its domain for your country (`accounts.google.com.ph` in the Philippines, for example), and Largs Hub refused that step as a page outside the service. Google's sign-in address on each of its country domains is now allowed, in the sign-in window and in services such as Gmail and Google Chat. Applies on Windows and macOS.
 
 ## [0.1.83] (2026-10-09)
 - **"Update now" can't be pressed twice.** Starting an update on the lock screen, then unlocking and opening Settings, could offer "Update now" again, and a second download ran alongside the first, so the progress bar jumped back and forth. Settings and the lock screen now ask the app whether a download is already running and show its progress instead, even if the window was closed and reopened in the meantime. Applies on Windows and macOS.

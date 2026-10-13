@@ -55,6 +55,25 @@ describe("shouldKeepInView", () => {
     expect(shouldKeepInView("https://login.microsoftonline.com/", "slack.com")).toBe(true);
   });
 
+  it("keeps Google's sign-in hop through a country domain", () => {
+    // After sign-in Google redirects through accounts.google.<country> to set
+    // its cookie there; refusing it left the sign-in popup stuck.
+    for (const host of ["accounts.google.com.ph", "accounts.google.co.uk", "accounts.google.de"]) {
+      expect(shouldKeepInView(`https://${host}/accounts/SetSID?ssdc=1`, "reddit.com"), host).toBe(
+        true,
+      );
+    }
+  });
+
+  it("keeps only the accounts host of a Google country domain", () => {
+    expect(shouldKeepInView("https://www.google.com.ph/url?q=x", "reddit.com")).toBe(false);
+    expect(shouldKeepInView("https://google.com.ph/", "reddit.com")).toBe(false);
+    expect(shouldKeepInView("https://accounts.google.com.ph.evil.com/", "reddit.com")).toBe(false);
+    expect(shouldKeepInView("https://evilaccounts.google.com.ph/", "reddit.com")).toBe(false);
+    // Not one of Google's domains
+    expect(shouldKeepInView("https://accounts.google.com.zz/", "reddit.com")).toBe(false);
+  });
+
   it("rejects a lookalike of an allowlisted provider", () => {
     expect(shouldKeepInView("https://evilgoogle.com/signin", "notion.so")).toBe(false);
     expect(shouldKeepInView("https://google.com.attacker.net/", "notion.so")).toBe(false);
@@ -128,6 +147,13 @@ describe("mayRedirectInView", () => {
     expect(redirect("https://accounts.google.com/ServiceLogin", home)).toBe(true);
     expect(redirect("https://accounts.youtube.com/accounts/SetSID", home)).toBe(true);
     expect(redirect("https://mail.google.com/mail/u/0/", "https://mail.google.com/")).toBe(true);
+  });
+
+  it("follows Google's cookie hop through the user's country domain", () => {
+    const checkCookie = "https://accounts.google.com/CheckCookie?continue=x";
+    expect(redirect("https://accounts.google.com.ph/accounts/SetSID?ssdc=1", checkCookie)).toBe(
+      true,
+    );
   });
 
   it("stops an open redirect bouncing the view onto another site (#123)", () => {

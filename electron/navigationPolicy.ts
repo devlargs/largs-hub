@@ -11,12 +11,21 @@
 //
 // Pure and Electron-free so it can be unit-tested (test/navigationPolicy.test.ts).
 
+import { GOOGLE_COUNTRY_DOMAINS } from "./googleCountryDomains";
+
 // Auth and CDN domains that a service may legitimately hand off to. Sign-in
 // also passes through some of these by server redirect (Google sets its cookie
 // on youtube.com, Microsoft hops between live.com, office.com and
 // microsoftonline.com), and since redirects are checked too (issue #123) each
 // hop has to be listed.
-export const IN_VIEW_ALLOWED_DOMAINS = [
+//
+// Google also sets its cookie on the user's country domain, by a redirect
+// through accounts.google.<country>/accounts/SetSID (accounts.google.com.ph in
+// the Philippines). With that hop refused, the redirect chain stopped there:
+// a "Sign in with Google" popup stayed on its dimmed 2-Step Verification page
+// instead of returning to the site. Only the accounts. host of each country
+// domain is listed, not the whole domain.
+export const IN_VIEW_ALLOWED_DOMAINS: readonly string[] = [
   "google.com",
   "youtube.com",
   "googleapis.com",
@@ -45,6 +54,7 @@ export const IN_VIEW_ALLOWED_DOMAINS = [
   "redditstatic.com",
   "whatsapp.com",
   "whatsapp.net",
+  ...GOOGLE_COUNTRY_DOMAINS.map((domain) => `accounts.${domain}`),
 ];
 
 /**
