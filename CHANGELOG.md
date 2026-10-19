@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.85] (2026-10-19)
 - **WhatsApp's badge leaves out archived chats.** The unread count for a WhatsApp service no longer adds the number shown on the "Archived" entry in the chat list, so chats you've archived don't keep the badge lit. Applies on Windows and macOS.
 
 ## [0.1.84] (2026-10-13)
