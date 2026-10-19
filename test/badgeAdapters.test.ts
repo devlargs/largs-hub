@@ -57,6 +57,12 @@ interface FakeElement {
 
 // A thread row in the chat list. `ariaLabel` is the row's own label; a row can
 // instead carry the state on a descendant, which `unreadMarker` stands in for.
+// A WhatsApp badge, optionally inside the chat list's "Archived" entry
+interface FakeWhatsappBadge {
+  text: string;
+  archivedRow?: { ariaLabel?: string; text?: string; icon?: boolean };
+}
+
 interface FakeRow {
   ariaLabel?: string;
   unreadMarker?: boolean;
@@ -68,7 +74,7 @@ function fakeDocument(opts: {
   rows?: FakeRow[];
   unreadRows?: number;
   faviconHref?: string;
-  whatsappBadges?: string[];
+  whatsappBadges?: (string | FakeWhatsappBadge)[];
 }) {
   const toNavLink = (el: FakeElement) => ({
     getAttribute: () => el.ariaLabel ?? "",
@@ -93,7 +99,15 @@ function fakeDocument(opts: {
       selector.includes("icon") && opts.faviconHref ? { href: opts.faviconHref } : null,
     querySelectorAll: (selector: string) => {
       if (selector.includes('aria-label*="unread message"')) {
-        return (opts.whatsappBadges ?? []).map((text) => ({ textContent: text }));
+        return (opts.whatsappBadges ?? []).map((badge) => {
+          const { text, archivedRow } = typeof badge === "string" ? { text: badge } : badge;
+          const row = archivedRow && {
+            getAttribute: () => archivedRow.ariaLabel ?? "",
+            querySelector: () => (archivedRow.icon ? {} : null),
+            textContent: archivedRow.text ?? "",
+          };
+          return { textContent: text, closest: () => row ?? null };
+        });
       }
       if (selector.includes('role="row"')) {
         return rows.map(toRow);
@@ -222,6 +236,25 @@ describe("whatsapp poll script (executed)", () => {
 
   it("prefers the title count", () => {
     expect(runPollScript(script, fakeDocument({ title: "(9) WhatsApp" }))).toBe(9);
+  });
+
+  it("leaves out the Archived entry's count", () => {
+    const doc = fakeDocument({
+      whatsappBadges: [
+        "2",
+        { text: "5", archivedRow: { text: "Archived5" } },
+        { text: "4", archivedRow: { icon: true } },
+        { text: "3", archivedRow: { ariaLabel: "Archived, 3 unread messages" } },
+      ],
+    });
+    expect(runPollScript(script, doc)).toBe(2);
+  });
+
+  it("still counts a chat whose last message mentions archived", () => {
+    const doc = fakeDocument({
+      whatsappBadges: [{ text: "1", archivedRow: { text: "Ada I archived the files" } }],
+    });
+    expect(runPollScript(script, doc)).toBe(1);
   });
 });
 
