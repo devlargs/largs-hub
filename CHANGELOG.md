@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.86] (2026-10-21)
 - **Cmd+1-9 switches services on macOS.** On a Mac, Cmd+1 now opens Home and Cmd+2 to Cmd+9 open the first eight services, the way tabs switch in other Mac apps; hold Cmd to see the numbers on the sidebar. Ctrl+F and the Ctrl zoom keys stay as they were. Windows keeps Ctrl+1-9.
 
 ## [0.1.85] (2026-10-19)
