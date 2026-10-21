@@ -1,4 +1,4 @@
-// The Ctrl+N number on a sidebar button while Ctrl is held. Bottom-right so it
+// The Ctrl+N number on a sidebar button while Ctrl (Cmd on macOS) is held. Bottom-right so it
 // never covers a notification count in the top-right; the button must be
 // `relative`.
 export default function ShortcutHint({ number }: { number: number }) {

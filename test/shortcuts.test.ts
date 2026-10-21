@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { resolveSwitch, shortcutNumberFor, switchTargetFor } from "../electron/shared/shortcuts";
+import {
+  isSwitchChord,
+  resolveSwitch,
+  shortcutNumberFor,
+  switchModifierFor,
+  switchTargetFor,
+} from "../electron/shared/shortcuts";
 
 describe("switchTargetFor", () => {
   it("sends Ctrl+1 Home", () => {
@@ -59,5 +65,33 @@ describe("resolveSwitch", () => {
 
   it("does nothing for a number past the last service", () => {
     expect(resolveSwitch("4", ids)).toBeNull();
+  });
+});
+
+describe("switchModifierFor", () => {
+  it("is Cmd on macOS and Ctrl everywhere else", () => {
+    expect(switchModifierFor("darwin")).toBe("meta");
+    expect(switchModifierFor("win32")).toBe("control");
+    expect(switchModifierFor("linux")).toBe("control");
+  });
+});
+
+describe("isSwitchChord", () => {
+  const mods = { control: false, meta: false, alt: false, shift: false };
+
+  it("takes the platform's modifier on its own", () => {
+    expect(isSwitchChord({ ...mods, control: true }, "control")).toBe(true);
+    expect(isSwitchChord({ ...mods, meta: true }, "meta")).toBe(true);
+  });
+
+  it("leaves the other modifier to the page", () => {
+    expect(isSwitchChord({ ...mods, meta: true }, "control")).toBe(false);
+    expect(isSwitchChord({ ...mods, control: true }, "meta")).toBe(false);
+  });
+
+  it("rejects Ctrl and Cmd together, shift or alt", () => {
+    expect(isSwitchChord({ ...mods, control: true, meta: true }, "meta")).toBe(false);
+    expect(isSwitchChord({ ...mods, meta: true, shift: true }, "meta")).toBe(false);
+    expect(isSwitchChord({ ...mods, control: true, alt: true }, "control")).toBe(false);
   });
 });

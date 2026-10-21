@@ -2,8 +2,11 @@ import type { Service } from "../../types";
 import { resolveIcon } from "../../assets/serviceIcons";
 import { badgeText, serviceLabel } from "../../lib/serviceLabel";
 import type { useServiceDrag } from "../../hooks/useServiceDrag";
-import { shortcutNumberFor } from "@shared/shortcuts";
+import { SWITCH_MODIFIER_KEY, shortcutNumberFor, switchModifierFor } from "@shared/shortcuts";
 import ShortcutHint from "./ShortcutHint";
+
+// Control on Windows, Meta (Cmd) on macOS
+const SWITCH_KEY = SWITCH_MODIFIER_KEY[switchModifierFor(window.electronAPI?.platform ?? "")];
 
 interface ServiceButtonProps {
   service: Service;
@@ -20,7 +23,7 @@ interface ServiceButtonProps {
   onKeyDown: (e: React.KeyboardEvent) => void;
 }
 
-// One service in the sidebar: its icon, unread badge, Ctrl+N hint and the
+// One service in the sidebar: its icon, unread badge, Ctrl+N (Cmd+N) hint and the
 // active marker.
 export default function ServiceButton({
   service,
@@ -38,10 +41,10 @@ export default function ServiceButton({
   const shortcut = shortcutNumberFor(index);
   return (
     <button
-      // Ctrl+1 is Home, so Ctrl+N picks the (N-1)th service in sidebar
-      // order, disabled ones included — the same lookup main and the app
-      // shell use.
-      aria-keyshortcuts={shortcut ? `Control+${shortcut}` : undefined}
+      // Ctrl+1 (Cmd+1 on macOS) is Home, so Ctrl+N picks the (N-1)th
+      // service in sidebar order, disabled ones included — the same lookup
+      // main and the app shell use.
+      aria-keyshortcuts={shortcut ? `${SWITCH_KEY}+${shortcut}` : undefined}
       {...dragProps}
       onClick={onClick}
       onContextMenu={onContextMenu}
@@ -67,7 +70,7 @@ export default function ServiceButton({
         </span>
       )}
 
-      {/* Shortcut number, while Ctrl is held */}
+      {/* Shortcut number, while Ctrl (Cmd on macOS) is held */}
       {showShortcutHint && shortcut && <ShortcutHint number={shortcut} />}
 
       {/* Active indicator */}

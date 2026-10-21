@@ -13,7 +13,7 @@ import {
   applyChromeIdentityToSession,
   loadWithChromeIdentity,
 } from "../chromeIdentity";
-import { resolveSwitch } from "../shared/shortcuts";
+import { isSwitchChord, resolveSwitch, switchModifierFor } from "../shared/shortcuts";
 import { getDeps, partitionFor } from "./state";
 import { isFindBarOpen } from "./layout";
 import { ZOOM_KEYS, getServiceZoom, openFindBarFor, stepServiceZoom } from "./findZoom";
@@ -23,6 +23,8 @@ import { attachContextMenu } from "./contextMenu";
 import { attachBadgeExtraction } from "./polling";
 import { attachNavigationGuard } from "./navigationGuard";
 import { attachSignInPopups, signInPopupOptions } from "./signInPopup";
+
+const SWITCH_MODIFIER = switchModifierFor(process.platform);
 
 // Build one service's WebContentsView: session partition, UA spoofing,
 // permission policy, per-load re-injection, popups and keyboard shortcuts.
@@ -172,12 +174,20 @@ export function createServiceView(
       stepServiceZoom(service.id, ZOOM_KEYS[input.key]);
       return;
     }
-    if (input.type === "keyDown" && input.control && !input.shift && !input.alt && !input.meta) {
-      if (input.key.toLowerCase() === "f") {
-        event.preventDefault();
-        openFindBarFor(service.id);
-        return;
-      }
+    if (
+      input.type === "keyDown" &&
+      input.control &&
+      !input.shift &&
+      !input.alt &&
+      !input.meta &&
+      input.key.toLowerCase() === "f"
+    ) {
+      event.preventDefault();
+      openFindBarFor(service.id);
+      return;
+    }
+    // Service switching is Cmd+1-9 on macOS, Ctrl+1-9 elsewhere
+    if (input.type === "keyDown" && isSwitchChord(input, SWITCH_MODIFIER)) {
       const ids = store.get("services").map((s) => s.id);
       const target = resolveSwitch(input.key, ids);
       if (target) {

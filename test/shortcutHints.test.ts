@@ -5,9 +5,14 @@ import {
   createShortcutHintTracker,
 } from "../electron/shortcutHints";
 
-const ctrlDown: KeyInput = { type: "keyDown", key: "Control", control: true };
-const ctrlUp: KeyInput = { type: "keyUp", key: "Control", control: false };
-const withCtrl = (key: string, type = "keyDown"): KeyInput => ({ type, key, control: true });
+const ctrlDown: KeyInput = { type: "keyDown", key: "Control", control: true, meta: false };
+const ctrlUp: KeyInput = { type: "keyUp", key: "Control", control: false, meta: false };
+const withCtrl = (key: string, type = "keyDown"): KeyInput => ({
+  type,
+  key,
+  control: true,
+  meta: false,
+});
 
 describe("shortcut hint tracker", () => {
   let changes: boolean[];
@@ -73,7 +78,7 @@ describe("shortcut hint tracker", () => {
   it("treats input without the modifier as a missed Ctrl release", () => {
     tracker.handleInput(ctrlDown);
     vi.advanceTimersByTime(SHORTCUT_HINT_HOLD_MS);
-    tracker.handleInput({ type: "keyDown", key: "a", control: false });
+    tracker.handleInput({ type: "keyDown", key: "a", control: false, meta: false });
     expect(changes).toEqual([true, false]);
   });
 
@@ -87,5 +92,31 @@ describe("shortcut hint tracker", () => {
     vi.advanceTimersByTime(SHORTCUT_HINT_HOLD_MS);
     tracker.reset();
     expect(changes).toEqual([true, false]);
+  });
+
+  describe("with Cmd as the modifier (macOS)", () => {
+    const cmdDown: KeyInput = { type: "keyDown", key: "Meta", control: false, meta: true };
+    const cmdUp: KeyInput = { type: "keyUp", key: "Meta", control: false, meta: false };
+
+    beforeEach(() => {
+      tracker = createShortcutHintTracker({
+        onChange: (visible) => changes.push(visible),
+        modifier: "meta",
+      });
+    });
+
+    it("shows the hints while Cmd is held and hides them on release", () => {
+      tracker.handleInput(cmdDown);
+      vi.advanceTimersByTime(SHORTCUT_HINT_HOLD_MS);
+      tracker.handleInput({ type: "keyDown", key: "2", control: false, meta: true });
+      tracker.handleInput(cmdUp);
+      expect(changes).toEqual([true, false]);
+    });
+
+    it("ignores a held Ctrl", () => {
+      tracker.handleInput(ctrlDown);
+      vi.advanceTimersByTime(SHORTCUT_HINT_HOLD_MS * 2);
+      expect(changes).toEqual([]);
+    });
   });
 });

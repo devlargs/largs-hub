@@ -8,11 +8,15 @@ import { useServiceDrag } from "../hooks/useServiceDrag";
 import ServiceButton from "./sidebar/ServiceButton";
 import LockButton from "./sidebar/LockButton";
 import ShortcutHint from "./sidebar/ShortcutHint";
+import { SWITCH_MODIFIER_KEY, switchModifierFor } from "@shared/shortcuts";
+
+// Control on Windows, Meta (Cmd) on macOS
+const SWITCH_KEY = SWITCH_MODIFIER_KEY[switchModifierFor(window.electronAPI?.platform ?? "")];
 
 interface SidebarProps {
   services: Service[];
   activeServiceId: string | null;
-  // Ctrl is held: number Home (Ctrl+1) and the services Ctrl+2-9 switch to
+  // Ctrl (Cmd on macOS) is held: number Home (1) and the services 2-9 switch to
   showShortcutHints: boolean;
   // Security controls are on with a password set: show the lock button
   canLock: boolean;
@@ -57,7 +61,7 @@ export default function Sidebar({
       {/* Home button */}
       <button
         onClick={onAddService}
-        aria-keyshortcuts="Control+1"
+        aria-keyshortcuts={`${SWITCH_KEY}+1`}
         className={`
           relative w-12 h-12 rounded-xl flex items-center justify-center
           transition-all duration-200 cursor-pointer

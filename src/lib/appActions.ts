@@ -1,5 +1,10 @@
 import type { Service } from "../types";
-import { switchTargetFor, type SwitchTarget } from "@shared/shortcuts";
+import {
+  isSwitchChord,
+  switchTargetFor,
+  type SwitchModifier,
+  type SwitchTarget,
+} from "@shared/shortcuts";
 
 // Decisions the app shell makes about keys, context-menu requests and services, kept
 // free of React so they can be unit-tested.
@@ -30,7 +35,7 @@ const ZOOM_KEYS: Record<string, ZoomDirection> = {
 export type AppShortcut =
   | { kind: "zoom"; direction: ZoomDirection }
   | { kind: "find" }
-  // Ctrl+1 is Home, Ctrl+2-9 the services in sidebar order
+  // Ctrl+1 (Cmd+1 on macOS) is Home, 2-9 the services in sidebar order
   | { kind: "switch"; target: SwitchTarget };
 
 export interface ShortcutKey {
@@ -41,17 +46,24 @@ export interface ShortcutKey {
   shiftKey: boolean;
 }
 
-// The Ctrl shortcut a keydown in the interface stands for, if any. Ctrl on
-// both platforms: service views intercept the same Ctrl keys in main.
-export function appShortcutFor(e: ShortcutKey): AppShortcut | null {
+// The shortcut a keydown in the interface stands for, if any. Zoom and find
+// are Ctrl on both platforms; switching uses `switchModifier`, Cmd on macOS.
+// Service views intercept the same keys in main.
+export function appShortcutFor(
+  e: ShortcutKey,
+  switchModifier: SwitchModifier = "control",
+): AppShortcut | null {
+  const mods = { control: e.ctrlKey, meta: e.metaKey, alt: e.altKey, shift: e.shiftKey };
+  if (isSwitchChord(mods, switchModifier)) {
+    const target = switchTargetFor(e.key);
+    if (target) return { kind: "switch", target };
+  }
   if (!e.ctrlKey || e.altKey || e.metaKey) return null;
   // Zoom tolerates shift ("+" is shift+"=" on most layouts).
   const direction = ZOOM_KEYS[e.key];
   if (direction) return { kind: "zoom", direction };
   if (e.shiftKey) return null;
-  if (e.key.toLowerCase() === "f") return { kind: "find" };
-  const target = switchTargetFor(e.key);
-  return target ? { kind: "switch", target } : null;
+  return e.key.toLowerCase() === "f" ? { kind: "find" } : null;
 }
 
 // The context-menu actions that ask before doing something destructive

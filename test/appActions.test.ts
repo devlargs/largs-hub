@@ -73,6 +73,20 @@ describe("appShortcutFor", () => {
     expect(appShortcutFor(ctrl("1", { metaKey: true }))).toBeNull();
     expect(appShortcutFor(ctrl("1", { ctrlKey: false }))).toBeNull();
   });
+
+  it("switches with Cmd on macOS, leaving zoom and find on Ctrl", () => {
+    const cmd = (key: string) => ctrl(key, { ctrlKey: false, metaKey: true });
+    expect(appShortcutFor(cmd("1"), "meta")).toEqual({ kind: "switch", target: { kind: "home" } });
+    expect(appShortcutFor(cmd("3"), "meta")).toEqual({
+      kind: "switch",
+      target: { kind: "service", index: 1 },
+    });
+    expect(appShortcutFor(ctrl("2"), "meta")).toBeNull();
+    expect(appShortcutFor(ctrl("1", { metaKey: true }), "meta")).toBeNull();
+    expect(appShortcutFor(ctrl("f"), "meta")).toEqual({ kind: "find" });
+    expect(appShortcutFor(ctrl("0"), "meta")).toEqual({ kind: "zoom", direction: "reset" });
+    expect(appShortcutFor(cmd("f"), "meta")).toBeNull();
+  });
 });
 
 describe("confirmPromptFor", () => {
