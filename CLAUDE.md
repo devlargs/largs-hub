@@ -161,6 +161,7 @@ A bare GitHub issue link from the user is a complete instruction: **fix it, then
 - **Commit every change immediately, without asking.** As soon as a change is done and `typecheck`, `lint` and `test` pass, commit it to local `main`. Don't wait to be told, and don't ask "want me to commit?". The only exception is when the user explicitly says not to commit. Keep unrelated changes in separate commits.
 - **Commit to local `main`.** Don't create a branch or open a PR unless asked.
 - **Never push.** Committing locally is where the work stops. Only run `git push` when the user explicitly asks for it in that message — "commit it", "commit to main", or "push to main" all mean the local commit only. No exceptions, and never `git push origin main` on your own initiative.
+- **Commit as Ralph Largo <devlargs@gmail.com>.** Both author and committer must be `Ralph Largo` / `devlargs@gmail.com` (the repo's local `user.name` / `user.email`). Check with `git log -1 --format='%an <%ae> | %cn <%ce>'` and fix any commit that came out under another identity before handing work back.
 - **No trailers.** Never add `Co-Authored-By`, `Claude-Session`, or any similar footer.
 - **One line, 100 characters max.** The whole message is that single line — no body, no bullets, no explanation of the approach or the cause. The diff carries the detail.
 - When the commit fixes a GitHub issue, end that same line with `(closes #<n>)`.
