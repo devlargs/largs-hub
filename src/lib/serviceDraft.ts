@@ -17,17 +17,14 @@ export interface ServicePreset {
 // appended after the presets in the grid itself.
 export const POPULAR_SERVICES: ServicePreset[] = sortByName([
   { name: "Gmail", url: "https://mail.google.com", icon: "gmail.png" },
-  { name: "Slack", url: "https://app.slack.com", icon: "slack.png" },
-  { name: "Discord", url: "https://discord.com/app", icon: "discord.png" },
   { name: "WhatsApp", url: "https://web.whatsapp.com", icon: "whatsapp.png" },
-  { name: "Telegram", url: "https://web.telegram.org", icon: "telegram.png" },
   { name: "Notion", url: "https://www.notion.so", icon: "notion.png" },
   { name: "Todo", url: TASKS_URL, icon: "todo.svg" },
-  { name: "Twitter / X", url: "https://x.com", icon: "x.png" },
   { name: "Reddit", url: "https://reddit.com", icon: "reddit.png" },
   { name: "LinkedIn", url: "https://linkedin.com", icon: "linkedin.png" },
   { name: "Messenger", url: "https://www.messenger.com", icon: "messenger.png" },
   { name: "Google Chat", url: "https://chat.google.com", icon: "googlechat.svg" },
+  { name: "Letterboxd", url: "https://letterboxd.com", icon: "letterboxd.png" },
 ]);
 
 export function filterPresets(search: string): ServicePreset[] {

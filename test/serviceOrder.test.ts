@@ -35,11 +35,13 @@ describe("sortByName", () => {
       { name: "LinkedIn" },
       { name: "Messenger" },
       { name: "Google Chat" },
+      { name: "Letterboxd" },
     ];
     expect(names(sortByName(presets))).toEqual([
       "Discord",
       "Gmail",
       "Google Chat",
+      "Letterboxd",
       "LinkedIn",
       "Messenger",
       "Notion",

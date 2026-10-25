@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+- **Discord, Slack, Telegram and Twitter / X are no longer presets.** The add-a-service grid is shorter; you can still add any of them through **Custom** by typing the address, and services you already added keep working with their icons.
+- **Letterboxd is one of the presets.** It sits in the add-a-service grid between Google Chat and LinkedIn, with its own icon, so adding it no longer means going through **Custom** and typing the address yourself.
 
 ## [0.1.86] (2026-10-21)
 - **Cmd+1-9 switches services on macOS.** On a Mac, Cmd+1 now opens Home and Cmd+2 to Cmd+9 open the first eight services, the way tabs switch in other Mac apps; hold Cmd to see the numbers on the sidebar. Ctrl+F and the Ctrl zoom keys stay as they were. Windows keeps Ctrl+1-9.
