@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Discord, Slack, Telegram and Twitter / X are no longer presets.** The add-a-service grid is shorter; you can still add any of them through **Custom** by typing the address, and services you already added keep working with their icons.
 - **Letterboxd is one of the presets.** It sits in the add-a-service grid between Google Chat and LinkedIn, with its own icon, so adding it no longer means going through **Custom** and typing the address yourself.
 
 ## [0.1.86] (2026-10-21)
