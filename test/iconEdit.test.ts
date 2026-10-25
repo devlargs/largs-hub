@@ -23,6 +23,7 @@ describe("builtInIconForName", () => {
   it("finds the built-in icon for a preset's name", () => {
     expect(builtInIconForName("Messenger")).toBe("messenger.png");
     expect(builtInIconForName("Google Chat")).toBe("googlechat.svg");
+    expect(builtInIconForName("Letterboxd")).toBe("letterboxd.png");
     expect(builtInIconForName("  gmail ")).toBe("gmail.png");
   });
 

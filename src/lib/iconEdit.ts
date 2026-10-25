@@ -39,6 +39,7 @@ const BUILT_IN_ICON_BY_NAME: Record<string, string> = {
   linkedin: "linkedin.png",
   messenger: "messenger.png",
   "google chat": "googlechat.svg",
+  letterboxd: "letterboxd.png",
   todo: "todo.svg",
   pomodoro: "todo.svg",
 };

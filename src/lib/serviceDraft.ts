@@ -28,6 +28,7 @@ export const POPULAR_SERVICES: ServicePreset[] = sortByName([
   { name: "LinkedIn", url: "https://linkedin.com", icon: "linkedin.png" },
   { name: "Messenger", url: "https://www.messenger.com", icon: "messenger.png" },
   { name: "Google Chat", url: "https://chat.google.com", icon: "googlechat.svg" },
+  { name: "Letterboxd", url: "https://letterboxd.com", icon: "letterboxd.png" },
 ]);
 
 export function filterPresets(search: string): ServicePreset[] {
