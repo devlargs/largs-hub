@@ -14,6 +14,7 @@ import {
   loadWithChromeIdentity,
 } from "../chromeIdentity";
 import { isSwitchChord, resolveSwitch, switchModifierFor } from "../shared/shortcuts";
+import { sidebarServices } from "../shared/serviceVisibility";
 import { getDeps, partitionFor } from "./state";
 import { isFindBarOpen } from "./layout";
 import { ZOOM_KEYS, getServiceZoom, openFindBarFor, stepServiceZoom } from "./findZoom";
@@ -188,7 +189,8 @@ export function createServiceView(
     }
     // Service switching is Cmd+1-9 on macOS, Ctrl+1-9 elsewhere
     if (input.type === "keyDown" && isSwitchChord(input, SWITCH_MODIFIER)) {
-      const ids = store.get("services").map((s) => s.id);
+      // Numbered in sidebar order, so hidden services have no number
+      const ids = sidebarServices(store.get("services")).map((s) => s.id);
       const target = resolveSwitch(input.key, ids);
       if (target) {
         const targetId = target.kind === "home" ? null : target.id;

@@ -16,6 +16,11 @@ describe("showsUnreadBadge", () => {
     expect(showsUnreadBadge({ notificationsEnabled: false })).toBe(false);
   });
 
+  it("hides it for a hidden service", () => {
+    expect(showsUnreadBadge({ hidden: true })).toBe(false);
+    expect(showsUnreadBadge({ hidden: false })).toBe(true);
+  });
+
   it("hides it for a service that's gone", () => {
     expect(showsUnreadBadge(undefined)).toBe(false);
     expect(showsUnreadBadge(null)).toBe(false);

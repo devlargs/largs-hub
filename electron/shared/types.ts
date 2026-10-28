@@ -94,11 +94,17 @@ export function isTasksService(service: { url?: string } | null | undefined): bo
 // Whether a service's unread count should be shown anywhere: the sidebar
 // badge, the tray menu and the taskbar / Dock total. A disabled service has no
 // live page, so any count it had is stale; one with Notifications switched off
-// has asked not to be counted.
+// has asked not to be counted, and a hidden one is meant to be out of sight.
 export function showsUnreadBadge(
-  service: { enabled?: boolean; notificationsEnabled?: boolean } | null | undefined,
+  service:
+    { enabled?: boolean; notificationsEnabled?: boolean; hidden?: boolean } | null | undefined,
 ): boolean {
-  return !!service && service.enabled !== false && service.notificationsEnabled !== false;
+  return (
+    !!service &&
+    service.enabled !== false &&
+    service.notificationsEnabled !== false &&
+    service.hidden !== true
+  );
 }
 
 export interface Service {
@@ -110,6 +116,9 @@ export interface Service {
   notificationCount: number;
   muted?: boolean;
   enabled?: boolean;
+  // Left out of the sidebar and listed under Hidden Services instead. Unlike
+  // disabling, the view keeps running; only its unread count stops showing.
+  hidden?: boolean;
   notificationsEnabled?: boolean;
   blurWhenInactive?: boolean;
   // Covers the top half of the service page so only the bottom 50% is visible

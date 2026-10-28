@@ -5,6 +5,7 @@ import {
   nextBlurWhenInactive,
   nextCameraAllowed,
   nextEnabled,
+  nextHidden,
   nextMicrophoneAllowed,
   nextMuted,
   nextNotificationsEnabled,
@@ -69,6 +70,11 @@ describe("flag toggles", () => {
     expect(nextEnabled(service())).toEqual({ enabled: false });
     expect(nextEnabled(service({ enabled: true }))).toEqual({ enabled: false });
     expect(nextEnabled(service({ enabled: false }))).toEqual({ enabled: true });
+  });
+
+  it("treats a missing hidden as shown, so the first toggle hides", () => {
+    expect(nextHidden(service())).toEqual({ hidden: true });
+    expect(nextHidden(service({ hidden: true }))).toEqual({ hidden: false });
   });
 
   it("treats a missing notificationsEnabled as on", () => {

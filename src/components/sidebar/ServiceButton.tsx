@@ -42,8 +42,8 @@ export default function ServiceButton({
   return (
     <button
       // Ctrl+1 (Cmd+1 on macOS) is Home, so Ctrl+N picks the (N-1)th
-      // service in sidebar order, disabled ones included — the same lookup
-      // main and the app shell use.
+      // service in sidebar order, disabled ones included and hidden ones not —
+      // the same lookup main and the app shell use.
       aria-keyshortcuts={shortcut ? `${SWITCH_KEY}+${shortcut}` : undefined}
       {...dragProps}
       onClick={onClick}

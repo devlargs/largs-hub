@@ -55,3 +55,20 @@ export function moveBy(
   reordered.splice(to, 0, movedId);
   return reordered;
 }
+
+/**
+ * The full service order after the sidebar reordered only what it shows:
+ * `visibleOrder` fills the slots the shown services held in `allIds`, and the
+ * hidden ones keep theirs. Every id in `allIds` stays — main's reorder drops
+ * any id it isn't given, so sending the sidebar's ids alone would delete the
+ * hidden services.
+ */
+export function withVisibleOrder(
+  allIds: readonly string[],
+  visibleOrder: readonly string[],
+): string[] {
+  const visible = new Set(visibleOrder);
+  const next = visibleOrder.filter((id) => allIds.includes(id));
+  let i = 0;
+  return allIds.map((id) => (visible.has(id) ? (next[i++] ?? id) : id));
+}

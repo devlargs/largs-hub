@@ -49,10 +49,16 @@ describe("sanitizeService", () => {
       notificationCount: 0,
       muted: false,
       enabled: true,
+      hidden: false,
       notificationsEnabled: true,
       blurWhenInactive: false,
       privacyMode: false,
     });
+  });
+
+  it("keeps a service hidden, and only for a real true", () => {
+    expect(sanitizeService({ ...valid, hidden: true })?.hidden).toBe(true);
+    expect(sanitizeService({ ...valid, hidden: "yes" })?.hidden).toBe(false);
   });
 
   it("keeps the flags it was given", () => {

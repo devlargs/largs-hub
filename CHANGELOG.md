@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Hide a service without disabling it.** Right-click a service and choose **Hide service** to take it out of the sidebar. It keeps running in the background, but its unread count no longer shows in the sidebar, tray or taskbar / Dock, and Ctrl+2-9 (Cmd on macOS) skip it. Hidden services are listed under the new **Hidden services** button above the lock, where you can open or unhide each one. Applies on Windows and macOS.
 
 ## [0.1.87] (2026-10-25)
 - **Discord, Slack, Telegram and Twitter / X are no longer presets.** The add-a-service grid is shorter; you can still add any of them through **Custom** by typing the address, and services you already added keep working with their icons.

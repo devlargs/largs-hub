@@ -9,6 +9,7 @@ import {
   removePrivacyFromView,
 } from "../serviceViews";
 import { quietNotificationsScript } from "../quietNotifications";
+import { clearNotificationCount } from "../notificationCounts";
 import { stopAutomationForService } from "../messengerAutomation";
 import { isDeviceAllowed } from "../servicePermissions";
 import {
@@ -16,6 +17,7 @@ import {
   nextBlurWhenInactive,
   nextCameraAllowed,
   nextEnabled,
+  nextHidden,
   nextMicrophoneAllowed,
   nextMuted,
   nextNotificationsEnabled,
@@ -54,6 +56,17 @@ export function toggleEnabled(serviceId: string): Service[] | null {
     stopAutomationForService(serviceId);
     destroyServiceView(serviceId, { clearCounts: true });
   }
+  return updated;
+}
+
+// Hiding only takes the service out of the sidebar; its view keeps running.
+// Its count stops showing (showsUnreadBadge), so drop the one already in the
+// tray and taskbar / Dock total now. Unhiding needs nothing: the next poll
+// reports the count again.
+export function toggleHidden(serviceId: string): Service[] | null {
+  const updated = patchService(serviceId, nextHidden);
+  if (!updated) return null;
+  if (updated.find((s) => s.id === serviceId)?.hidden) clearNotificationCount(serviceId);
   return updated;
 }
 

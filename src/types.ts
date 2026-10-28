@@ -49,6 +49,7 @@ export interface ElectronAPI {
   bringUiToFront: () => void;
   sendUiToBack: () => void;
   showServiceContextMenu: (serviceId: string) => void;
+  showHiddenServicesMenu: () => void;
   showSettingsMenu: () => void;
   onServicesUpdated: (callback: (services: Service[]) => void) => () => void;
   onContextMenuAction: (

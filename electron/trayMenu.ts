@@ -13,13 +13,13 @@ export interface TrayServiceEntry {
   enabled: boolean;
 }
 
-/** Services worth listing in the tray menu, in sidebar order. */
+/** Services worth listing in the tray menu, in sidebar order: not disabled or hidden ones. */
 export function trayServiceEntries(
-  services: Array<{ id: string; name: string; enabled?: boolean }>,
+  services: Array<{ id: string; name: string; enabled?: boolean; hidden?: boolean }>,
   counts: Record<string, number>,
 ): TrayServiceEntry[] {
   return services
-    .filter((s) => s.enabled !== false)
+    .filter((s) => s.enabled !== false && s.hidden !== true)
     .map((s) => ({
       id: s.id,
       name: s.name,

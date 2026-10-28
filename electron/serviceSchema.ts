@@ -105,6 +105,7 @@ export function sanitizeService(raw: unknown): Service | null {
     notificationCount: 0,
     muted: s.muted === true,
     enabled: s.enabled !== false,
+    hidden: s.hidden === true,
     notificationsEnabled: s.notificationsEnabled !== false,
     blurWhenInactive: s.blurWhenInactive === true,
     privacyMode: s.privacyMode === true,

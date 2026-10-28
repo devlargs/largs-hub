@@ -8,6 +8,7 @@ import {
   serviceDisplayMenuItems,
   servicePermissionMenuItems,
   toggleEnabled,
+  toggleHidden,
 } from "./serviceToggles";
 
 interface ContextMenuDeps {
@@ -70,6 +71,18 @@ export function registerServiceContextMenuIpc(deps: ContextMenuDeps) {
         label: "Edit service",
         click: () => sendAction("edit-service", serviceId),
       },
+      // Out of the sidebar and into Hidden Services; unhidden from there
+      // (hiddenServicesMenu.ts). Not offered while it's already hidden.
+      ...(service.hidden
+        ? []
+        : [
+            {
+              label: "Hide service",
+              click: () => {
+                if (toggleHidden(serviceId)) sendUpdated();
+              },
+            },
+          ]),
       {
         label: "Reload",
         click: () => {

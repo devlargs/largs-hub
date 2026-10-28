@@ -18,10 +18,12 @@ import { toggleEnabled, toggleMute, toggleNotifications } from "./serviceToggles
 import { registerServiceNavigationIpc } from "./serviceNavigation";
 import { clearAutomationPrefs } from "./automationPrefs";
 import { registerServiceContextMenuIpc } from "./serviceContextMenu";
+import { registerHiddenServicesMenuIpc } from "./hiddenServicesMenu";
 
 // IPC: service CRUD, per-service toggles (serviceToggles.ts) and which service
 // is on screen. What happens inside a view is in serviceNavigation.ts, the
-// native context menu in serviceContextMenu.ts; both register from here.
+// native context menu in serviceContextMenu.ts and the Hidden Services menu in
+// hiddenServicesMenu.ts; all register from here.
 
 interface ServicesIpcDeps {
   getMainWindow(): BrowserWindow | null;
@@ -158,4 +160,5 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
 
   registerServiceNavigationIpc();
   registerServiceContextMenuIpc(deps);
+  registerHiddenServicesMenuIpc(deps);
 }

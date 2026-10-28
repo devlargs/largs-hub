@@ -1,5 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { isInternalService, Service } from "./types";
+import { sidebarServices } from "@shared/serviceVisibility";
+import { withVisibleOrder } from "./lib/serviceOrder";
 import Sidebar from "./components/Sidebar";
 import Titlebar from "./components/Titlebar";
 import AddServiceModal from "./components/AddServiceModal";
@@ -42,6 +44,7 @@ function App() {
   const zoomFactor = useZoomFactor(activeServiceId);
   const { findServiceId, openFind, closeFind } = useFindBar(activeServiceId);
   const activeService = services.find((s) => s.id === activeServiceId) ?? null;
+  const shownServices = useMemo(() => sidebarServices(services), [services]);
   const automationPanel = useAutomationPanel(activeService);
   useNotificationSync();
   // Hide the service view so the modal renders above it
@@ -105,6 +108,7 @@ function App() {
     setServices,
     withService,
     onRestored: setActiveServiceId,
+    onSelect: handleSelectService,
     onActivated: (serviceId) => {
       setActiveServiceId(serviceId);
       setAppPage(null);
@@ -129,14 +133,14 @@ function App() {
     activeServiceId,
     onFind: openFind,
     // Ctrl+1 is Home; Ctrl+N picks the (N-1)th service in sidebar order,
-    // disabled ones included
+    // disabled ones included, hidden ones not
     onSwitch: (target) => {
       if (target.kind === "home") {
         void goHome();
         return;
       }
       setServices((current) => {
-        const service = current[target.index];
+        const service = sidebarServices(current)[target.index];
         if (service) handleSelectService(service.id);
         return current;
       });
@@ -158,10 +162,18 @@ function App() {
     setEditingService(null);
   }, []);
 
-  const handleReorderServices = useCallback(async (serviceIds: string[]) => {
-    const updated = await window.electronAPI.reorderServices(serviceIds);
-    setServices(updated);
-  }, []);
+  // The sidebar reorders only what it shows; put the hidden services back in
+  // their places so main keeps them.
+  const handleReorderServices = useCallback(
+    async (visibleIds: string[]) => {
+      const allIds = services.map((s) => s.id);
+      const updated = await window.electronAPI.reorderServices(
+        withVisibleOrder(allIds, visibleIds),
+      );
+      setServices(updated);
+    },
+    [services],
+  );
 
   // Runs `fn` on the active service, if there is one
   const onActive = (fn: (serviceId: string) => void) => () => {
@@ -185,7 +197,8 @@ function App() {
       />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
-          services={services}
+          services={shownServices}
+          hasHidden={shownServices.length < services.length}
           activeServiceId={activeServiceId}
           showShortcutHints={shortcutHints && !locked}
           canLock={canLock}

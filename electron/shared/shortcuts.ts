@@ -1,7 +1,8 @@
 // Ctrl+number targets (Cmd+number on macOS), shared by main (keys pressed
 // inside a service view) and the renderer (keys pressed in the interface, the
 // sidebar's hint numbers). 1 is Home; 2-9 are the first eight services in
-// sidebar order, disabled ones included. Pure — compiled into both bundles.
+// sidebar order, disabled ones included and hidden ones not. Pure — compiled
+// into both bundles.
 
 // The modifier held for the number shortcuts and their sidebar hints: Cmd on
 // macOS, like its other apps' tab switching, and Ctrl everywhere else

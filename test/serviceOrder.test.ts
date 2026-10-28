@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { compareServiceNames, moveBy, moveOnto, sortByName } from "../src/lib/serviceOrder";
+import {
+  compareServiceNames,
+  moveBy,
+  moveOnto,
+  sortByName,
+  withVisibleOrder,
+} from "../src/lib/serviceOrder";
 
 const names = (items: { name: string }[]) => items.map((i) => i.name);
 
@@ -99,5 +105,27 @@ describe("moveBy", () => {
     expect(moveBy(ids, "a", -1)).toBeNull();
     expect(moveBy(ids, "c", 1)).toBeNull();
     expect(moveBy(ids, "zzz", 1)).toBeNull();
+  });
+});
+
+describe("withVisibleOrder", () => {
+  // b and d are hidden; the sidebar shows a, c, e
+  const all = ["a", "b", "c", "d", "e"];
+
+  it("reorders the shown services and leaves the hidden ones in place", () => {
+    expect(withVisibleOrder(all, ["e", "a", "c"])).toEqual(["e", "b", "a", "d", "c"]);
+  });
+
+  it("never drops a service", () => {
+    const result = withVisibleOrder(all, ["c", "a", "e"]);
+    expect([...result].sort()).toEqual(all);
+  });
+
+  it("is the same order when nothing moved", () => {
+    expect(withVisibleOrder(all, ["a", "c", "e"])).toEqual(all);
+  });
+
+  it("ignores ids it doesn't know", () => {
+    expect(withVisibleOrder(["a", "b"], ["zzz", "a"])).toEqual(["a", "b"]);
   });
 });

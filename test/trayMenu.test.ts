@@ -26,6 +26,14 @@ describe("trayServiceEntries", () => {
     expect(entries.map((e) => e.id)).toEqual(["b"]);
   });
 
+  it("leaves hidden services out — they're meant to be out of sight", () => {
+    const entries = trayServiceEntries(
+      [{ ...service("a", "Gmail"), hidden: true }, service("b", "Slack")],
+      { a: 4 },
+    );
+    expect(entries.map((e) => e.id)).toEqual(["b"]);
+  });
+
   it("treats a missing count as zero", () => {
     expect(trayServiceEntries([service("a", "Gmail")], {})[0].unread).toBe(0);
   });

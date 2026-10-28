@@ -46,6 +46,8 @@ export const showsWebView = (s: Service | undefined): s is Service =>
 export const enableToggleNeedsConfirm = (s: Service, hasAutomation: boolean): boolean =>
   s.enabled !== false && hasAutomation;
 
+export const nextHidden = (s: Service): Partial<Service> => ({ hidden: !s.hidden });
+
 export const nextMuted = (s: Service): Partial<Service> => ({ muted: !s.muted });
 
 export const nextNotificationsEnabled = (s: Service): Partial<Service> => ({
