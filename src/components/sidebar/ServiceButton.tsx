@@ -1,9 +1,9 @@
 import type { Service } from "../../types";
-import { resolveIcon } from "../../assets/serviceIcons";
 import { badgeText, serviceLabel } from "../../lib/serviceLabel";
 import type { useServiceDrag } from "../../hooks/useServiceDrag";
 import { SWITCH_MODIFIER_KEY, shortcutNumberFor, switchModifierFor } from "@shared/shortcuts";
 import ShortcutHint from "./ShortcutHint";
+import ServiceIcon from "../ui/ServiceIcon";
 
 // Control on Windows, Meta (Cmd) on macOS
 const SWITCH_KEY = SWITCH_MODIFIER_KEY[switchModifierFor(window.electronAPI?.platform ?? "")];
@@ -78,24 +78,5 @@ export default function ServiceButton({
         <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-accent rounded-r-full" />
       )}
     </button>
-  );
-}
-
-// The built-in or uploaded icon, an emoji icon, or the name's initial.
-function ServiceIcon({ service }: { service: Service }) {
-  const resolved = resolveIcon(service.icon, service.name);
-  if (resolved) {
-    return <img src={resolved} alt={service.name} className="w-7 h-7 rounded object-contain" />;
-  }
-  if (service.icon) {
-    return <span className="text-2xl">{service.icon}</span>;
-  }
-  return (
-    <span
-      className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-      style={{ backgroundColor: service.color || "#6c7086" }}
-    >
-      {service.name.charAt(0).toUpperCase()}
-    </span>
   );
 }

@@ -1,6 +1,7 @@
-import type { AppSettings } from "../../types";
+import type { AppSettings, Service } from "../../types";
 import type { AppSettingsApi } from "./useAppSettings";
 import { Section, SettingRow, Slider } from "./controls";
+import HiddenServicesTable from "./HiddenServicesTable";
 
 type PrivacyKey = Extract<
   keyof AppSettings,
@@ -30,7 +31,17 @@ const SLIDERS: Array<{ key: PrivacyKey; label: string; info: string }> = [
   },
 ];
 
-export default function PrivacySection({ settings, preview }: AppSettingsApi) {
+export interface HiddenServicesProps {
+  hiddenServices: Service[];
+  onUnhideService: (serviceId: string) => void;
+}
+
+export default function PrivacySection({
+  settings,
+  preview,
+  hiddenServices,
+  onUnhideService,
+}: AppSettingsApi & HiddenServicesProps) {
   return (
     <Section title="Privacy">
       {SLIDERS.map(({ key, label, info }) => (
@@ -45,6 +56,7 @@ export default function PrivacySection({ settings, preview }: AppSettingsApi) {
           />
         </SettingRow>
       ))}
+      <HiddenServicesTable services={hiddenServices} onUnhide={onUnhideService} />
     </Section>
   );
 }

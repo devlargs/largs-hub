@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeServiceUrl, serviceNameFromUrl } from "../src/lib/serviceUrl";
+import { normalizeServiceUrl, serviceHost, serviceNameFromUrl } from "../src/lib/serviceUrl";
 
 describe("normalizeServiceUrl", () => {
   it("accepts a full http(s) URL", () => {
@@ -59,5 +59,17 @@ describe("serviceNameFromUrl", () => {
     expect(serviceNameFromUrl("   ")).toBeNull();
     expect(serviceNameFromUrl("htps://x.com")).toBeNull();
     expect(serviceNameFromUrl("file:///c:/x")).toBeNull();
+  });
+});
+
+describe("serviceHost", () => {
+  it("shows the hostname without www", () => {
+    expect(serviceHost("https://www.messenger.com/t/123")).toBe("messenger.com");
+    expect(serviceHost("https://mail.google.com/mail/u/0/")).toBe("mail.google.com");
+  });
+
+  it("falls back to the stored string when it isn't a URL", () => {
+    expect(serviceHost("not a url")).toBe("not a url");
+    expect(serviceHost("")).toBe("");
   });
 });

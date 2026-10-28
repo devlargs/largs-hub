@@ -57,3 +57,16 @@ export function serviceNameFromUrl(raw: string): string | null {
   if (!label) return null;
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
+
+/**
+ * The host to show for a service's address in a list ("mail.google.com"),
+ * without a leading "www.". Falls back to the stored string when it isn't a
+ * URL, so the row still says something.
+ */
+export function serviceHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "") || url;
+  } catch {
+    return url;
+  }
+}

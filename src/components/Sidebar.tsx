@@ -7,7 +7,6 @@ import { moveBy } from "../lib/serviceOrder";
 import { useServiceDrag } from "../hooks/useServiceDrag";
 import ServiceButton from "./sidebar/ServiceButton";
 import LockButton from "./sidebar/LockButton";
-import HiddenServicesButton from "./sidebar/HiddenServicesButton";
 import ShortcutHint from "./sidebar/ShortcutHint";
 import { SWITCH_MODIFIER_KEY, switchModifierFor } from "@shared/shortcuts";
 
@@ -17,8 +16,6 @@ const SWITCH_KEY = SWITCH_MODIFIER_KEY[switchModifierFor(window.electronAPI?.pla
 interface SidebarProps {
   // The services the sidebar shows: hidden ones are left out (sidebarServices)
   services: Service[];
-  // At least one service is hidden: show the Hidden Services button
-  hasHidden: boolean;
   activeServiceId: string | null;
   // Ctrl (Cmd on macOS) is held: number Home (1) and the services 2-9 switch to
   showShortcutHints: boolean;
@@ -31,7 +28,6 @@ interface SidebarProps {
 
 export default function Sidebar({
   services,
-  hasHidden,
   activeServiceId,
   showShortcutHints,
   canLock,
@@ -105,11 +101,6 @@ export default function Sidebar({
       {/* Spacer */}
       <div className="flex-1" />
 
-      {hasHidden && (
-        <HiddenServicesButton
-          active={!!activeServiceId && !services.some((s) => s.id === activeServiceId)}
-        />
-      )}
       {canLock && <LockButton />}
     </div>
   );

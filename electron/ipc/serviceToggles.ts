@@ -70,6 +70,10 @@ export function toggleHidden(serviceId: string): Service[] | null {
   return updated;
 }
 
+export function unhideService(serviceId: string): Service[] | null {
+  return patchService(serviceId, () => ({ hidden: false }));
+}
+
 export function toggleMute(serviceId: string): Service[] | null {
   const updated = patchService(serviceId, nextMuted);
   if (!updated) return null;

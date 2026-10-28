@@ -44,12 +44,12 @@ export interface ElectronAPI {
   toggleMuteService: (serviceId: string) => Promise<Service[]>;
   toggleServiceEnabled: (serviceId: string) => Promise<Service[]>;
   toggleServiceNotifications: (serviceId: string) => Promise<Service[]>;
+  unhideService: (serviceId: string) => Promise<Service[]>;
   showService: (serviceId: string) => void;
   hideService: () => Promise<void>;
   bringUiToFront: () => void;
   sendUiToBack: () => void;
   showServiceContextMenu: (serviceId: string) => void;
-  showHiddenServicesMenu: () => void;
   showSettingsMenu: () => void;
   onServicesUpdated: (callback: (services: Service[]) => void) => () => void;
   onContextMenuAction: (

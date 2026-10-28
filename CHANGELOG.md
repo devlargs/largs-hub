@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Hidden services moved to Settings → Privacy.** The eye button above the lock is gone, so nothing in the sidebar gives hidden services away. They're now listed in a **Hidden services** table under Settings → Privacy, each with an **Unhide** button. Hiding the service that's on screen takes you Home. Applies on Windows and macOS.
 
 ## [0.1.88] (2026-10-28)
 - **Hide a service without disabling it.** Right-click a service and choose **Hide service** to take it out of the sidebar. It keeps running in the background, but its unread count no longer shows in the sidebar, tray or taskbar / Dock, and Ctrl+2-9 (Cmd on macOS) skip it. Hidden services are listed under the new **Hidden services** button above the lock, where you can open or unhide each one. Applies on Windows and macOS.

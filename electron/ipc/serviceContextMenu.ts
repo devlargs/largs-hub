@@ -71,8 +71,8 @@ export function registerServiceContextMenuIpc(deps: ContextMenuDeps) {
         label: "Edit service",
         click: () => sendAction("edit-service", serviceId),
       },
-      // Out of the sidebar and into Hidden Services; unhidden from there
-      // (hiddenServicesMenu.ts). Not offered while it's already hidden.
+      // Out of the sidebar and into the Hidden services table in Settings →
+      // Privacy, which unhides it. Not offered while it's already hidden.
       ...(service.hidden
         ? []
         : [

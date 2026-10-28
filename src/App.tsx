@@ -1,6 +1,6 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { isInternalService, Service } from "./types";
-import { sidebarServices } from "@shared/serviceVisibility";
+import { hiddenServices, sidebarServices } from "@shared/serviceVisibility";
 import { withVisibleOrder } from "./lib/serviceOrder";
 import Sidebar from "./components/Sidebar";
 import Titlebar from "./components/Titlebar";
@@ -45,6 +45,7 @@ function App() {
   const { findServiceId, openFind, closeFind } = useFindBar(activeServiceId);
   const activeService = services.find((s) => s.id === activeServiceId) ?? null;
   const shownServices = useMemo(() => sidebarServices(services), [services]);
+  const hidden = useMemo(() => hiddenServices(services), [services]);
   const automationPanel = useAutomationPanel(activeService);
   useNotificationSync();
   // Hide the service view so the modal renders above it
@@ -108,7 +109,6 @@ function App() {
     setServices,
     withService,
     onRestored: setActiveServiceId,
-    onSelect: handleSelectService,
     onActivated: (serviceId) => {
       setActiveServiceId(serviceId);
       setAppPage(null);
@@ -162,6 +162,17 @@ function App() {
     setEditingService(null);
   }, []);
 
+  // A hidden service has no sidebar button to show it's the one on screen or
+  // to get back to it, so hiding the active service (or relaunching onto one)
+  // goes Home. Unhiding is in Settings → Privacy.
+  useEffect(() => {
+    if (activeService?.hidden) void goHome();
+  }, [activeService?.hidden, goHome]);
+
+  const handleUnhideService = useCallback(async (serviceId: string) => {
+    setServices(await window.electronAPI.unhideService(serviceId));
+  }, []);
+
   // The sidebar reorders only what it shows; put the hidden services back in
   // their places so main keeps them.
   const handleReorderServices = useCallback(
@@ -198,7 +209,6 @@ function App() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
           services={shownServices}
-          hasHidden={shownServices.length < services.length}
           activeServiceId={activeServiceId}
           showShortcutHints={shortcutHints && !locked}
           canLock={canLock}
@@ -219,6 +229,8 @@ function App() {
             setServices(updated);
             window.electronAPI?.showService(svc.id);
           }}
+          hiddenServices={hidden}
+          onUnhideService={handleUnhideService}
         />
       </div>
       {findServiceId && (

@@ -47,6 +47,8 @@ const api = {
     ipcRenderer.invoke("toggle-service-enabled", serviceId),
   toggleServiceNotifications: (serviceId: string): Promise<Service[]> =>
     ipcRenderer.invoke("toggle-service-notifications", serviceId),
+  unhideService: (serviceId: string): Promise<Service[]> =>
+    ipcRenderer.invoke("unhide-service", serviceId),
 
   // View management
   showService: (serviceId: string): void => ipcRenderer.send("show-service", serviceId),
@@ -55,7 +57,6 @@ const api = {
   sendUiToBack: (): void => ipcRenderer.send("send-ui-to-back"),
   showServiceContextMenu: (serviceId: string): void =>
     ipcRenderer.send("show-service-context-menu", serviceId),
-  showHiddenServicesMenu: (): void => ipcRenderer.send("show-hidden-services-menu"),
   showSettingsMenu: (): void => ipcRenderer.send("show-settings-menu"),
   onServicesUpdated: (callback: (services: Service[]) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, services: Service[]) => callback(services);

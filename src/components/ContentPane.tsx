@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import type { Service } from "../types";
 import WelcomeScreen from "./WelcomeScreen";
 import SettingsPage from "./SettingsPage";
+import type { HiddenServicesProps } from "./settings/PrivacySection";
 import DisabledServiceScreen from "./DisabledServiceScreen";
 import RetiredNoteTakerScreen from "./RetiredNoteTakerScreen";
 
@@ -12,7 +13,7 @@ const ChangelogPage = lazy(() => import("./ChangelogPage"));
 // Full-pane app pages, shown while no service is active
 export type AppPage = "settings" | "changelog";
 
-interface ContentPaneProps {
+interface ContentPaneProps extends HiddenServicesProps {
   activeService: Service | null;
   activeServiceId: string | null;
   appPage: AppPage | null;
@@ -35,13 +36,17 @@ export default function ContentPane({
   onOpenSettings,
   onRemoveService,
   onEnableService,
+  hiddenServices,
+  onUnhideService,
 }: ContentPaneProps) {
   return (
     <div className="flex-1 relative">
       {!activeServiceId && !appPage && (
         <WelcomeScreen onAddService={onAddService} hasServices={hasServices} />
       )}
-      {appPage === "settings" && !activeServiceId && <SettingsPage />}
+      {appPage === "settings" && !activeServiceId && (
+        <SettingsPage hiddenServices={hiddenServices} onUnhideService={onUnhideService} />
+      )}
       {appPage === "changelog" && !activeServiceId && (
         <Suspense fallback={null}>
           <ChangelogPage onOpenSettings={onOpenSettings} />

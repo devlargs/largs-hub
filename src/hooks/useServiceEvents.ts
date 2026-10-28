@@ -10,8 +10,6 @@ interface ServiceEventHandlers {
   onRestored: (serviceId: string) => void;
   // A service became active from main's side (Ctrl+1-9 in a view, a menu)
   onActivated: (serviceId: string) => void;
-  // Open a service as a sidebar click would (the Hidden Services menu)
-  onSelect: (serviceId: string) => void;
   // Ctrl+1 in a service view went Home
   onHome: () => void;
   onEdit: (service: Service) => void;
@@ -62,8 +60,6 @@ export function useServiceEvents(handlers: ServiceEventHandlers): void {
       } else if (action === "show-service") {
         h.onActivated(serviceId);
         api.showService(serviceId);
-      } else if (action === "select-service") {
-        h.onSelect(serviceId);
       } else if (action === "show-update-page") {
         h.onShowUpdatePage();
       } else {

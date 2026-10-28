@@ -116,7 +116,7 @@ export interface Service {
   notificationCount: number;
   muted?: boolean;
   enabled?: boolean;
-  // Left out of the sidebar and listed under Hidden Services instead. Unlike
+  // Left out of the sidebar and listed in Settings → Privacy instead. Unlike
   // disabling, the view keeps running; only its unread count stops showing.
   hidden?: boolean;
   notificationsEnabled?: boolean;
