@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.89] (2026-10-28)
 - **Hidden services moved to Settings → Privacy.** The eye button above the lock is gone, so nothing in the sidebar gives hidden services away. They're now listed in a **Hidden services** table under Settings → Privacy, each with an **Unhide** button. Hiding the service that's on screen takes you Home. Applies on Windows and macOS.
 
 ## [0.1.88] (2026-10-28)
