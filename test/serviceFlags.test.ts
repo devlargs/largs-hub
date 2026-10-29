@@ -7,6 +7,7 @@ import {
   nextEnabled,
   nextHidden,
   nextMicrophoneAllowed,
+  isSoundSilenced,
   nextMuted,
   nextNotificationsEnabled,
   nextPrivacyMode,
@@ -174,5 +175,25 @@ describe("showsWebView", () => {
 
   it("is false for a service that isn't there", () => {
     expect(showsWebView(undefined)).toBe(false);
+  });
+});
+
+// Nothing behind the lock screen may chime, whatever its Sound switch says.
+describe("isSoundSilenced", () => {
+  it("follows the Sound switch while unlocked", () => {
+    expect(isSoundSilenced(service(), false)).toBe(false);
+    expect(isSoundSilenced(service({ muted: false }), false)).toBe(false);
+    expect(isSoundSilenced(service({ muted: true }), false)).toBe(true);
+  });
+
+  it("silences every service while the workspace is locked", () => {
+    expect(isSoundSilenced(service(), true)).toBe(true);
+    expect(isSoundSilenced(service({ muted: false }), true)).toBe(true);
+    expect(isSoundSilenced(service({ muted: true }), true)).toBe(true);
+  });
+
+  it("treats a service that isn't there as unmuted", () => {
+    expect(isSoundSilenced(undefined, false)).toBe(false);
+    expect(isSoundSilenced(undefined, true)).toBe(true);
   });
 });

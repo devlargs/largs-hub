@@ -11,6 +11,7 @@
 //   findZoom.ts     find in page, per-service zoom
 //   polling.ts      badge extraction and its poll rate
 //   overlays.ts     blur / privacy overlays
+//   sound.ts        Sound switch + lock: page audio and notification sounds
 //   callWindow.ts   Messenger call popup window + Call Cycle hooks
 //   contextMenu.ts  native right-click menu
 //   scripts.ts      injected page scripts (pure, snapshot-tested)
@@ -37,6 +38,7 @@ export {
   removePrivacyFromView,
   refreshPrivacyOverlays,
 } from "./overlays";
+export { applyServiceSound } from "./sound";
 export { refreshPollRates, setWindowMinimized, watchPowerForPolling } from "./polling";
 export { armAutomationCall, closeCallWindow, monitorCallForAnswer } from "./callWindow";
 export {

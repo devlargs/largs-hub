@@ -14,6 +14,7 @@ import {
 import { refreshPollRates } from "./polling";
 import { closeCallWindowForTeardown, isAnyCallAudible } from "./callWindow";
 import { createServiceView } from "./create";
+import { applySoundToAllViews } from "./sound";
 
 // Which service view is on screen: switching, hiding, suppression while the
 // workspace is locked, window focus/blur, and creating/destroying views.
@@ -23,6 +24,8 @@ import { createServiceView } from "./create";
 export function setViewsSuppressed(suppressed: boolean) {
   viewState.viewsSuppressed = suppressed;
   setActiveViewVisible(!suppressed);
+  // Nothing behind the lock screen may chime either
+  applySoundToAllViews();
 }
 
 export function setActiveViewVisible(visible: boolean) {

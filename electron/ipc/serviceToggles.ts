@@ -7,8 +7,8 @@ import {
   removeBlurFromView,
   applyPrivacyToView,
   removePrivacyFromView,
+  applyServiceSound,
 } from "../serviceViews";
-import { quietNotificationsScript } from "../quietNotifications";
 import { clearNotificationCount } from "../notificationCounts";
 import { stopAutomationForService } from "../messengerAutomation";
 import { isDeviceAllowed } from "../servicePermissions";
@@ -77,13 +77,9 @@ export function unhideService(serviceId: string): Service[] | null {
 export function toggleMute(serviceId: string): Service[] | null {
   const updated = patchService(serviceId, nextMuted);
   if (!updated) return null;
+  // Page audio and the OS sound that comes with its notifications, no reload
   const view = getServiceView(serviceId);
-  if (view && !view.webContents.isDestroyed()) {
-    const muted = updated.find((s) => s.id === serviceId)?.muted === true;
-    view.webContents.setAudioMuted(muted);
-    // And the OS sound that comes with its notifications, without a reload
-    view.webContents.executeJavaScript(quietNotificationsScript(muted), true).catch(() => {});
-  }
+  if (view) applyServiceSound(view, serviceId);
   return updated;
 }
 

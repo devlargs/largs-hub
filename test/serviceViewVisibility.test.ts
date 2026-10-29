@@ -10,6 +10,7 @@ import {
 } from "../electron/serviceViews/state";
 import * as visibility from "../electron/serviceViews/visibility";
 import { APPLY_BLUR_SCRIPT, REMOVE_BLUR_SCRIPT } from "../electron/serviceViews/scripts";
+import { quietNotificationsScript } from "../electron/quietNotifications";
 
 // The glue that decides which service view is on screen (serviceViews/
 // visibility.ts). Views, the window and the store are fakes: the point is the
@@ -42,6 +43,7 @@ interface FakeView {
     isDestroyed: () => boolean;
     isCurrentlyAudible: () => boolean;
     executeJavaScript: ReturnType<typeof vi.fn>;
+    setAudioMuted: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -58,6 +60,7 @@ function fakeView(): FakeView {
       isDestroyed: () => false,
       isCurrentlyAudible: () => false,
       executeJavaScript: vi.fn(() => Promise.resolve()),
+      setAudioMuted: vi.fn(),
     },
   };
   return view;
@@ -193,6 +196,24 @@ describe("suppression while locked", () => {
     visibility.setViewsSuppressed(true);
     visibility.setViewsSuppressed(false);
     expect(viewOf("a").visible).toBe(true);
+  });
+
+  it("silences every view while locked and restores each Sound switch on unlock", () => {
+    storeData.services = [service("a"), service("b", { muted: true })];
+    visibility.showService("a");
+    visibility.showService("b");
+    visibility.setViewsSuppressed(true);
+    expect(viewOf("a").webContents.setAudioMuted).toHaveBeenLastCalledWith(true);
+    expect(viewOf("b").webContents.setAudioMuted).toHaveBeenLastCalledWith(true);
+    expect(ranScript(viewOf("a"), quietNotificationsScript(true))).toBe(true);
+
+    visibility.setViewsSuppressed(false);
+    expect(viewOf("a").webContents.setAudioMuted).toHaveBeenLastCalledWith(false);
+    expect(viewOf("b").webContents.setAudioMuted).toHaveBeenLastCalledWith(true);
+    expect(viewOf("a").webContents.executeJavaScript).toHaveBeenLastCalledWith(
+      quietNotificationsScript(false),
+      true,
+    );
   });
 
   it("lets modals hide and restore the view while unlocked", () => {

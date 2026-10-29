@@ -50,6 +50,10 @@ export const nextHidden = (s: Service): Partial<Service> => ({ hidden: !s.hidden
 
 export const nextMuted = (s: Service): Partial<Service> => ({ muted: !s.muted });
 
+/** A service is silent while its Sound switch is off or the workspace is locked. */
+export const isSoundSilenced = (s: Service | undefined, locked: boolean): boolean =>
+  locked || s?.muted === true;
+
 export const nextNotificationsEnabled = (s: Service): Partial<Service> => ({
   notificationsEnabled: s.notificationsEnabled === false,
 });

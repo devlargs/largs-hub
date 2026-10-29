@@ -7,7 +7,6 @@ import { trackGoogleSignIns } from "../googleLoginShare";
 import { messengerAdapter } from "../badge-adapters/messenger";
 import { DEFAULT_ZOOM } from "../zoom";
 import { isPermissionAllowed } from "../servicePermissions";
-import { quietNotificationsScript } from "../quietNotifications";
 import {
   applyChromeIdentity,
   applyChromeIdentityToSession,
@@ -24,6 +23,7 @@ import { attachContextMenu } from "./contextMenu";
 import { attachBadgeExtraction } from "./polling";
 import { attachNavigationGuard } from "./navigationGuard";
 import { attachSignInPopups, signInPopupOptions } from "./signInPopup";
+import { applyServiceSound, isServiceSilenced } from "./sound";
 
 const SWITCH_MODIFIER = switchModifierFor(process.platform);
 
@@ -127,19 +127,16 @@ export function createServiceView(
     void applyChromeIdentity(view.webContents);
   }
 
-  // Apply mute state
-  if (service.muted) {
+  // Apply mute state (the Sound switch, or a locked workspace — sound.ts)
+  if (isServiceSilenced(service.id)) {
     view.webContents.setAudioMuted(true);
   }
 
   // Muting the view doesn't reach the sound the OS plays with a native
   // notification, so those are made silent from inside the page as well
   // (quietNotifications.ts). Each load starts a fresh document, so it's
-  // installed on every one, with the service's current Sound setting.
-  view.webContents.on("dom-ready", () => {
-    const muted = liveService()?.muted === true;
-    view.webContents.executeJavaScript(quietNotificationsScript(muted), true).catch(() => {});
-  });
+  // installed on every one, with the current setting.
+  view.webContents.on("dom-ready", () => applyServiceSound(view, service.id));
 
   hookDownloadSession(view, partition);
 

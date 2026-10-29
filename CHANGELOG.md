@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **No notification sounds while the workspace is locked.** Behind the lock screen every service is silent: no notification sounds and no page audio such as message chimes or a ringing call, whatever each service's **Sound** switch says. Sound comes back as it was when you unlock. A call already open in its own window keeps its audio. Applies on Windows and macOS.
 
 ## [0.1.89] (2026-10-28)
 - **Hidden services moved to Settings → Privacy.** The eye button above the lock is gone, so nothing in the sidebar gives hidden services away. They're now listed in a **Hidden services** table under Settings → Privacy, each with an **Unhide** button. Hiding the service that's on screen takes you Home. Applies on Windows and macOS.
