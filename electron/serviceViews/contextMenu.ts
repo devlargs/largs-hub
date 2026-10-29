@@ -1,5 +1,6 @@
 import { clipboard, Menu, WebContentsView } from "electron";
 import { DEFAULT_ZOOM } from "../zoom";
+import { canOpenDevTools, inspectElement } from "../devTools";
 import { getDeps } from "./state";
 import { getServiceZoom, openFindBarFor, stepServiceZoom } from "./findZoom";
 
@@ -113,6 +114,17 @@ export function attachContextMenu(view: WebContentsView, serviceId: string) {
         click: () => stepServiceZoom(serviceId, "reset"),
       },
     );
+
+    // Debug mode (Settings → Developer)
+    if (canOpenDevTools()) {
+      menuItems.push(
+        { type: "separator" },
+        {
+          label: "Inspect Element",
+          click: () => inspectElement(view.webContents, params.x, params.y),
+        },
+      );
+    }
 
     const mainWindow = getDeps()?.getMainWindow();
     if (mainWindow) {

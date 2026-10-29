@@ -46,6 +46,9 @@ export interface StoreSchema {
   privacyOpacity: number;
   privacyHorizontalPercent: number;
   privacyHorizontalOpacity: number;
+  // Settings → Developer: lets DevTools be opened in a packaged build, while
+  // the workspace is unlocked (devTools.ts)
+  debugMode: boolean;
   // Per-service zoom factor, keyed by service id. Re-applied whenever the
   // service view is created so a zoom survives hibernation and restarts.
   serviceZoom: Record<string, number>;
@@ -102,6 +105,7 @@ export const store = new Store<StoreSchema>({
     privacyOpacity: 100,
     privacyHorizontalPercent: 0,
     privacyHorizontalOpacity: 100,
+    debugMode: false,
     serviceZoom: {},
     messageListGroups: [],
     recentEmojis: [],

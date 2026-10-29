@@ -130,6 +130,8 @@ Right-click a service in the sidebar for its options: enable, blur when inactive
 3. Under **Permissions**, set **Issues** and **Contents** to **Read and write**. Contents is where pasted images go: GitHub's API can't attach files to an issue, so each image is committed to an `issue-images` branch and linked from the issue.
 4. Paste the token into Largs Hub and click **Save**. It's checked with GitHub, then stored encrypted by the system (Windows DPAPI or the macOS Keychain) and only ever used by the app's main process.
 
+**Debug mode** (**Settings → Developer**) lets you inspect any page: press `F12` or `Ctrl`+`Shift`+`I` (`Cmd`+`Option`+`I` on macOS) to open DevTools for whatever has focus, a service or Largs Hub itself, or right-click a service and choose **Inspect Element**. It's off by default. DevTools close when the workspace locks and can't be opened again until you unlock.
+
 Repeat for each app you want in your workspace.
 
 ## Development

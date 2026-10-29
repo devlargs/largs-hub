@@ -4,6 +4,7 @@ import { store } from "../store";
 import { refreshPrivacyOverlays } from "../serviceViews";
 import { syncTray } from "../tray";
 import { isFromApp } from "../appOrigin";
+import { refreshDevTools } from "../devTools";
 import {
   customIconsDir as iconsDir,
   resolveCustomIconPath as resolveIconPath,
@@ -35,6 +36,7 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
       privacyOpacity: store.get("privacyOpacity"),
       privacyHorizontalPercent: store.get("privacyHorizontalPercent"),
       privacyHorizontalOpacity: store.get("privacyHorizontalOpacity"),
+      debugMode: store.get("debugMode"),
     };
   });
 
@@ -68,6 +70,9 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
       store.set(key, value);
       // Creates the tray when either is switched on, removes it when both go off.
       syncTray();
+    } else if (key === "debugMode" && typeof value === "boolean") {
+      store.set("debugMode", value);
+      refreshDevTools(); // turning it off closes any DevTools left open
     } else if (
       key === "privacyCoverPercent" ||
       key === "privacyOpacity" ||

@@ -5,6 +5,7 @@ import PrivacySection, { type HiddenServicesProps } from "./settings/PrivacySect
 import DownloadsSection from "./settings/DownloadsSection";
 import UpdatesSection from "./settings/UpdatesSection";
 import GitHubSection from "./settings/GitHubSection";
+import DeveloperSection from "./settings/DeveloperSection";
 
 export default function SettingsPage({ hiddenServices, onUnhideService }: HiddenServicesProps) {
   const appSettings = useAppSettings();
@@ -41,6 +42,7 @@ export default function SettingsPage({ hiddenServices, onUnhideService }: Hidden
         <DownloadsSection {...appSettings} />
         <UpdatesSection />
         <GitHubSection />
+        <DeveloperSection {...appSettings} />
       </div>
     </div>
   );

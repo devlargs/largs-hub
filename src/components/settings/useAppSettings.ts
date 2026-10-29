@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   privacyOpacity: 100,
   privacyHorizontalPercent: 0,
   privacyHorizontalOpacity: 100,
+  debugMode: false,
 };
 
 export type BooleanSettingKey = {

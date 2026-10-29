@@ -6,7 +6,7 @@ import { initTray, isQuitting, isTrayAvailable, refreshTray, syncTray } from "..
 import { windowCloseAction, windowMinimizeAction } from "../trayMenu";
 import { MAC_TRAFFIC_LIGHT_POSITION } from "../shared/layout";
 import { APP_ENTRY_URL, guardUiView } from "../uiViewGuard";
-import { DEVTOOLS_ENABLED } from "../devMode";
+import { handleDevToolsShortcut } from "../devTools";
 import { attachSecurityWindowEvents } from "../ipc/security";
 import { createDebouncedSaver } from "../debouncedSave";
 import {
@@ -175,15 +175,18 @@ function createUiView(mainWindow: BrowserWindow): WebContentsView {
       // The preload only needs contextBridge and ipcRenderer, both available
       // to a sandboxed preload (issue #112).
       sandbox: true,
-      // DevTools here would reach window.electronAPI past the lock (#111).
-      devTools: DEVTOOLS_ENABLED,
+      // DevTools here would reach window.electronAPI past the lock (#111), so
+      // a packaged build only opens them in debug mode while unlocked, and
+      // devTools.ts closes them on lock.
+      devTools: true,
     },
   });
 
   uiView.setBackgroundColor("#00000000");
   guardUiView(uiView.webContents);
-  uiView.webContents.on("before-input-event", (_event, input) => {
+  uiView.webContents.on("before-input-event", (event, input) => {
     shortcutHints.handleInput(input);
+    handleDevToolsShortcut(event, input, uiView.webContents);
   });
   mainWindow.contentView.addChildView(uiView);
   windowState.uiView = uiView;

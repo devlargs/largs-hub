@@ -3,8 +3,10 @@ import { app, Menu } from "electron";
 // What a packaged build lets you do that a development build does (issue #111).
 //
 // DevTools on the UI view is a one-line bypass of the workspace lock: the
-// console can call window.electronAPI directly. So a packaged build never
-// offers them, and `--dev` only means something when running from source.
+// console can call window.electronAPI directly. So a packaged build has no
+// menu or accelerator for them; the only way in is debug mode (Settings →
+// Developer), which never opens them while the workspace is locked
+// (devTools.ts). `--dev` only means something when running from source.
 // Otherwise anyone could start the installed app with `--dev` to load whatever
 // is serving on localhost:5173 in place of the app.
 
@@ -12,7 +14,7 @@ import { app, Menu } from "electron";
 export const IS_DEV =
   !app.isPackaged && (process.env.NODE_ENV === "development" || process.argv.includes("--dev"));
 
-/** DevTools are for running from source only. */
+/** The default menu, DevTools items included, is for running from source only. */
 export const DEVTOOLS_ENABLED = !app.isPackaged;
 
 /**

@@ -9,6 +9,7 @@ import { registerServicesIpc } from "./ipc/services";
 import { sweepOrphanedPartitions } from "./partitions";
 import { isQuitting, isTrayAvailable, destroyTray } from "./tray";
 import { installAppMenu } from "./devMode";
+import { setDevToolsLocked } from "./devTools";
 import { registerSettingsIpc } from "./ipc/settings";
 import { registerSecurityIpc } from "./ipc/security";
 import { registerListGroupsIpc } from "./ipc/listGroups";
@@ -75,7 +76,10 @@ registerServicesIpc({ getMainWindow, getUiView });
 registerSettingsIpc({ getMainWindow, getUiView });
 registerSecurityIpc({
   getUiView,
-  onLockedChanged: (locked) => setViewsSuppressed(locked),
+  onLockedChanged: (locked) => {
+    setViewsSuppressed(locked);
+    setDevToolsLocked(locked); // and closes any DevTools open on a page behind it
+  },
 });
 registerListGroupsIpc();
 registerAutomationPrefsIpc();

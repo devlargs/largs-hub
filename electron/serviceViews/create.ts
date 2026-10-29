@@ -12,6 +12,7 @@ import {
   applyChromeIdentityToSession,
   loadWithChromeIdentity,
 } from "../chromeIdentity";
+import { handleDevToolsShortcut } from "../devTools";
 import { isSwitchChord, resolveSwitch, switchModifierFor } from "../shared/shortcuts";
 import { sidebarServices } from "../shared/serviceVisibility";
 import { getDeps, partitionFor } from "./state";
@@ -154,6 +155,7 @@ export function createServiceView(
   view.webContents.on("before-input-event", (event, input) => {
     const deps = getDeps();
     deps?.onKeyInput(input);
+    if (handleDevToolsShortcut(event, input, view.webContents)) return;
     if (input.type === "keyDown" && input.key === "Escape" && isFindBarOpen()) {
       event.preventDefault();
       deps?.getUiView()?.webContents.send("close-find-bar");

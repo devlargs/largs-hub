@@ -29,6 +29,8 @@ export interface AppSettings {
   privacyOpacity: number;
   privacyHorizontalPercent: number;
   privacyHorizontalOpacity: number;
+  // Settings → Developer: DevTools on demand (F12 / Inspect Element)
+  debugMode: boolean;
 }
 
 // --- Security controls (workspace lock) --------------------------------------
