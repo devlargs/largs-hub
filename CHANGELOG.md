@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.91] (2026-10-29)
 - **Debug mode for inspecting pages.** Turn on **Settings → Developer → Debug mode** to open DevTools whenever you need them: press F12 or Ctrl+Shift+I (Cmd+Option+I on macOS) for whatever has focus, a service or Largs Hub itself, or right-click a service and choose **Inspect Element**. DevTools close when the workspace locks, can't be opened until you unlock, and close when you turn debug mode off. Applies on Windows and macOS.
 - **No notification sounds while the workspace is locked.** Behind the lock screen every service is silent: no notification sounds and no page audio such as message chimes or a ringing call, whatever each service's **Sound** switch says. Sound comes back as it was when you unlock. A call already open in its own window keeps its audio. Applies on Windows and macOS.
 
