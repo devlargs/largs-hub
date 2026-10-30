@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 // Bundled at build time, so an installed app shows the notes it shipped with
 import changelogSource from "../../CHANGELOG.md?raw";
-import { IoBugOutline } from "react-icons/io5";
 import { ChangelogInline, formatReleaseDate, parseChangelog } from "../lib/changelog";
-import { SecondaryButton } from "./settings/controls";
-import ReportIssueDialog from "./report-issue/ReportIssueDialog";
 
 function Inline({ nodes }: { nodes: ChangelogInline[] }) {
   return (
@@ -61,10 +58,9 @@ function Inline({ nodes }: { nodes: ChangelogInline[] }) {
   );
 }
 
-export default function ChangelogPage({ onOpenSettings }: { onOpenSettings: () => void }) {
+export default function ChangelogPage() {
   const releases = useMemo(() => parseChangelog(changelogSource), []);
   const [installedVersion, setInstalledVersion] = useState("");
-  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     window.electronAPI
@@ -83,25 +79,16 @@ export default function ChangelogPage({ onOpenSettings }: { onOpenSettings: () =
         className="px-5 pt-6 pb-10 @lg:px-8 @lg:pt-8 @lg:pb-12"
         style={{ maxWidth: 720, margin: "0 auto" }}
       >
-        <div className="flex items-start justify-between gap-4" style={{ marginBottom: 32 }}>
-          <div className="min-w-0">
-            <h1
-              className="text-xl font-semibold"
-              style={{ color: "var(--text-primary)", marginBottom: 6 }}
-            >
-              Changelog
-            </h1>
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-              What changed in each version of Largs Hub, newest first.
-            </p>
-          </div>
-          <SecondaryButton
-            onClick={() => setReporting(true)}
-            className="flex items-center gap-2 shrink-0"
+        <div style={{ marginBottom: 32 }}>
+          <h1
+            className="text-xl font-semibold"
+            style={{ color: "var(--text-primary)", marginBottom: 6 }}
           >
-            <IoBugOutline size={15} />
-            Report an issue
-          </SecondaryButton>
+            Changelog
+          </h1>
+          <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+            What changed in each version of Largs Hub, newest first.
+          </p>
         </div>
 
         {releases.length === 0 && (
@@ -158,15 +145,6 @@ export default function ChangelogPage({ onOpenSettings }: { onOpenSettings: () =
           </section>
         ))}
       </div>
-      {reporting && (
-        <ReportIssueDialog
-          onClose={() => setReporting(false)}
-          onOpenSettings={() => {
-            setReporting(false);
-            onOpenSettings();
-          }}
-        />
-      )}
     </div>
   );
 }

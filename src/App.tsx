@@ -222,7 +222,6 @@ function App() {
           appPage={appPage}
           hasServices={services.length > 0}
           onAddService={() => setShowAddModal(true)}
-          onOpenSettings={() => void showAppPage("settings")}
           onRemoveService={handleRemoveService}
           onEnableService={async (svc) => {
             const updated = await window.electronAPI.toggleServiceEnabled(svc.id);

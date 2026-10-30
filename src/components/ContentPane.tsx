@@ -19,7 +19,6 @@ interface ContentPaneProps extends HiddenServicesProps {
   appPage: AppPage | null;
   hasServices: boolean;
   onAddService: () => void;
-  onOpenSettings: () => void;
   onRemoveService: (serviceId: string) => void;
   onEnableService: (service: Service) => void;
 }
@@ -33,7 +32,6 @@ export default function ContentPane({
   appPage,
   hasServices,
   onAddService,
-  onOpenSettings,
   onRemoveService,
   onEnableService,
   hiddenServices,
@@ -49,7 +47,7 @@ export default function ContentPane({
       )}
       {appPage === "changelog" && !activeServiceId && (
         <Suspense fallback={null}>
-          <ChangelogPage onOpenSettings={onOpenSettings} />
+          <ChangelogPage />
         </Suspense>
       )}
       {activeService?.type === "notion-notes" && activeService.enabled !== false && (

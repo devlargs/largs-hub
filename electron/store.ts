@@ -82,9 +82,6 @@ export interface StoreSchema {
   lockDelayMinutes: number;
   // Wrong-password throttle (issue #111), stored so a relaunch doesn't reset it
   unlockThrottle: ThrottleState;
-  // GitHub token for Report an issue, encrypted by safeStorage ("enc:<base64>"),
-  // or null. Only electron/github/token.ts reads or writes it.
-  githubToken: string | null;
 }
 
 export const store = new Store<StoreSchema>({
@@ -118,7 +115,6 @@ export const store = new Store<StoreSchema>({
     masterPasswordCredential: null,
     lockDelayMinutes: 10,
     unlockThrottle: { failures: 0, blockedUntil: null },
-    githubToken: null,
   },
 });
 
@@ -133,6 +129,11 @@ const legacyStore = store as unknown as {
 };
 if (legacyStore.has("notionNotes")) {
   legacyStore.delete("notionNotes");
+}
+// Same for the GitHub token Report an issue used (Settings → GitHub), removed
+// with that feature: an encrypted credential nothing reads any more.
+if (legacyStore.has("githubToken")) {
+  legacyStore.delete("githubToken");
 }
 
 // One-time migration: stored services may still carry `type: "pomodoro"` or
