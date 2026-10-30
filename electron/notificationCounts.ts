@@ -1,5 +1,5 @@
-import { BrowserWindow, WebContentsView, nativeImage } from "electron";
-import { badgeLabel, renderBadgePng } from "./badgeImage";
+import { app, BrowserWindow, WebContentsView, nativeImage } from "electron";
+import { badgeLabel, dockBadgeText, renderBadgePng } from "./badgeImage";
 import { PendingDecrease, shouldAcceptCount } from "./badgeDebounce";
 
 // Notification-count state and badge rendering, separated from count
@@ -30,7 +30,7 @@ export function initNotificationCounts(d: NotificationCountDeps) {
 
 // Single entry point for every extraction source. Applies the per-service
 // notifications toggle and the decrease debounce, then propagates the change
-// to the sidebar (IPC) and the Windows taskbar overlay. `trusted` readings
+// to the sidebar (IPC) and the taskbar overlay (Windows) / Dock badge (macOS). `trusted` readings
 // (server-side fetchers, never page scrapes) skip the decrease debounce.
 export function reportNotificationCount(serviceId: string, count: number, trusted = false) {
   if (!deps) return;
@@ -76,6 +76,7 @@ export function resetDecreaseDebounce(serviceId: string) {
 }
 
 // --- Taskbar badge rendering (issues #28, #58) -----------------------------
+// Windows: an overlay icon on the taskbar button. macOS: the Dock tile badge.
 
 // Windows drops an overlay icon set before the window has been shown, so the
 // last rendered total is kept and re-applied from refreshTaskbarBadge() once
@@ -121,6 +122,14 @@ export function refreshTaskbarBadge() {
 
 function applyTaskbarBadge() {
   const mainWindow = deps?.getMainWindow();
+  if (process.platform === "darwin") {
+    // macOS has no overlay icon; the count goes on the Dock tile instead. With
+    // the window closed the app lives on in the Dock but its services don't,
+    // so the badge is cleared rather than left showing a stale count.
+    const open = mainWindow != null && !mainWindow.isDestroyed();
+    app.dock?.setBadge(open ? dockBadgeText(lastTotal) : "");
+    return;
+  }
   if (!mainWindow || mainWindow.isDestroyed()) return;
 
   if (lastTotal <= 0) {

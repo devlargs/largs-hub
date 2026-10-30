@@ -45,6 +45,11 @@ export function badgeLabel(count: number): string {
   return n > 99 ? "99+" : String(n);
 }
 
+/** The macOS Dock badge for an unread total: the same label, or none at 0. */
+export function dockBadgeText(count: number): string {
+  return count >= 1 ? badgeLabel(count) : "";
+}
+
 function glyphOn(text: string, gx: number, gy: number): boolean {
   if (gy < 0 || gy >= GLYPH_H || gx < 0) return false;
   const cell = GLYPH_W + GLYPH_GAP;

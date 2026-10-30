@@ -138,6 +138,7 @@ export function createWindow() {
     windowState.uiView = null;
     windowState.linkPreviewView = null;
     clearAllViewState();
+    refreshTaskbarBadge(); // macOS: the Dock badge goes with the services
   });
 
   // Poll rate follows window state and power (issue #80).

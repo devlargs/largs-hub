@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { badgeLabel, encodePng, renderBadgeBitmap, renderBadgePng } from "../electron/badgeImage";
+import {
+  badgeLabel,
+  dockBadgeText,
+  encodePng,
+  renderBadgeBitmap,
+  renderBadgePng,
+} from "../electron/badgeImage";
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
@@ -12,6 +18,19 @@ function pixel(bitmap: ReturnType<typeof renderBadgeBitmap>, x: number, y: numbe
     a: bitmap.data[offset + 3],
   };
 }
+
+describe("dockBadgeText", () => {
+  it("shows the same label as the taskbar badge", () => {
+    expect(dockBadgeText(1)).toBe("1");
+    expect(dockBadgeText(42)).toBe("42");
+    expect(dockBadgeText(150)).toBe("99+");
+  });
+
+  it("clears the badge when nothing is unread", () => {
+    expect(dockBadgeText(0)).toBe("");
+    expect(dockBadgeText(-1)).toBe("");
+  });
+});
 
 describe("badgeLabel", () => {
   it("shows the count up to 99", () => {
