@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.92] (2026-10-30)
 - **Unread count on the Dock icon (macOS).** The Largs Hub icon in the Dock now shows a red badge with your total unread count across services, the same number the Windows taskbar shows, and it clears when everything is read. Hidden services and services with Notifications off don't count. macOS only; Windows is unchanged.
 - **Services load on launch.** A service could stay blank after the app opened until you pressed Reload. A page that fails to load, for example because the network wasn't up yet when Largs Hub started, is now retried on its own, and again when you open the service; a page stuck loading is reloaded when you open it. Services woken at launch also load at their real size instead of 0×0. Applies on Windows and macOS.
 
