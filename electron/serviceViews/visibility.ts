@@ -15,6 +15,7 @@ import { refreshPollRates } from "./polling";
 import { closeCallWindowForTeardown, isAnyCallAudible } from "./callWindow";
 import { createServiceView } from "./create";
 import { applySoundToAllViews } from "./sound";
+import { reloadIfBroken } from "./loadRecovery";
 
 // Which service view is on screen: switching, hiding, suppression while the
 // workspace is locked, window focus/blur, and creating/destroying views.
@@ -97,6 +98,9 @@ export function showService(serviceId: string) {
 
   view.setVisible(!viewState.viewsSuppressed);
   view.setBounds(getViewBounds());
+  // A page that failed to load (or never finished) is loaded again rather
+  // than left blank until Reload is pressed
+  reloadIfBroken(view);
   if (isPrivacyMode(serviceId)) applyPrivacyToView(view);
   else removePrivacyFromView(view);
   if (viewState.windowFocused && !viewState.viewsSuppressed) {
@@ -170,6 +174,9 @@ export function preloadServices() {
       serviceViews.set(service.id, view);
       serviceLastActive.set(service.id, Date.now());
       mainWindow.contentView.addChildView(view);
+      // Load at the size it will be shown at, like a view created on show,
+      // rather than at 0x0 behind the scenes
+      view.setBounds(getViewBounds());
       view.setVisible(false);
     }
   }

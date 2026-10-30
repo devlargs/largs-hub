@@ -25,6 +25,7 @@ import { attachBadgeExtraction } from "./polling";
 import { attachNavigationGuard } from "./navigationGuard";
 import { attachSignInPopups, signInPopupOptions } from "./signInPopup";
 import { applyServiceSound, isServiceSilenced } from "./sound";
+import { attachLoadRecovery } from "./loadRecovery";
 
 const SWITCH_MODIFIER = switchModifierFor(process.platform);
 
@@ -121,6 +122,9 @@ export function createServiceView(
   // Messenger/Facebook calls reopen in an in-app call window (callWindow.ts).
   const isCallService = messengerAdapter.matches(serviceHost);
   if (isCallService) attachCallPopupHandler(view, partition);
+
+  // Before the first load, so a first load that fails is retried (loadRecovery.ts)
+  attachLoadRecovery(view);
 
   if (isSafeServiceUrl(service.url)) {
     loadWithChromeIdentity(view.webContents, service.url);

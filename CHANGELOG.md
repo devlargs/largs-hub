@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Services load on launch.** A service could stay blank after the app opened until you pressed Reload. A page that fails to load, for example because the network wasn't up yet when Largs Hub started, is now retried on its own, and again when you open the service; a page stuck loading is reloaded when you open it. Services woken at launch also load at their real size instead of 0×0. Applies on Windows and macOS.
 
 ## [0.1.91] (2026-10-29)
 - **Debug mode for inspecting pages.** Turn on **Settings → Developer → Debug mode** to open DevTools whenever you need them: press F12 or Ctrl+Shift+I (Cmd+Option+I on macOS) for whatever has focus, a service or Largs Hub itself, or right-click a service and choose **Inspect Element**. DevTools close when the workspace locks, can't be opened until you unlock, and close when you turn debug mode off. Applies on Windows and macOS.
