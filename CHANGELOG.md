@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.93] (2026-10-30)
 - **Report an issue and Settings → GitHub are gone.** The Changelog page no longer has a **Report an issue** button, and the **GitHub** section with its token field is gone from Settings. A GitHub token you had saved is deleted from the app's settings the next time it starts. Report problems on the [largs-hub issues page](https://github.com/devlargs/largs-hub/issues) instead. Applies on Windows and macOS.
 
 ## [0.1.92] (2026-10-30)
