@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.94] (2026-10-31)
 - **Call cycle for WhatsApp.** The automation button (⚡) in the titlebar now shows on WhatsApp services too, with a **Call cycle** that works like Messenger's: it places a voice call in the open chat at a random delay, hangs up if no one answers within the ring time and tries again, and stops once the call is answered or the chat shows a reply, blue ticks or a typing indicator. The call rings inside the WhatsApp page with its sound muted until someone picks up. WhatsApp gets the call cycle only; the message and emoji tasks stay Messenger-only. Applies on Windows and macOS.
 
 ## [0.1.93] (2026-10-30)
