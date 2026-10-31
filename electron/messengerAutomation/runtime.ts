@@ -31,6 +31,11 @@ export interface AutomationDeps {
   savePersistedTasks: (tasks: AutomationTask[]) => void;
   loadPersistedAutoStops: () => unknown;
   savePersistedAutoStops: (autoStops: AutoStopState[]) => void;
+  // Load a service's view in the background when a task finds none (after a
+  // restart with "wake services" off, or behind the workspace lock).
+  wakeServiceView: (serviceId: string) => void;
+  // The task list changed: views running automation skip background throttling.
+  onTasksChanged: () => void;
   /** Ids of services that still exist, so tasks for removed ones are dropped. */
   getServiceIds: () => string[];
 }
@@ -77,6 +82,7 @@ export function sendToUi(channel: string, payload: unknown) {
 // any point leaves something restorable (issue #75).
 export function pushUpdate() {
   deps().savePersistedTasks(publicTasks());
+  deps().onTasksChanged();
   sendToUi("messenger-automation-updated", publicTasks());
 }
 

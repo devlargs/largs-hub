@@ -5,6 +5,7 @@ import { externalServiceUrl } from "../externalLinks";
 import { hookDownloadSession } from "../downloads";
 import { trackGoogleSignIns } from "../googleLoginShare";
 import { messengerAdapter } from "../badge-adapters/messenger";
+import { applyAutomationThrottling } from "./automationThrottling";
 import { DEFAULT_ZOOM } from "../zoom";
 import { isPermissionAllowed } from "../servicePermissions";
 import {
@@ -246,6 +247,9 @@ export function createServiceView(
   // cancelled, so the service stays put (navigationGuard.ts).
   attachNavigationGuard(view, service.url, serviceHost);
   attachSignInPopups(view, serviceHost);
+
+  // A view rebuilt for a service with running automation keeps full speed
+  applyAutomationThrottling(view, service.id);
 
   return view;
 }

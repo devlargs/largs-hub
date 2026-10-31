@@ -13,6 +13,8 @@
 //   overlays.ts     blur / privacy overlays
 //   sound.ts        Sound switch + lock: page audio and notification sounds
 //   callWindow.ts   Messenger call popup window + Call Cycle hooks
+//   cycleCallWindows.ts  where a cycle's call popup sits, and behind the lock
+//   automationThrottling.ts  views running automation skip background throttling
 //   contextMenu.ts  native right-click menu
 //   scripts.ts      injected page scripts (pure, snapshot-tested)
 
@@ -50,7 +52,9 @@ export {
   hideActiveService,
   destroyServiceView,
   preloadServices,
+  wakeServiceView,
   clearAllViewState,
   isAnyServiceAudible,
 } from "./visibility";
+export { refreshAutomationThrottling } from "./automationThrottling";
 export { startHibernationSweep, stopHibernationSweep } from "./hibernation";

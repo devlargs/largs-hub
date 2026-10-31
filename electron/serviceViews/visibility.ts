@@ -12,7 +12,7 @@ import {
   removePrivacyFromView,
 } from "./overlays";
 import { refreshPollRates } from "./polling";
-import { closeCallWindowForTeardown, isAnyCallAudible } from "./callWindow";
+import { closeCallWindowForTeardown, isAnyCallAudible, setCallWindowsLocked } from "./callWindow";
 import { createServiceView } from "./create";
 import { applySoundToAllViews } from "./sound";
 import { reloadIfBroken } from "./loadRecovery";
@@ -27,6 +27,8 @@ export function setViewsSuppressed(suppressed: boolean) {
   setActiveViewVisible(!suppressed);
   // Nothing behind the lock screen may chime either
   applySoundToAllViews();
+  // Nor may a call cycle's popup show; automation itself keeps running
+  setCallWindowsLocked(suppressed);
 }
 
 export function setActiveViewVisible(visible: boolean) {
@@ -164,22 +166,30 @@ export function destroyServiceView(serviceId: string, options?: { clearCounts?: 
 
 // Pre-load all saved services so they're warm on startup (if enabled)
 export function preloadServices() {
-  const mainWindow = getDeps()?.getMainWindow();
   if (!store.get("wakeServicesAutomatically")) return;
-  const services = store.get("services");
-  for (const service of services) {
-    if (isInternalService(service)) continue; // internal — no web view
-    if (!serviceViews.has(service.id) && mainWindow && service.enabled !== false) {
-      const view = createServiceView(service, switchTo);
-      serviceViews.set(service.id, view);
-      serviceLastActive.set(service.id, Date.now());
-      mainWindow.contentView.addChildView(view);
-      // Load at the size it will be shown at, like a view created on show,
-      // rather than at 0x0 behind the scenes
-      view.setBounds(getViewBounds());
-      view.setVisible(false);
-    }
-  }
+  for (const service of store.get("services")) wakeServiceView(service.id);
+}
+
+/**
+ * Load a service's view in the background if it isn't loaded, without
+ * showing it. Automation calls this when a task finds no view to run in:
+ * after a restart with "wake services" off, or behind the workspace lock,
+ * nobody can open the service to bring its view back.
+ */
+export function wakeServiceView(serviceId: string) {
+  const mainWindow = getDeps()?.getMainWindow();
+  const service = store.get("services").find((s) => s.id === serviceId);
+  if (!mainWindow || !service) return;
+  if (isInternalService(service) || service.enabled === false) return; // no web view
+  if (serviceViews.has(serviceId)) return;
+  const view = createServiceView(service, switchTo);
+  serviceViews.set(serviceId, view);
+  serviceLastActive.set(serviceId, Date.now());
+  mainWindow.contentView.addChildView(view);
+  // Load at the size it will be shown at, like a view created on show,
+  // rather than at 0x0 behind the scenes
+  view.setBounds(getViewBounds());
+  view.setVisible(false);
 }
 
 // Drop all runtime view state (window closed). Views themselves die with the

@@ -85,9 +85,15 @@ export function handleMissingView(taskId: string, serviceId: string): boolean {
     stopTask(taskId);
     return true;
   }
-  if (state.action === "wait" && task.lastResult !== state.reason) {
-    task.lastResult = state.reason;
-    pushUpdate();
+  if (state.action === "wait") {
+    // Nobody may be able to open the service (it's behind the workspace lock,
+    // or wasn't woken at launch), so load it in the background; the task's
+    // next run finds it.
+    deps().wakeServiceView(serviceId);
+    if (task.lastResult !== state.reason) {
+      task.lastResult = state.reason;
+      pushUpdate();
+    }
   }
   return false;
 }

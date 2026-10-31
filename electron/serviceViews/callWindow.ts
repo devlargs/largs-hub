@@ -9,6 +9,7 @@ import {
   REMOVE_CALL_OVERLAY_SCRIPT,
   buildCallOverlayScript,
 } from "./scripts";
+import { releaseCycleWindow, surfaceAnsweredCall, tuckCycleWindow } from "./cycleCallWindows";
 
 // Messenger/Facebook calls in a dedicated in-app window (issue #59), plus the
 // Call Cycle automation's hooks into it: arming, answer monitoring, hang-up.
@@ -88,9 +89,10 @@ function openCallWindow(callUrl: string, partition: string) {
     if (isAutomationCall) existing.webContents.setAudioMuted(true);
     existing.loadURL(callUrl);
     if (isAutomationCall) {
-      // Keep the cycle out of the way — never steal focus, stay minimized.
-      if (!existing.isMinimized()) existing.minimize();
+      // Keep the cycle out of the way: minimized, or hidden while locked
+      tuckCycleWindow(existing);
     } else {
+      releaseCycleWindow(existing);
       existing.show();
       existing.focus();
     }
@@ -124,12 +126,12 @@ function openCallWindow(callUrl: string, partition: string) {
 
   // Cycle calls open minimized (and never take focus): the popup only matters
   // once someone picks up, and monitorCallForAnswer restores it on answer.
+  // Behind the workspace lock it stays hidden instead (cycleCallWindows.ts).
   // Manual calls open normally.
   callWindow.once("ready-to-show", () => {
     if (callWindow.isDestroyed()) return;
     if (isAutomationCall) {
-      callWindow.showInactive();
-      callWindow.minimize();
+      tuckCycleWindow(callWindow);
     } else {
       callWindow.show();
     }
@@ -198,6 +200,8 @@ export function closeCallWindowForTeardown(serviceId: string) {
   if (callWindow && !callWindow.isDestroyed()) callWindow.close();
 }
 
+export { setCallWindowsLocked } from "./cycleCallWindows";
+
 export function isAnyCallAudible(): boolean {
   for (const callWindow of callWindows.values()) {
     if (!callWindow.isDestroyed() && callWindow.webContents.isCurrentlyAudible()) return true;
@@ -240,11 +244,7 @@ export function monitorCallForAnswer(serviceId: string, timeoutMs: number): Prom
             await win.webContents
               .executeJavaScript(REMOVE_CALL_OVERLAY_SCRIPT, true)
               .catch(() => {});
-            if (!win.isDestroyed()) {
-              if (win.isMinimized()) win.restore();
-              win.show();
-              win.focus();
-            }
+            surfaceAnsweredCall(win);
             resolve(true);
             return;
           }

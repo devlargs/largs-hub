@@ -26,6 +26,8 @@ import {
   closeCallWindow,
   armAutomationCall,
   applyServiceSound,
+  wakeServiceView,
+  refreshAutomationThrottling,
 } from "./serviceViews";
 import {
   createWindow,
@@ -105,6 +107,8 @@ registerMessengerAutomation({
   loadPersistedAutoStops: () => store.get("automationAutoStops"),
   savePersistedAutoStops: (autoStops) => store.set("automationAutoStops", autoStops),
   getServiceIds: () => store.get("services").map((s) => s.id),
+  wakeServiceView: (serviceId) => wakeServiceView(serviceId),
+  onTasksChanged: () => refreshAutomationThrottling(),
   getRecentEmojis: () => sanitizeRecentEmojis(store.get("recentEmojis")),
   recordRecentEmoji: (emoji) => {
     const updated = addRecentEmoji(store.get("recentEmojis"), emoji);
