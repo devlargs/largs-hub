@@ -251,9 +251,10 @@ function App() {
           }}
         />
       )}
-      {automationPanel.open && activeServiceId && (
+      {automationPanel.open && activeServiceId && automationPanel.platform && (
         <MessengerAutomationPanel
           serviceId={activeServiceId}
+          platform={automationPanel.platform}
           tasks={automationTasks}
           onClose={() => automationPanel.setOpen(false)}
         />

@@ -4,13 +4,16 @@ import {
   DEFAULT_FORM,
   buildSpec,
   canStart,
+  formForPlatform,
   formatCountdown,
+  helperText,
   intervalMin,
   missedMessage,
   needsInterval,
   needsMessage,
   resultLabel,
   startLabel,
+  tabsFor,
   taskPreview,
 } from "../src/lib/automationForm";
 import type { MessageListGroup } from "../electron/shared/types";
@@ -143,5 +146,22 @@ describe("status text", () => {
   it("counts missed messages", () => {
     expect(missedMessage(1)).toBe("A scheduled message was missed while the app was closed");
     expect(missedMessage(3)).toBe("3 scheduled messages were missed while the app was closed");
+  });
+});
+
+describe("platform tabs", () => {
+  it("offers WhatsApp the call cycle only", () => {
+    expect(tabsFor("whatsapp").map((t) => t.type)).toEqual(["startCallCycle"]);
+    expect(tabsFor("messenger")).toHaveLength(6);
+  });
+
+  it("moves settings saved on another tab to the platform's first tab", () => {
+    expect(formForPlatform(form({ type: "sendEmoji" }), "whatsapp").type).toBe("startCallCycle");
+    expect(formForPlatform(form({ type: "sendEmoji" }), "messenger").type).toBe("sendEmoji");
+  });
+
+  it("describes WhatsApp's in-page call cycle", () => {
+    expect(helperText("startCallCycle", "whatsapp")).toMatch(/WhatsApp/);
+    expect(helperText("startCallCycle", "messenger")).toMatch(/popup/);
   });
 });

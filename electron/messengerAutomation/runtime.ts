@@ -19,6 +19,9 @@ export interface AutomationDeps {
   // minimized; manual calls stay audible and visible). Called just before the
   // call button is clicked.
   armAutomationCall: (serviceId: string) => void;
+  // Mute a service view while a cycle call rings inside it (WhatsApp), or
+  // give it back its usual sound (false).
+  setCallAudioMuted: (serviceId: string, muted: boolean) => void;
   // Recent emoji pane. Kept in main's store, injected here so this module
   // stays free of electron-store (and unit-testable without it).
   getRecentEmojis: () => string[];

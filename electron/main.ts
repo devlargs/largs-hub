@@ -25,6 +25,7 @@ import {
   monitorCallForAnswer,
   closeCallWindow,
   armAutomationCall,
+  applyServiceSound,
 } from "./serviceViews";
 import {
   createWindow,
@@ -85,7 +86,7 @@ registerAutomationPrefsIpc();
 registerUpdater({ getMainWindow, getUiView });
 registerWindowIpc();
 
-// Messenger automation (scheduled/interval sends, call cycles)
+// Messenger automation (scheduled/interval sends, call cycles) + WhatsApp call cycle
 registerMessengerAutomation({
   getServiceView: (serviceId) => getServiceView(serviceId),
   getServices: () => store.get("services"),
@@ -93,6 +94,12 @@ registerMessengerAutomation({
   monitorCallForAnswer: (serviceId, timeoutMs) => monitorCallForAnswer(serviceId, timeoutMs),
   closeCallWindow: (serviceId) => closeCallWindow(serviceId),
   armAutomationCall: (serviceId) => armAutomationCall(serviceId),
+  setCallAudioMuted: (serviceId, muted) => {
+    const view = getServiceView(serviceId);
+    if (!view || view.webContents.isDestroyed()) return;
+    if (muted) view.webContents.setAudioMuted(true);
+    else applyServiceSound(view, serviceId);
+  },
   loadPersistedTasks: () => store.get("automationTasks"),
   savePersistedTasks: (tasks) => store.set("automationTasks", tasks),
   loadPersistedAutoStops: () => store.get("automationAutoStops"),

@@ -3,7 +3,7 @@ import {
   ShortcutKey,
   appShortcutFor,
   confirmPromptFor,
-  isMessengerService,
+  automationPlatformOf,
 } from "../src/lib/appActions";
 import type { Service } from "../electron/shared/types";
 
@@ -25,15 +25,16 @@ const ctrl = (key: string, extra: Partial<ShortcutKey> = {}): ShortcutKey => ({
   ...extra,
 });
 
-describe("isMessengerService", () => {
+describe("automationPlatformOf", () => {
   it("goes by the hostname", () => {
-    expect(isMessengerService(service("https://www.messenger.com"))).toBe(true);
-    expect(isMessengerService(service("https://mail.google.com/messenger"))).toBe(false);
+    expect(automationPlatformOf(service("https://www.messenger.com"))).toBe("messenger");
+    expect(automationPlatformOf(service("https://web.whatsapp.com"))).toBe("whatsapp");
+    expect(automationPlatformOf(service("https://mail.google.com/messenger"))).toBeNull();
   });
 
-  it("is false for no service or a broken URL", () => {
-    expect(isMessengerService(null)).toBe(false);
-    expect(isMessengerService(service("not a url"))).toBe(false);
+  it("is null for no service or a broken URL", () => {
+    expect(automationPlatformOf(null)).toBeNull();
+    expect(automationPlatformOf(service("not a url"))).toBeNull();
   });
 });
 

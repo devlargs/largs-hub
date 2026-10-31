@@ -1,0 +1,115 @@
+// Page scripts the call cycle injects into a WhatsApp Web view. Pure strings
+// with no Electron imports, so they can be snapshot-tested
+// (test/messengerAutomationScripts.test.ts). Unlike Messenger, WhatsApp places
+// the call inside the page itself, so the answer check and the hang-up run in
+// the service view too (inPageCall.ts). WhatsApp ships no stable hooks either:
+// these key on the #main conversation pane, aria-labels/titles and its
+// data-icon names, and may need updating if its UI changes.
+
+// Finds the red end-call control of an ongoing or ringing call, or null.
+const FIND_END_CALL = `
+  const findEndCall = () => {
+    const END = /^(end call|end voice call|hang up|leave call)$/i;
+    for (const el of document.querySelectorAll('button, [role="button"]')) {
+      const label = (el.getAttribute('aria-label') || el.getAttribute('title') || '').trim();
+      const icon = el.querySelector('[data-icon]');
+      const name = icon ? icon.getAttribute('data-icon') || '' : '';
+      if (END.test(label) || /end-call|call-end|hang-?up/i.test(name)) return el;
+    }
+    return null;
+  };
+`;
+
+// Clicks the voice-call button in the open conversation's header. Newer
+// builds put voice and video behind a single "Call" button, so that menu is
+// opened and its voice entry clicked.
+export const WHATSAPP_CLICK_CALL_SCRIPT = `
+  (async () => {
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const header = document.querySelector('#main header');
+    if (!header) return "no-call-button";
+    const labelOf = (el) => (el.getAttribute('aria-label') || el.getAttribute('title') || '').trim();
+    const iconOf = (el) => {
+      const icon = el.querySelector('[data-icon]');
+      return icon ? icon.getAttribute('data-icon') || '' : '';
+    };
+    const buttons = [...header.querySelectorAll('button, [role="button"]')];
+    const voice = buttons.find(
+      (b) => /^(voice|audio) call$/i.test(labelOf(b)) || /^(voice|audio)-call/i.test(iconOf(b)),
+    );
+    if (voice) { voice.click(); return "clicked"; }
+    const menu = buttons.find(
+      (b) => /^call$/i.test(labelOf(b)) || (/call/i.test(iconOf(b)) && !/video/i.test(iconOf(b))),
+    );
+    if (!menu) return "no-call-button";
+    menu.click();
+    for (let i = 0; i < 20; i++) {
+      await wait(100);
+      for (const el of document.querySelectorAll('[role="menuitem"], [role="button"], button, li')) {
+        const text = (labelOf(el) || el.textContent || '').trim();
+        if (/^(voice|audio)( call)?$/i.test(text)) { el.click(); return "clicked"; }
+      }
+    }
+    return "no-voice-option";
+  })()
+`;
+
+// Reads the NoticeSignals (notice.ts) out of the open WhatsApp conversation.
+export const WHATSAPP_NOTICE_SCRIPT = `
+  (() => {
+    const main = document.querySelector('#main');
+    if (!main) return { count: 0, last: "", seen: false, typing: false };
+    // Rows the call cycle itself produces ("Missed voice call") aren't a reply.
+    const CALL_ROW = /\\b(call|calling|ringing|missed|unanswered)\\b/i;
+    const rows = [];
+    for (const row of main.querySelectorAll('div[role="row"]')) {
+      const text = (row.innerText || "").trim();
+      if (!text || CALL_ROW.test(text)) continue;
+      rows.push(text);
+    }
+    // Blue ticks: the latest outgoing message's status icon reads "Read".
+    let seen = false;
+    const outgoing = main.querySelectorAll('.message-out');
+    const lastOut = outgoing[outgoing.length - 1];
+    if (lastOut) {
+      for (const el of lastOut.querySelectorAll('[aria-label]')) {
+        if (/^\\s*read\\s*$/i.test(el.getAttribute('aria-label') || '')) { seen = true; break; }
+      }
+    }
+    // The header's subtitle swaps to "typing…" / "recording audio…".
+    const header = main.querySelector('header');
+    const typing = !!header && /typing|recording audio/i.test(header.innerText || '');
+    return { count: rows.length, last: rows[rows.length - 1] || "", seen, typing };
+  })()
+`;
+
+// The InPageCallState (callState.ts): whether a call is up, and the duration
+// timer near its end-call button if one shows. A ringing call has no running
+// timer; a connected one counts up. Message rows and the chat list are
+// skipped, so a "10:42" timestamp can't pass for the timer.
+export const WHATSAPP_CALL_STATE_SCRIPT = `
+  (() => {
+    ${FIND_END_CALL}
+    const end = findEndCall();
+    if (!end) return { active: false, timer: null };
+    let box = end;
+    for (let i = 0; i < 6 && box.parentElement; i++) {
+      box = box.parentElement;
+      for (const node of box.querySelectorAll('span, div')) {
+        if (node.children.length || node.closest('div[role="row"], #pane-side')) continue;
+        const t = (node.textContent || '').trim();
+        if (/^\\d{1,2}:\\d{2}(:\\d{2})?$/.test(t)) return { active: true, timer: t };
+      }
+    }
+    return { active: true, timer: null };
+  })()
+`;
+
+export const WHATSAPP_HANGUP_SCRIPT = `
+  (() => {
+    ${FIND_END_CALL}
+    const end = findEndCall();
+    if (end) { end.click(); return true; }
+    return false;
+  })()
+`;

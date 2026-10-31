@@ -1,4 +1,5 @@
 import type { Service } from "../types";
+import { type AutomationPlatform, automationPlatformFor } from "@shared/automationPlatform";
 import {
   isSwitchChord,
   switchTargetFor,
@@ -9,15 +10,12 @@ import {
 // Decisions the app shell makes about keys, context-menu requests and services, kept
 // free of React so they can be unit-tested.
 
-// Mirrors the main process's hostname-based Messenger detection
-// (electron/messengerAutomation/index.ts)
-export function isMessengerService(service: Service | null | undefined): boolean {
-  if (!service) return false;
-  try {
-    return new URL(service.url).hostname.includes("messenger");
-  } catch {
-    return false;
-  }
+// Which automation panel a service gets, if any: the same check the main
+// process's start handler makes (electron/messengerAutomation/index.ts).
+export function automationPlatformOf(
+  service: Service | null | undefined,
+): AutomationPlatform | null {
+  return service ? automationPlatformFor(service.url) : null;
 }
 
 export type ZoomDirection = "in" | "out" | "reset";

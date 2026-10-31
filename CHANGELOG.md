@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Call cycle for WhatsApp.** The automation button (⚡) in the titlebar now shows on WhatsApp services too, with a **Call cycle** that works like Messenger's: it places a voice call in the open chat at a random delay, hangs up if no one answers within the ring time and tries again, and stops once the call is answered or the chat shows a reply, blue ticks or a typing indicator. The call rings inside the WhatsApp page with its sound muted until someone picks up. WhatsApp gets the call cycle only; the message and emoji tasks stay Messenger-only. Applies on Windows and macOS.
 
 ## [0.1.93] (2026-10-30)
 - **Report an issue and Settings → GitHub are gone.** The Changelog page no longer has a **Report an issue** button, and the **GitHub** section with its token field is gone from Settings. A GitHub token you had saved is deleted from the app's settings the next time it starts. Report problems on the [largs-hub issues page](https://github.com/devlargs/largs-hub/issues) instead. Applies on Windows and macOS.

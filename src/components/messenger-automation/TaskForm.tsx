@@ -1,17 +1,19 @@
 import MessageListPicker from "./MessageListPicker";
 import {
   AutomationForm,
-  HELPER_TEXT,
   canStart,
+  helperText,
   intervalMin,
   needsInterval,
   needsMessage,
   startLabel,
 } from "../../lib/automationForm";
 import { Field, inputStyle, labelStyle } from "./styles";
+import type { AutomationPlatform } from "@shared/automationPlatform";
 
 interface TaskFormProps {
   form: AutomationForm;
+  platform: AutomationPlatform;
   update: (patch: Partial<AutomationForm>) => void;
   // Stack the side-by-side rows when the panel is too narrow for them
   narrow: boolean;
@@ -27,6 +29,7 @@ const inputClass = "text-sm outline-none rounded-lg";
 // The parameters for the selected function, its status line and the start button.
 export default function TaskForm({
   form,
+  platform,
   update,
   narrow,
   recentEmojis,
@@ -43,7 +46,7 @@ export default function TaskForm({
   return (
     <div className="flex flex-col" style={{ gap: 10 }}>
       <p className="text-xs" style={labelStyle}>
-        {HELPER_TEXT[type]}
+        {helperText(type, platform)}
       </p>
 
       {needsMessage(type) && (

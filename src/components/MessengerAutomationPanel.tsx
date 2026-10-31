@@ -7,10 +7,12 @@ import {
   AutomationForm,
   DEFAULT_AUTO_STOP_MINUTES,
   DEFAULT_FORM,
-  FUNCTION_TABS,
   TaskType,
   buildSpec,
+  formForPlatform,
+  tabsFor,
 } from "../lib/automationForm";
+import { type AutomationPlatform, PLATFORM_NAMES } from "@shared/automationPlatform";
 import {
   useAutoStop,
   useAutomationNotices,
@@ -25,6 +27,8 @@ import { usePanelPrefs } from "./messenger-automation/usePanelPrefs";
 
 interface MessengerAutomationPanelProps {
   serviceId: string;
+  // Which tabs the panel offers: WhatsApp only has the call cycle
+  platform: AutomationPlatform;
   tasks: AutomationTask[];
   onClose: () => void;
 }
@@ -34,19 +38,23 @@ const NARROW_PANEL_WIDTH = 340;
 
 export default function MessengerAutomationPanel({
   serviceId,
+  platform,
   tasks,
   onClose,
 }: MessengerAutomationPanelProps) {
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [form, setForm] = useState<AutomationForm>(DEFAULT_FORM);
+  const [rawForm, setForm] = useState<AutomationForm>(DEFAULT_FORM);
+  const form = formForPlatform(rawForm, platform);
+  const tabs = tabsFor(platform);
+  const title = `${PLATFORM_NAMES[platform]} automation`;
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [autoStopMinutes, setAutoStopMinutes] = useState(DEFAULT_AUTO_STOP_MINUTES);
 
   // Opens on the settings last used for this service, and keeps them updated
-  usePanelPrefs(serviceId, form, autoStopMinutes, (saved, savedMinutes) => {
+  usePanelPrefs(serviceId, rawForm, autoStopMinutes, (saved, savedMinutes) => {
     // A message being typed isn't a setting; it stays where it is
     setForm((prev) => ({ ...saved, message: prev.message }));
     setAutoStopMinutes(savedMinutes ?? DEFAULT_AUTO_STOP_MINUTES);
@@ -121,7 +129,7 @@ export default function MessengerAutomationPanel({
     <div
       ref={panelRef}
       role="dialog"
-      aria-label="Messenger automation"
+      aria-label={title}
       className="fixed z-50 transition-opacity duration-150 ease-out flex flex-col"
       style={{
         top: TITLEBAR_HEIGHT,
@@ -139,7 +147,7 @@ export default function MessengerAutomationPanel({
         style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)" }}
       >
         <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-          Messenger automation
+          {title}
         </span>
         <button
           onClick={handleClose}
@@ -155,7 +163,7 @@ export default function MessengerAutomationPanel({
       <div className="overflow-y-auto flex-1" style={{ padding: 16 }}>
         {/* Function picker */}
         <div className="flex flex-wrap" style={{ gap: 6, marginBottom: 14 }}>
-          {FUNCTION_TABS.map((tab) => {
+          {tabs.map((tab) => {
             const active = tab.type === form.type;
             return (
               <button
@@ -177,6 +185,7 @@ export default function MessengerAutomationPanel({
 
         <TaskForm
           form={form}
+          platform={platform}
           update={update}
           narrow={panelWidth < NARROW_PANEL_WIDTH}
           recentEmojis={recentEmojis}

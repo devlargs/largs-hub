@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import type { Service } from "../types";
-import { isMessengerService } from "../lib/appActions";
+import { automationPlatformOf } from "../lib/appActions";
 
-// Whether the Messenger automation panel is open, and whether it can be: it
-// only applies to a Messenger service.
+// Whether the automation panel is open, and whether it can be: it only applies
+// to a Messenger or WhatsApp service (`platform` says which).
 export function useAutomationPanel(activeService: Service | null) {
   const [open, setOpen] = useState(false);
 
@@ -18,11 +18,12 @@ export function useAutomationPanel(activeService: Service | null) {
     };
   }, [open]);
 
-  // Close the panel when navigating away from a Messenger service
-  const available = isMessengerService(activeService);
+  // Close the panel when navigating away from an automatable service
+  const platform = automationPlatformOf(activeService);
+  const available = platform !== null;
   useEffect(() => {
     if (open && !available) setOpen(false);
   }, [open, available]);
 
-  return { open, setOpen, available };
+  return { open, setOpen, available, platform };
 }

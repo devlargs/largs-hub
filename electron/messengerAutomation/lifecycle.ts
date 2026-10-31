@@ -3,6 +3,7 @@ import type { TaskSpec } from "../shared/types";
 import { LivenessAction, livenessFor } from "../automationLiveness";
 import { InternalTask, deps, pushUpdate, tasks } from "./runtime";
 import { clearAutoStop } from "./autoStop";
+import { callPlatformFor } from "./callPlatforms";
 
 // Creating and stopping tasks, and deciding what a task does when its view is
 // missing. Shared by every kind of task (tasks.ts, callCycle.ts, restore.ts).
@@ -23,14 +24,14 @@ export function createTask(serviceId: string, spec: TaskSpec): InternalTask {
   return task;
 }
 
-// hangUp defaults true so user-initiated stops also close a ringing call
-// popup. The answered path passes false — the call connected and must stay.
+// hangUp defaults true so user-initiated stops also end a ringing call. The answered path passes false — the call connected and must stay.
 export function stopTask(taskId: string, hangUp = true): boolean {
   const task = tasks.get(taskId);
   if (!task) return false;
   if (task.timer) clearTimeout(task.timer);
   if (task.noticeTimer) clearTimeout(task.noticeTimer);
-  if (hangUp && task.spec.type === "startCallCycle") deps().closeCallWindow(task.serviceId);
+  if (hangUp && task.spec.type === "startCallCycle")
+    callPlatformFor(task.serviceId).hangUp(task.serviceId);
   tasks.delete(taskId);
   pushUpdate();
   return true;
@@ -42,7 +43,7 @@ export function stopAllForService(serviceId: string) {
     if (task.serviceId === serviceId) {
       if (task.timer) clearTimeout(task.timer);
       if (task.noticeTimer) clearTimeout(task.noticeTimer);
-      if (task.spec.type === "startCallCycle") deps().closeCallWindow(serviceId);
+      if (task.spec.type === "startCallCycle") callPlatformFor(serviceId).hangUp(serviceId);
       tasks.delete(task.id);
       removed = true;
     }

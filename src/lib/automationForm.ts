@@ -1,4 +1,5 @@
 import type { AutomationPrefs, MessageListGroup, NoticeReason, TaskSpec } from "../types";
+import { type AutomationPlatform, platformSupports } from "@shared/automationPlatform";
 
 // The Messenger automation panel's form, labels and formatting, kept free of
 // React so they can be unit-tested.
@@ -27,6 +28,7 @@ const RESULT_LABELS: Record<string, string> = {
   "no-input": "Chat input not found — open a conversation",
   "no-send-button": "Send button not found",
   "no-call-button": "Call button not found",
+  "no-voice-option": "Voice call option not found",
   error: "Could not run in the page",
 };
 
@@ -46,6 +48,31 @@ export const HELPER_TEXT: Partial<Record<TaskType, string>> = {
   startCallCycle:
     "Calls in an in-app popup at a random delay between min and max seconds. If a call isn't answered within “Wait to ring” seconds, the popup is closed and the cycle restarts. When the call is answered it stops and keeps the call open. It also stops on its own as soon as the conversation shows a reply, a “Seen” receipt, or a typing indicator.",
 };
+
+// WhatsApp rings in the page itself, not in a popup.
+const WHATSAPP_CALL_CYCLE_HELP =
+  "Places a voice call in the open WhatsApp chat at a random delay between min and max seconds, with the ring muted. If it isn't answered within “Wait to ring” seconds, it hangs up and the cycle restarts. When the call is answered it stops and keeps the call going. It also stops on its own as soon as the chat shows a reply, blue ticks, or a typing indicator.";
+
+export function helperText(type: TaskType, platform: AutomationPlatform): string | undefined {
+  if (platform === "whatsapp" && type === "startCallCycle") return WHATSAPP_CALL_CYCLE_HELP;
+  return HELPER_TEXT[type];
+}
+
+// The function tabs a platform's panel offers.
+export function tabsFor(platform: AutomationPlatform): typeof FUNCTION_TABS {
+  return FUNCTION_TABS.filter((tab) => platformSupports(platform, tab.type));
+}
+
+// The form as the panel shows it: settings saved while on a tab this platform
+// doesn't have fall back to its first tab.
+export function formForPlatform(
+  form: AutomationForm,
+  platform: AutomationPlatform,
+): AutomationForm {
+  return platformSupports(platform, form.type)
+    ? form
+    : { ...form, type: tabsFor(platform)[0].type };
+}
 
 // The human-readable reason a task's last run failed, or null when it didn't
 // (or failed in a way the panel has no wording for).

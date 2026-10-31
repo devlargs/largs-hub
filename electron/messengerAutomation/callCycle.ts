@@ -1,6 +1,6 @@
 import type { TaskSpec } from "../shared/types";
-import { deps, inject, pushUpdate, sendToUi, tasks } from "./runtime";
-import { CLICK_CALL_SCRIPT, NOTICE_SCRIPT } from "./scripts";
+import { inject, pushUpdate, sendToUi, tasks } from "./runtime";
+import { callPlatformFor } from "./callPlatforms";
 import { NoticeSignals, detectNotice, isNoticeSignals } from "./notice";
 import { createTask, handleMissingView, stopTask } from "./lifecycle";
 import { randomDelayMs } from "./schedule";
@@ -9,14 +9,16 @@ import { randomDelayMs } from "./schedule";
 const NOTICE_POLL_MS = 2000;
 
 // The call cycle is its own loop (not startLoop in tasks.ts) because each fire
-// has an inner ring→answer phase: click "Start a voice call" (which opens the
-// in-app call popup and auto-starts it), ring for ringSeconds, then either stop
-// because she answered or hang up and wait for the next attempt.
+// has an inner ring→answer phase: click the voice-call button (Messenger opens
+// the in-app call popup and auto-starts it; WhatsApp rings in the page), ring
+// for ringSeconds, then either stop because she answered or hang up and wait
+// for the next attempt. What differs per platform is in callPlatforms.ts.
 export function startCallCycle(
   serviceId: string,
   spec: Extract<TaskSpec, { type: "startCallCycle" }>,
 ) {
   const task = createTask(serviceId, spec);
+  const platform = callPlatformFor(serviceId);
 
   // Watch the conversation for any sign the cycle worked (a reply, a "Seen"
   // receipt, a typing indicator) and stop nagging the moment one shows up.
@@ -24,7 +26,7 @@ export function startCallCycle(
   let baseline: NoticeSignals | null = null;
   const pollNotice = async () => {
     if (!tasks.has(task.id)) return;
-    const signals = await inject<NoticeSignals>(serviceId, NOTICE_SCRIPT);
+    const signals = await inject<NoticeSignals>(serviceId, platform.noticeScript);
     if (!tasks.has(task.id)) return;
     if (signals === null) {
       // The watcher must not be what ends the cycle: the view can be absent
@@ -58,10 +60,10 @@ export function startCallCycle(
     pushUpdate();
     task.timer = setTimeout(async () => {
       if (!tasks.has(task.id)) return;
-      // Mark the popup this click is about to open — cycle calls open silent
-      // and minimized.
-      deps().armAutomationCall(serviceId);
-      const result = await inject(serviceId, CLICK_CALL_SCRIPT);
+      // Messenger: mark the popup this click is about to open — cycle calls
+      // open silent and minimized.
+      platform.arm(serviceId);
+      const result = await inject(serviceId, platform.clickCallScript);
       if (result === null) {
         if (handleMissingView(task.id, serviceId)) return;
         scheduleNext();
@@ -79,7 +81,7 @@ export function startCallCycle(
         return;
       }
 
-      const answered = await deps().monitorCallForAnswer(serviceId, spec.ringSeconds * 1000);
+      const answered = await platform.monitorForAnswer(serviceId, spec.ringSeconds * 1000);
       if (!tasks.has(task.id)) return; // stopped while ringing
 
       if (answered) {
@@ -87,7 +89,7 @@ export function startCallCycle(
         stopTask(task.id, false);
         return;
       }
-      // No answer — the monitor already closed the popup; wait, then retry.
+      // No answer — the monitor already hung up; wait, then retry.
       scheduleNext();
     }, delayMs);
   };

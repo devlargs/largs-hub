@@ -128,9 +128,9 @@ export default function Titlebar({
             onClick={onOpenAutomation}
             className="w-12 flex items-center justify-center hover:bg-sidebar-hover transition-colors relative"
             style={{ height: TITLEBAR_HEIGHT, color: "var(--text-muted)" }}
-            aria-label="Messenger automation"
+            aria-label="Automation"
 
-            title="Messenger automation"
+            title="Automation"
           >
             <IoFlashOutline size={15} />
             {automationActive && (

@@ -20,16 +20,25 @@ import { armAutoStop, clearAutoStop, publicAutoStop, restorePersistedAutoStops }
 import { launchTask } from "./tasks";
 import { stopAllForService, stopTask } from "./lifecycle";
 import { restorePersistedTasks, sweepOverdue } from "./restore";
+import {
+  PLATFORM_NAMES,
+  automationPlatformFor,
+  platformSupports,
+} from "../shared/automationPlatform";
 
-// Messenger automation: scheduling/looping lives in the main process so tasks
-// survive page reloads and keep running while the view is hidden or another
-// service is active. Only the final "type + click send" script is injected
-// into the Messenger WebContentsView at fire time.
+// Messenger automation (and the WhatsApp call cycle): scheduling/looping lives
+// in the main process so tasks survive page reloads and keep running while the
+// view is hidden or another service is active. Only the final "type + click
+// send" script is injected into the service's WebContentsView at fire time.
+// Which tasks each service gets is in shared/automationPlatform.ts.
 //
 //   index.ts       IPC handlers and the public API main/serviceViews use
 //   runtime.ts     injected deps, the live task list, push/inject helpers
 //   tasks.ts       the scheduler: arm and loop each kind of task
 //   callCycle.ts   the call cycle: ring, wait for an answer, watch for a reaction
+//   callPlatforms.ts  how each platform places, watches and ends a cycle call
+//   inPageCall.ts  WhatsApp: answer watch and hang-up for a call in the page
+//   callState.ts   WhatsApp: answered/unanswered decision per poll (pure)
 //   lifecycle.ts   creating and stopping tasks, a missing view
 //   restore.ts     restoring tasks after a restart, the overdue sweep
 //   schedule.ts    fire times, random delays, emoji bursts (pure)
@@ -37,6 +46,7 @@ import { restorePersistedTasks, sweepOverdue } from "./restore";
 //   notice.ts      "she noticed you" detection for the call cycle (pure)
 //   validation.ts  task-spec and auto-stop validation (pure)
 //   scripts.ts     injected page scripts (pure, snapshot-tested)
+//   whatsappScripts.ts  the WhatsApp call cycle's page scripts (same)
 
 export type { TaskSpec, AutomationTask, StartResult, AutoStopState, AutoStopResult };
 export type { AutomationDeps } from "./runtime";
@@ -64,13 +74,8 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
       if (typeof serviceId !== "string") return fail("Invalid service");
       const service = deps.getServices().find((s) => s.id === serviceId);
       if (!service) return fail("Service not found");
-      try {
-        if (!new URL(service.url).hostname.includes("messenger")) {
-          return fail("Automation is only available for Messenger services");
-        }
-      } catch {
-        return fail("Invalid service URL");
-      }
+      const platform = automationPlatformFor(service.url);
+      if (!platform) return fail("Automation is only available for Messenger and WhatsApp");
       const view = deps.getServiceView(serviceId);
       if (!view || view.webContents.isDestroyed()) {
         return fail("Service is not loaded");
@@ -83,6 +88,9 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
         return fail("Invalid task");
       }
       const taskSpec = spec as TaskSpec;
+      if (!platformSupports(platform, taskSpec.type)) {
+        return fail(`${PLATFORM_NAMES[platform]} doesn't support this task`);
+      }
       const validationError = validateSpec(taskSpec);
       if (validationError) return fail(validationError);
 
