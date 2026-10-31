@@ -185,6 +185,8 @@ const api = {
       ipcRenderer.invoke("set-security-enabled", enabled, currentPassword),
     setLockDelay: (minutes: number): Promise<SecurityState> =>
       ipcRenderer.invoke("set-lock-delay", minutes),
+    setAutoLockDisabled: (disabled: boolean): Promise<SecurityState> =>
+      ipcRenderer.invoke("set-auto-lock-disabled", disabled),
     setPassword: (payload: {
       currentPassword?: string;
       password: string;

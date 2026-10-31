@@ -52,6 +52,8 @@ export interface SecurityState {
   hasPassword: boolean;
   // Minutes the window may stay minimized before the workspace locks
   lockDelayMinutes: number;
+  // The workspace only locks on launch and from the lock button
+  autoLockDisabled: boolean;
   locked: boolean;
 }
 

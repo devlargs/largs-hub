@@ -76,6 +76,11 @@ describe("while locked", () => {
     expect(storeData.get("lockDelayMinutes")).toBe(10);
   });
 
+  it("refuses to switch automatic locking off", async () => {
+    await call("set-auto-lock-disabled", true);
+    expect(storeData.get("autoLockDisabled")).toBeUndefined();
+  });
+
   it("refuses to change the password", async () => {
     const result = await call<SecurityResult>("set-master-password", {
       currentPassword: PASSWORD,
@@ -164,5 +169,28 @@ describe("wrong-password throttle", () => {
     // Only one got as far as scrypt; the rest were turned away unchecked.
     expect((storeData.get("unlockThrottle") as { failures: number }).failures).toBe(1);
     expect(results.filter((r) => r.error === "Still checking the last attempt.")).toHaveLength(9);
+  });
+});
+
+describe("don't lock automatically", () => {
+  beforeEach(async () => {
+    await register({ enabled: true });
+    await call("unlock-app", PASSWORD);
+  });
+
+  it("is stored and reported once unlocked", async () => {
+    const next = await call<SecurityState>("set-auto-lock-disabled", true);
+    expect(next.autoLockDisabled).toBe(true);
+    expect(storeData.get("autoLockDisabled")).toBe(true);
+  });
+
+  it("ignores anything but a boolean", async () => {
+    await call("set-auto-lock-disabled", "yes");
+    expect(storeData.get("autoLockDisabled")).toBeUndefined();
+  });
+
+  it("still lets the lock button lock", async () => {
+    await call("set-auto-lock-disabled", true);
+    expect((await call<SecurityState>("lock-now")).locked).toBe(true);
   });
 });

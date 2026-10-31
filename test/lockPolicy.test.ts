@@ -18,7 +18,7 @@ import {
 } from "../electron/lockPolicy";
 
 const NOW = 1_700_000_000_000;
-const OPTIONS = { enabled: true, delayMinutes: 10 };
+const OPTIONS = { enabled: true, delayMinutes: 10, autoLock: true };
 const MINUTE = 60_000;
 
 describe("sanitizeLockDelayMinutes", () => {
@@ -224,5 +224,28 @@ describe("wrong-password throttle", () => {
     expect(throttleMessage(400)).toBe("Too many attempts. Try again in 1 second.");
     expect(throttleMessage(120_000)).toBe("Too many attempts. Try again in 2 minutes.");
     expect(throttleMessage(61_000)).toBe("Too many attempts. Try again in 2 minutes.");
+  });
+});
+
+describe("automatic locking off", () => {
+  const MANUAL_ONLY = { ...OPTIONS, autoLock: false };
+
+  it("never arms the minimized countdown", () => {
+    expect(reduceLock(INITIAL_LOCK_STATE, "away", NOW, MANUAL_ONLY)).toEqual(INITIAL_LOCK_STATE);
+  });
+
+  it("doesn't lock with the computer", () => {
+    expect(reduceLock(INITIAL_LOCK_STATE, "session-locked", NOW, MANUAL_ONLY).locked).toBe(false);
+  });
+
+  it("drops a countdown armed before it was switched off", () => {
+    const armed = reduceLock(INITIAL_LOCK_STATE, "away", NOW, OPTIONS);
+    const later = reduceLock(armed, "elapsed", NOW + 60 * MINUTE, MANUAL_ONLY);
+    expect(later).toEqual(INITIAL_LOCK_STATE);
+    expect(msUntilLock(armed, NOW, MANUAL_ONLY)).toBeNull();
+  });
+
+  it("still locks from the lock button", () => {
+    expect(reduceLock(INITIAL_LOCK_STATE, "manual", NOW, MANUAL_ONLY).locked).toBe(true);
   });
 });

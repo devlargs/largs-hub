@@ -95,6 +95,7 @@ export interface ElectronAPI {
     getState: () => Promise<SecurityState>;
     setEnabled: (enabled: boolean, currentPassword?: string) => Promise<SecurityUpdate>;
     setLockDelay: (minutes: number) => Promise<SecurityState>;
+    setAutoLockDisabled: (disabled: boolean) => Promise<SecurityState>;
     setPassword: (payload: {
       currentPassword?: string;
       password: string;

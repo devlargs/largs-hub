@@ -147,16 +147,19 @@ export function MinutesSelect({
   value,
   options,
   onChange,
+  disabled = false,
 }: {
   value: number;
   options: Array<[minutes: number, label: string]>;
   onChange: (minutes: number) => void;
+  disabled?: boolean;
 }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(Number(e.target.value))}
-      className="text-sm rounded-lg cursor-pointer outline-none"
+      disabled={disabled}
+      className="text-sm rounded-lg cursor-pointer outline-none disabled:cursor-not-allowed disabled:opacity-50"
       style={{
         padding: "6px 10px",
         backgroundColor: "var(--sidebar-hover)",

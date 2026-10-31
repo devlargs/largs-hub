@@ -51,6 +51,7 @@ function lockOptions() {
     // A toggle switched on but never given a password can't lock anything.
     enabled: store.get("securityControlsEnabled") === true && credential() !== null,
     delayMinutes: sanitizeLockDelayMinutes(store.get("lockDelayMinutes")),
+    autoLock: store.get("autoLockDisabled") !== true,
   };
 }
 
@@ -59,6 +60,7 @@ function securityState(): SecurityState {
     enabled: store.get("securityControlsEnabled") === true,
     hasPassword: credential() !== null,
     lockDelayMinutes: sanitizeLockDelayMinutes(store.get("lockDelayMinutes")),
+    autoLockDisabled: store.get("autoLockDisabled") === true,
     locked: lockState.locked,
   };
 }
@@ -198,6 +200,16 @@ export function registerSecurityIpc(d: SecurityIpcDeps) {
     store.set("lockDelayMinutes", sanitizeLockDelayMinutes(minutes));
     // Re-arms the pending countdown against the new delay.
     setLockState(lockState);
+    return securityState();
+  });
+
+  ipcMain.handle("set-auto-lock-disabled", (event, disabled: unknown): SecurityState => {
+    if (!isFromApp(event) || lockState.locked || typeof disabled !== "boolean") {
+      return securityState();
+    }
+    store.set("autoLockDisabled", disabled);
+    // Drops a pending countdown, or lets the next minimize arm one again.
+    setLockState(reduceLock(lockState, "back", Date.now(), lockOptions()));
     return securityState();
   });
 

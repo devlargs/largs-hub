@@ -80,6 +80,8 @@ export interface StoreSchema {
   masterPasswordCredential: MasterPasswordCredential | null;
   // Minutes the window may sit minimized before the workspace locks
   lockDelayMinutes: number;
+  // "Don't lock automatically": no minimized countdown, no lock with the OS
+  autoLockDisabled: boolean;
   // Wrong-password throttle (issue #111), stored so a relaunch doesn't reset it
   unlockThrottle: ThrottleState;
 }
@@ -114,6 +116,7 @@ export const store = new Store<StoreSchema>({
     securityControlsEnabled: false,
     masterPasswordCredential: null,
     lockDelayMinutes: 10,
+    autoLockDisabled: false,
     unlockThrottle: { failures: 0, blockedUntil: null },
   },
 });

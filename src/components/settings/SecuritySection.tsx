@@ -8,6 +8,7 @@ export default function SecuritySection() {
     enabled: false,
     hasPassword: false,
     lockDelayMinutes: 10,
+    autoLockDisabled: false,
     locked: false,
   });
   // Which master-password prompt is open, if any: "set" is the first-run prompt
@@ -41,6 +42,10 @@ export default function SecuritySection() {
     setSecurity(await window.electronAPI.security.setLockDelay(minutes));
   };
 
+  const handleAutoLockToggle = async () => {
+    setSecurity(await window.electronAPI.security.setAutoLockDisabled(!security.autoLockDisabled));
+  };
+
   return (
     <>
       <Section title="Security">
@@ -54,12 +59,20 @@ export default function SecuritySection() {
         {security.enabled && (
           <>
             <SettingRow
+              label="Don't lock automatically"
+              info="The workspace no longer locks by itself: not after the window has been left minimized, and not when you lock your computer. It still asks for the master password when the app starts and when you press the lock button."
+            >
+              <Toggle checked={security.autoLockDisabled} onChange={handleAutoLockToggle} />
+            </SettingRow>
+
+            <SettingRow
               label="Lock after"
               info="How long the window may stay minimized (or hidden to the tray) before the workspace locks and asks for the master password again."
             >
               <MinutesSelect
                 value={security.lockDelayMinutes}
                 onChange={handleLockDelayChange}
+                disabled={security.autoLockDisabled}
                 options={[
                   [5, "After 5 min"],
                   [10, "After 10 min"],

@@ -34,6 +34,9 @@ export type LockEvent = "away" | "back" | "elapsed" | "session-locked" | "manual
 export interface LockOptions {
   enabled: boolean;
   delayMinutes: number;
+  // Off: nothing locks the workspace on its own (no minimized countdown, no
+  // lock with the computer's); only launch and the lock button still do.
+  autoLock: boolean;
 }
 
 export function reduceLock(
@@ -43,6 +46,10 @@ export function reduceLock(
   options: LockOptions,
 ): LockState {
   if (!options.enabled) return INITIAL_LOCK_STATE;
+  if (!options.autoLock && event !== "manual") {
+    // Drop any countdown armed before auto-lock was switched off
+    return state.armedAt === null ? state : { ...state, armedAt: null };
+  }
   const delayMs = sanitizeLockDelayMinutes(options.delayMinutes) * 60_000;
 
   switch (event) {
@@ -68,7 +75,7 @@ export function reduceLock(
 
 // Milliseconds until the countdown should fire, or null when nothing is armed.
 export function msUntilLock(state: LockState, now: number, options: LockOptions): number | null {
-  if (!options.enabled || state.locked || state.armedAt === null) return null;
+  if (!options.enabled || !options.autoLock || state.locked || state.armedAt === null) return null;
   const delayMs = sanitizeLockDelayMinutes(options.delayMinutes) * 60_000;
   return Math.max(0, state.armedAt + delayMs - now);
 }
