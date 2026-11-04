@@ -24,6 +24,11 @@ export const POPULAR_SERVICES: ServicePreset[] = sortByName([
   { name: "LinkedIn", url: "https://linkedin.com", icon: "linkedin.png" },
   { name: "Messenger", url: "https://www.messenger.com", icon: "messenger.png" },
   { name: "Google Chat", url: "https://chat.google.com", icon: "googlechat.svg" },
+  {
+    name: "Google Messages",
+    url: "https://messages.google.com/web",
+    icon: "googlemessages.svg",
+  },
   { name: "Letterboxd", url: "https://letterboxd.com", icon: "letterboxd.png" },
 ]);
 

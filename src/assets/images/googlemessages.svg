@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" role="img" aria-label="Google Messages">
+  <!--
+    Hand-drawn like googlechat.svg rather than shipped as a brand PNG: a blue
+    speech bubble with its tail at the bottom right, and two white text lines.
+  -->
+  <path d="M7 3h10a4 4 0 0 1 4 4v14l-4-3H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4z" fill="#1A73E8" />
+  <g stroke="#FFFFFF" stroke-width="2" stroke-linecap="round">
+    <path d="M8 9h8" />
+    <path d="M8 13h5" />
+  </g>
+</svg>

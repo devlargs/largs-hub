@@ -9,6 +9,7 @@ import reddit from "./images/reddit.png";
 import linkedin from "./images/linkedin.png";
 import messenger from "./images/messenger.png";
 import googlechat from "./images/googlechat.svg";
+import googlemessages from "./images/googlemessages.svg";
 import letterboxd from "./images/letterboxd.png";
 import todo from "./images/todo.svg";
 import { builtInIconForName } from "../lib/iconEdit";
@@ -25,6 +26,7 @@ const serviceIcons: Record<string, string> = {
   "linkedin.png": linkedin,
   "messenger.png": messenger,
   "googlechat.svg": googlechat,
+  "googlemessages.svg": googlemessages,
   "letterboxd.png": letterboxd,
   "todo.svg": todo,
   // Pre-rename filename, still stored against existing services

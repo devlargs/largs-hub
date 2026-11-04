@@ -38,7 +38,7 @@ describe("presets", () => {
   });
 
   it("filters by name, ignoring case", () => {
-    expect(filterPresets("GOO").map((p) => p.name)).toEqual(["Google Chat"]);
+    expect(filterPresets("GOO").map((p) => p.name)).toEqual(["Google Chat", "Google Messages"]);
     expect(filterPresets("")).toHaveLength(POPULAR_SERVICES.length);
     expect(filterPresets("nothing like this")).toEqual([]);
   });
