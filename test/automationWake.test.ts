@@ -19,6 +19,7 @@ function depsWith(services: Array<{ id: string; url: string; enabled?: boolean }
     savePersistedAutoStops: () => undefined,
     onTasksChanged: () => undefined,
     closeCallWindow: () => undefined,
+    setCallAudioMuted: () => undefined,
     wakeServiceView,
   } as unknown as AutomationDeps;
   setAutomationDeps(deps);
