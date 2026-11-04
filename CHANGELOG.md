@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.95] (2026-11-04)
 - **Google Messages preset.** The Add service grid has a **Google Messages** tile that opens [messages.google.com/web](https://messages.google.com/web), so you can text from your Android phone inside Largs Hub. Pair it with the QR code or your Google account as usual. Applies on Windows and macOS.
 - **Option to stop the workspace locking by itself.** **Settings → Security** has a new **Don't lock automatically** switch. Turn it on and the workspace no longer locks after the window has been left minimized or when you lock your computer, and **Lock after** is greyed out. It still asks for the master password when the app starts and when you press the lock button. Applies on Windows and macOS.
 - **Automation keeps running while the workspace is locked.** Messenger and WhatsApp tasks carry on behind the lock screen at full speed, and a task whose service isn't loaded (for example after a launch with **Wake services automatically** off) now loads it in the background instead of waiting for you to open it. A Messenger call cycle's popup stays hidden while locked, so it can't be opened from the taskbar or Dock, and a call answered while locked comes to the front once you unlock. Applies on Windows and macOS.
