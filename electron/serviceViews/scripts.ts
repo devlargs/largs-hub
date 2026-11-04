@@ -167,3 +167,22 @@ export const REMOVE_CALL_OVERLAY_SCRIPT = `
     if (el) el.remove();
   })()
 `;
+
+// Google Messages for web: whether a phone is paired (the conversation list
+// is up, rather than the QR pairing page), and the text of anything that looks
+// like a banner. Read-only; parsePhoneStatus (shared/phoneStatus.ts) decides
+// what the text means. The selectors are guesses at the page's markup, kept
+// broad on purpose: a miss just means no status is shown.
+export const GOOGLE_MESSAGES_STATUS_SCRIPT = `
+  (() => {
+    const paired = !!document.querySelector('mws-conversations-list, mws-conversation-list-item, [data-e2e-conversation]');
+    const selectors = '[role="alert"], [role="status"], [class*="banner" i], mws-banner, [class*="snackbar" i]';
+    const banners = [];
+    for (const el of document.querySelectorAll(selectors)) {
+      const text = (el.innerText || el.textContent || '').trim().replace(/\\s+/g, ' ');
+      if (text && text.length <= 300 && !banners.includes(text)) banners.push(text);
+      if (banners.length >= 20) break;
+    }
+    return { paired, banners };
+  })()
+`;

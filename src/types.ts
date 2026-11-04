@@ -25,11 +25,13 @@ import type {
   TaskSpec,
   UpdateDownloadState,
 } from "@shared/types";
+import type { PhoneStatus } from "@shared/phoneStatus";
 
 export interface ElectronAPI {
   getServices: () => Promise<Service[]>;
   getLastActiveService: () => Promise<string | null>;
   getNotificationCounts: () => Promise<Record<string, number>>;
+  getPhoneStatuses: () => Promise<Record<string, PhoneStatus>>;
   addService: (service: Service) => Promise<Service[]>;
   removeService: (serviceId: string) => Promise<Service[]>;
   clearServiceData: (serviceId: string) => Promise<void>;
@@ -87,6 +89,9 @@ export interface ElectronAPI {
   close: () => void;
   onNotificationUpdate: (
     callback: (data: { serviceId: string; count: number }) => void,
+  ) => () => void;
+  onPhoneStatusUpdate: (
+    callback: (data: { serviceId: string; status: PhoneStatus | null }) => void,
   ) => () => void;
   getSettings: () => Promise<AppSettings>;
   updateSetting: (key: string, value: unknown) => Promise<void>;

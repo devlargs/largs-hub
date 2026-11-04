@@ -4,6 +4,9 @@ import type { useServiceDrag } from "../../hooks/useServiceDrag";
 import { SWITCH_MODIFIER_KEY, shortcutNumberFor, switchModifierFor } from "@shared/shortcuts";
 import ShortcutHint from "./ShortcutHint";
 import ServiceIcon from "../ui/ServiceIcon";
+import PhoneStatusMark from "../phone-status/PhoneStatusMark";
+import { usePhoneStatusStore } from "../../store/phoneStatus";
+import { needsAttention, phoneStatusLabel } from "../../lib/phoneStatusLabel";
 
 // Control on Windows, Meta (Cmd) on macOS
 const SWITCH_KEY = SWITCH_MODIFIER_KEY[switchModifierFor(window.electronAPI?.platform ?? "")];
@@ -39,6 +42,10 @@ export default function ServiceButton({
   onKeyDown,
 }: ServiceButtonProps) {
   const shortcut = shortcutNumberFor(index);
+  const phoneStatus = usePhoneStatusStore((s) => s.statuses[service.id]);
+  const phoneLabel = phoneStatus ? phoneStatusLabel(phoneStatus) : null;
+  const phoneAlert = phoneLabel && needsAttention(phoneLabel) ? phoneLabel : null;
+  const label = serviceLabel(service, unread);
   return (
     <button
       // Ctrl+1 (Cmd+1 on macOS) is Home, so Ctrl+N picks the (N-1)th
@@ -58,8 +65,8 @@ export default function ServiceButton({
         ${service.enabled === false ? "opacity-30 grayscale" : ""}
       `}
       aria-current={active}
-      aria-label={serviceLabel(service, unread)}
-      title={service.name}
+      aria-label={phoneAlert ? `${label}, ${phoneAlert.text}` : label}
+      title={phoneAlert ? `${service.name} – ${phoneAlert.text}` : service.name}
     >
       <ServiceIcon service={service} />
 
@@ -69,6 +76,9 @@ export default function ServiceButton({
           {badgeText(unread)}
         </span>
       )}
+
+      {/* Paired phone needs attention (Google Messages only) */}
+      {phoneAlert && <PhoneStatusMark label={phoneAlert} />}
 
       {/* Shortcut number, while Ctrl (Cmd on macOS) is held */}
       {showShortcutHint && shortcut && <ShortcutHint number={shortcut} />}

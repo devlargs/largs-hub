@@ -2,6 +2,7 @@ import { isInternalService, Service } from "../types";
 import appIcon from "../../assets/ico/icon.png";
 import { MAC_TRAFFIC_LIGHTS_WIDTH, TITLEBAR_HEIGHT } from "@shared/layout";
 import WindowControls, { isMac } from "./WindowControls";
+import PhoneStatusChip from "./phone-status/PhoneStatusChip";
 import {
   IoArrowBack,
   IoArrowForward,
@@ -94,6 +95,7 @@ export default function Titlebar({
             >
               {activeService.name}
             </span>
+            <PhoneStatusChip serviceId={activeService.id} />
             {/* A zoomed service is easy to forget about — show the factor and
                 make it one click back to 100%. */}
             {!isInternalService(activeService) && zoomFactor !== 1 && (

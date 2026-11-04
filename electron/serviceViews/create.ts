@@ -23,6 +23,7 @@ import { applyPrivacyToView, isPrivacyMode } from "./overlays";
 import { attachCallPopupHandler } from "./callWindow";
 import { attachContextMenu } from "./contextMenu";
 import { attachBadgeExtraction } from "./polling";
+import { attachPhoneStatus } from "./phoneStatus";
 import { attachNavigationGuard } from "./navigationGuard";
 import { attachSignInPopups, signInPopupOptions } from "./signInPopup";
 import { applyServiceSound, isServiceSilenced } from "./sound";
@@ -154,6 +155,7 @@ export function createServiceView(
 
   attachContextMenu(view, service.id);
   attachBadgeExtraction(view, service, serviceHost);
+  attachPhoneStatus(view, service, serviceHost);
 
   // Browser shortcuts have to be intercepted here too — a service view with
   // focus never lets these reach the renderer's window keydown handler.

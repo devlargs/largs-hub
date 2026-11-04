@@ -10,6 +10,7 @@
 //   layout.ts       view bounds, find-bar strip, automation split
 //   findZoom.ts     find in page, per-service zoom
 //   polling.ts      badge extraction and its poll rate
+//   phoneStatus.ts  Google Messages: the paired phone's battery / connection
 //   overlays.ts     blur / privacy overlays
 //   sound.ts        Sound switch + lock: page audio and notification sounds
 //   callWindow.ts   Messenger call popup window + Call Cycle hooks
@@ -19,6 +20,7 @@
 //   scripts.ts      injected page scripts (pure, snapshot-tested)
 
 export { initServiceViews, getServiceView, getActiveServiceId, isWindowFocused } from "./state";
+export { getPhoneStatuses } from "./phoneStatus";
 export {
   setAutomationSplitOpen,
   getAutomationPanelWidth,

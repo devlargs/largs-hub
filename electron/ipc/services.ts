@@ -7,6 +7,8 @@ import {
   getActiveServiceId,
 } from "../serviceViews";
 import { getNotificationCounts } from "../notificationCounts";
+import { getPhoneStatuses } from "../serviceViews";
+import type { PhoneStatus } from "../shared/phoneStatus";
 import { clearServiceSessionData } from "../partitions";
 import { deleteCustomIconFile } from "../customIcons";
 import { supersededIconFile } from "../iconCleanup";
@@ -152,6 +154,7 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
   });
 
   ipcMain.handle("get-notification-counts", (): Record<string, number> => getNotificationCounts());
+  ipcMain.handle("get-phone-statuses", (): Record<string, PhoneStatus> => getPhoneStatuses());
 
   // The service to reopen on launch. Resolved here rather than in the renderer
   // so a stale id (service removed or disabled since) never reaches the UI.

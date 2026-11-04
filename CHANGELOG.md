@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Phone status for Google Messages.** When a phone is paired, the titlebar shows what Google Messages says about it while the service is open: connected, on Wi-Fi or on mobile data, battery low, or not reachable. A low battery or an unreachable phone also puts a small mark on the service's sidebar icon, so you know to charge it. It's read from the banners Google Messages shows, so there's no exact battery percentage or signal strength (the page doesn't get them from the phone), and it only understands the English page for now. Applies on Windows and macOS.
 
 ## [0.1.95] (2026-11-04)
 - **Google Messages preset.** The Add service grid has a **Google Messages** tile that opens [messages.google.com/web](https://messages.google.com/web), so you can text from your Android phone inside Largs Hub. Pair it with the QR code or your Google account as usual. Applies on Windows and macOS.

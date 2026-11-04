@@ -26,6 +26,7 @@ import { useFindBar } from "./hooks/useFindBar";
 import { useAppShortcuts } from "./hooks/useAppShortcuts";
 import { useAutomationPanel } from "./hooks/useAutomationPanel";
 import { useServiceEvents } from "./hooks/useServiceEvents";
+import { usePhoneStatusSync } from "./hooks/usePhoneStatusSync";
 
 function App() {
   const [services, setServices] = useState<Service[]>([]);
@@ -48,6 +49,7 @@ function App() {
   const hidden = useMemo(() => hiddenServices(services), [services]);
   const automationPanel = useAutomationPanel(activeService);
   useNotificationSync();
+  usePhoneStatusSync();
   // Hide the service view so the modal renders above it
   useUiLayer(showAddModal);
 

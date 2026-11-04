@@ -5,6 +5,7 @@ import {
   HANGUP_SCRIPT,
   PRIVACY_HORIZONTAL_ID,
   PRIVACY_VERTICAL_ID,
+  GOOGLE_MESSAGES_STATUS_SCRIPT,
   REMOVE_BLUR_SCRIPT,
   REMOVE_CALL_OVERLAY_SCRIPT,
   REMOVE_PRIVACY_SCRIPT,
@@ -34,6 +35,7 @@ const STATIC_SCRIPTS = {
   AUTO_START_CALL_SCRIPT,
   HANGUP_SCRIPT,
   REMOVE_CALL_OVERLAY_SCRIPT,
+  GOOGLE_MESSAGES_STATUS_SCRIPT,
 };
 
 describe("service view scripts", () => {
@@ -53,6 +55,29 @@ describe("service view scripts", () => {
     // The source needs \\d so the page sees \d; a single backslash would be
     // eaten by the template literal and the answer detection would never fire.
     expect(buildCallOverlayScript(1)).toContain("/^\\d{1,2}:\\d{2}(:\\d{2})?$/");
+  });
+});
+
+describe("GOOGLE_MESSAGES_STATUS_SCRIPT", () => {
+  // Runs the script against a stand-in document.
+  const run = (pairedEl: boolean, texts: string[]) => {
+    const document = {
+      querySelector: () => (pairedEl ? {} : null),
+      querySelectorAll: () => texts.map((innerText) => ({ innerText })),
+    };
+    return new Function("document", `return (${GOOGLE_MESSAGES_STATUS_SCRIPT})`)(document);
+  };
+
+  it("reports pairing and the banner texts, whitespace collapsed and deduplicated", () => {
+    const texts = ["  Phone battery\n low ", "Phone battery low", "", "Turn on notifications"];
+    expect(run(true, texts)).toEqual({
+      paired: true,
+      banners: ["Phone battery low", "Turn on notifications"],
+    });
+  });
+
+  it("reports an unpaired page", () => {
+    expect(run(false, [])).toEqual({ paired: false, banners: [] });
   });
 });
 

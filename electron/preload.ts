@@ -16,6 +16,7 @@ import type {
   TaskSpec,
   UpdateDownloadState,
 } from "./shared/types";
+import type { PhoneStatus } from "./shared/phoneStatus";
 
 // The bridge's payload types are the shared declarations the main process and
 // the renderer use — no third copy to keep in step (issue #82).
@@ -26,6 +27,8 @@ const api = {
   getLastActiveService: (): Promise<string | null> => ipcRenderer.invoke("get-last-active-service"),
   getNotificationCounts: (): Promise<Record<string, number>> =>
     ipcRenderer.invoke("get-notification-counts"),
+  getPhoneStatuses: (): Promise<Record<string, PhoneStatus>> =>
+    ipcRenderer.invoke("get-phone-statuses"),
   addService: (service: Service): Promise<Service[]> => ipcRenderer.invoke("add-service", service),
   removeService: (serviceId: string): Promise<Service[]> =>
     ipcRenderer.invoke("remove-service", serviceId),
@@ -167,6 +170,16 @@ const api = {
     ) => callback(data);
     ipcRenderer.on("notification-update", handler);
     return () => ipcRenderer.removeListener("notification-update", handler);
+  },
+  onPhoneStatusUpdate: (
+    callback: (data: { serviceId: string; status: PhoneStatus | null }) => void,
+  ) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { serviceId: string; status: PhoneStatus | null },
+    ) => callback(data);
+    ipcRenderer.on("phone-status-update", handler);
+    return () => ipcRenderer.removeListener("phone-status-update", handler);
   },
 
   // Settings
