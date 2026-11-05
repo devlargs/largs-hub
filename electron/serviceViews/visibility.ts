@@ -106,6 +106,11 @@ export function showService(serviceId: string) {
   if (isPrivacyMode(serviceId)) applyPrivacyToView(view);
   else removePrivacyFromView(view);
   if (viewState.windowFocused && !viewState.viewsSuppressed) {
+    // A view blurred while it was active and then switched away from before
+    // the window got focus back (from the tray, a notification, the relaunch
+    // after an update) still carries the overlay: window focus only clears the
+    // active view. Clear it as the view comes back on screen.
+    removeBlurFromView(view);
     view.webContents.focus();
   } else {
     if (isBlurWhenInactive(serviceId)) applyBlurToView(view);

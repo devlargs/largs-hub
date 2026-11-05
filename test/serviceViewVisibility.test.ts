@@ -266,6 +266,21 @@ describe("window focus and blur", () => {
     expect(ranScript(view, REMOVE_BLUR_SCRIPT)).toBe(true);
     expect(view.webContents.focus).toHaveBeenCalled();
   });
+
+  it("clears a blur left on a view that was switched away from while unfocused", () => {
+    storeData.services = [service("a", { blurWhenInactive: true }), service("b")];
+    visibility.showService("a");
+    visibility.handleWindowBlur();
+    // Switched away while the window is still unfocused (tray, notification),
+    // so window focus only clears b, the now-active view.
+    visibility.showService("b");
+    visibility.handleWindowFocus();
+    const a = viewOf("a");
+    a.webContents.executeJavaScript.mockClear();
+
+    visibility.showService("a");
+    expect(ranScript(a, REMOVE_BLUR_SCRIPT)).toBe(true);
+  });
 });
 
 describe("destroyServiceView", () => {

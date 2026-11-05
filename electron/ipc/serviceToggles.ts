@@ -91,13 +91,15 @@ export function toggleNotifications(serviceId: string): Service[] | null {
 function toggleBlurWhenInactive(serviceId: string): Service[] | null {
   const updated = patchService(serviceId, nextBlurWhenInactive);
   if (!updated) return null;
-  // Only visible right now if the window is already unfocused.
-  if (!isWindowFocused()) {
-    const view = getServiceView(serviceId);
-    if (view && !view.webContents.isDestroyed()) {
-      if (updated.find((s) => s.id === serviceId)?.blurWhenInactive) applyBlurToView(view);
-      else removeBlurFromView(view);
-    }
+  const view = getServiceView(serviceId);
+  if (!view || view.webContents.isDestroyed()) return updated;
+  if (!updated.find((s) => s.id === serviceId)?.blurWhenInactive) {
+    // Turning it off always clears the overlay, focused or not: one left over
+    // from an earlier window blur would otherwise stay until a reload.
+    removeBlurFromView(view);
+  } else if (!isWindowFocused()) {
+    // Turning it on only shows if the window is already unfocused.
+    applyBlurToView(view);
   }
   return updated;
 }
