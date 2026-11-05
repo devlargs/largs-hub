@@ -186,3 +186,50 @@ export const GOOGLE_MESSAGES_STATUS_SCRIPT = `
     return { paired, banners };
   })()
 `;
+
+// Reddit: the video player under a right-click at CSS point (x, y). Reddit's
+// player sits inside shadow roots, so this descends through them from the
+// point, then climbs back out looking for <shreddit-player*> and a <video>,
+// falling back to any player whose box contains the point. Returns null when
+// there's no video there, else the player's redd.it attributes and the
+// video's source for pickRedditVideoUrl (redditVideoUrl.ts) to choose from.
+export function buildRedditVideoProbeScript(x: number, y: number): string {
+  const px = Number.isFinite(x) ? Math.round(x) : 0;
+  const py = Number.isFinite(y) ? Math.round(y) : 0;
+  return `
+  (() => {
+    const x = ${px}, y = ${py};
+    const isPlayer = (el) => /^SHREDDIT-PLAYER/.test(el.tagName || '');
+    let el = document.elementFromPoint(x, y);
+    const seen = new Set();
+    while (el && el.shadowRoot && !seen.has(el)) {
+      seen.add(el);
+      const inner = el.shadowRoot.elementFromPoint(x, y);
+      if (!inner || inner === el) break;
+      el = inner;
+    }
+    let player = null, video = null;
+    for (let node = el; node && !player; node = node.parentElement || (node.getRootNode().host || null)) {
+      if (!video && node.tagName === 'VIDEO') video = node;
+      if (isPlayer(node)) player = node;
+    }
+    if (!player) {
+      for (const p of document.querySelectorAll('shreddit-player, shreddit-player-2')) {
+        const r = p.getBoundingClientRect();
+        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) { player = p; break; }
+      }
+    }
+    if (!player && !video) return null;
+    if (!video && player) {
+      video = player.querySelector('video') || (player.shadowRoot && player.shadowRoot.querySelector('video'));
+    }
+    const attributes = {};
+    if (player) {
+      for (const a of player.attributes) {
+        if (a.value.includes('redd.it') && a.value.length <= 200000) attributes[a.name] = a.value;
+      }
+    }
+    return { attributes, videoSrc: video ? (video.currentSrc || video.src || '') : '' };
+  })()
+`;
+}

@@ -11,6 +11,7 @@ import {
   REMOVE_PRIVACY_SCRIPT,
   buildCallOverlayScript,
   buildPrivacyScript,
+  buildRedditVideoProbeScript,
   clampPercent,
 } from "../electron/serviceViews/scripts";
 
@@ -129,5 +130,16 @@ describe("clampPercent", () => {
     expect(clampPercent(undefined, 50)).toBe(50);
     expect(clampPercent(Infinity, 7)).toBe(7);
     expect(clampPercent("30", 7)).toBe(7);
+  });
+
+  it("builds a parseable Reddit video probe with the point baked in", () => {
+    const code = buildRedditVideoProbeScript(120.6, 48.2);
+    expect(() => parses(code)).not.toThrow();
+    expect(code).toContain("const x = 121, y = 48;");
+    expect(code).toMatchSnapshot();
+  });
+
+  it("never bakes a non-number into the Reddit probe", () => {
+    expect(buildRedditVideoProbeScript(Number.NaN, Infinity)).toContain("const x = 0, y = 0;");
   });
 });

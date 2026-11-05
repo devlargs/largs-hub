@@ -20,6 +20,45 @@ exports[`buildPrivacyScript > draws the default top-half cover and no side cover
   "
 `;
 
+exports[`clampPercent > builds a parseable Reddit video probe with the point baked in 1`] = `
+"
+  (() => {
+    const x = 121, y = 48;
+    const isPlayer = (el) => /^SHREDDIT-PLAYER/.test(el.tagName || '');
+    let el = document.elementFromPoint(x, y);
+    const seen = new Set();
+    while (el && el.shadowRoot && !seen.has(el)) {
+      seen.add(el);
+      const inner = el.shadowRoot.elementFromPoint(x, y);
+      if (!inner || inner === el) break;
+      el = inner;
+    }
+    let player = null, video = null;
+    for (let node = el; node && !player; node = node.parentElement || (node.getRootNode().host || null)) {
+      if (!video && node.tagName === 'VIDEO') video = node;
+      if (isPlayer(node)) player = node;
+    }
+    if (!player) {
+      for (const p of document.querySelectorAll('shreddit-player, shreddit-player-2')) {
+        const r = p.getBoundingClientRect();
+        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) { player = p; break; }
+      }
+    }
+    if (!player && !video) return null;
+    if (!video && player) {
+      video = player.querySelector('video') || (player.shadowRoot && player.shadowRoot.querySelector('video'));
+    }
+    const attributes = {};
+    if (player) {
+      for (const a of player.attributes) {
+        if (a.value.includes('redd.it') && a.value.length <= 200000) attributes[a.name] = a.value;
+      }
+    }
+    return { attributes, videoSrc: video ? (video.currentSrc || video.src || '') : '' };
+  })()
+"
+`;
+
 exports[`service view scripts > APPLY_BLUR_SCRIPT parses and matches its snapshot 1`] = `
 "
     (function() {
