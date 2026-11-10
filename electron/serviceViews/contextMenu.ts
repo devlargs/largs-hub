@@ -4,6 +4,7 @@ import { canOpenDevTools, inspectElement } from "../devTools";
 import { getDeps } from "./state";
 import { getServiceZoom, openFindBarFor, stepServiceZoom } from "./findZoom";
 import { redditVideoMenuItems, wantsRedditVideoProbe } from "./redditVideoMenu";
+import { passcodeMenuItems } from "./passcodeMenu";
 
 // The native right-click menu for a service view. HTML menus can't render
 // above a WebContentsView, so this is built in main (see CLAUDE.md).
@@ -54,6 +55,7 @@ async function showContextMenu(
   // focused when the popup opens.
   const { editFlags } = params;
   if (params.isEditable) {
+    menuItems.push(...passcodeMenuItems(view.webContents, serviceId, params));
     menuItems.push(
       { label: "Cut", enabled: editFlags.canCut, click: () => view.webContents.cut() },
       { label: "Copy", enabled: editFlags.canCopy, click: () => view.webContents.copy() },

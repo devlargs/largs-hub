@@ -8,6 +8,8 @@ import type {
   ListGroupsResult,
   MessageListGroup,
   NoticeReason,
+  PasscodeDraft,
+  PasscodesResult,
   SecurityResult,
   SecurityState,
   SecurityUpdate,
@@ -213,6 +215,16 @@ const api = {
       ipcRenderer.on("security-state-changed", handler);
       return () => ipcRenderer.removeListener("security-state-changed", handler);
     },
+  },
+
+  // Settings → Passcodes. Passcodes go in, never back out: copying is done
+  // by main, and the list carries only names and usernames.
+  passcodes: {
+    list: (): Promise<PasscodesResult> => ipcRenderer.invoke("passcodes-list"),
+    save: (draft: PasscodeDraft): Promise<PasscodesResult> =>
+      ipcRenderer.invoke("passcodes-save", draft),
+    remove: (id: string): Promise<PasscodesResult> => ipcRenderer.invoke("passcodes-remove", id),
+    copy: (id: string): Promise<PasscodesResult> => ipcRenderer.invoke("passcodes-copy", id),
   },
 
   // Custom icons

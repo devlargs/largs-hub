@@ -14,6 +14,7 @@ import { deleteCustomIconFile } from "../customIcons";
 import { supersededIconFile } from "../iconCleanup";
 import { stopAutomationForService } from "../messengerAutomation";
 import { isFromApp } from "../appOrigin";
+import { passcodeVault } from "../passcodes";
 import { seedGoogleLogin } from "../googleLoginShare";
 import { lastActiveServiceId, reorderServices, withAddedService } from "../serviceList";
 import { toggleEnabled, toggleMute, toggleNotifications, unhideService } from "./serviceToggles";
@@ -67,6 +68,8 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     // the view.
     stopAutomationForService(serviceId);
     clearAutomationPrefs(serviceId);
+    // Its saved passcodes stay, offered in every service instead.
+    passcodeVault.unlinkService(serviceId);
     destroyServiceView(serviceId, { clearCounts: true });
 
     // Wipe the service's session partition. Removing a service means forgetting

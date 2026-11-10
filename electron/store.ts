@@ -4,6 +4,7 @@ import { MessageListGroup } from "./messageLists";
 import type { MasterPasswordCredential } from "./masterPassword";
 import type { ThrottleState } from "./lockPolicy";
 import type { AutoStopState, AutomationPrefs, AutomationTask, Service } from "./shared/types";
+import type { StoredPasscode } from "./passcodes/vault";
 
 // Persistent app state (electron-store) and the shapes stored in it.
 // The Service interface is intentionally duplicated in preload.ts and
@@ -84,6 +85,10 @@ export interface StoreSchema {
   autoLockDisabled: boolean;
   // Wrong-password throttle (issue #111), stored so a relaunch doesn't reset it
   unlockThrottle: ThrottleState;
+  // Settings → Passcodes. Each passcode is encrypted by the OS (safeStorage,
+  // "enc:<base64>"); the label and username are plain. Only passcodes/ reads
+  // or writes it.
+  passcodes: StoredPasscode[];
 }
 
 export const store = new Store<StoreSchema>({
@@ -118,6 +123,7 @@ export const store = new Store<StoreSchema>({
     lockDelayMinutes: 10,
     autoLockDisabled: false,
     unlockThrottle: { failures: 0, blockedUntil: null },
+    passcodes: [],
   },
 });
 

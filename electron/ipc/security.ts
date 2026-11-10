@@ -132,6 +132,11 @@ function handleLockEvent(event: LockEvent) {
   setLockState(reduceLock(lockState, event, Date.now(), lockOptions()));
 }
 
+/** Whether the workspace is behind the lock screen right now. */
+export function isWorkspaceLocked(): boolean {
+  return lockState.locked;
+}
+
 // Called from window/create.ts once the window exists. Hiding to the tray is the same
 // thing as minimizing as far as the lock is concerned — close-to-tray users
 // would otherwise never arm the countdown.

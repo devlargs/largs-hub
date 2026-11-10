@@ -12,6 +12,7 @@ import { installAppMenu } from "./devMode";
 import { setDevToolsLocked } from "./devTools";
 import { registerSettingsIpc } from "./ipc/settings";
 import { registerSecurityIpc } from "./ipc/security";
+import { registerPasscodesIpc } from "./ipc/passcodes";
 import { registerListGroupsIpc } from "./ipc/listGroups";
 import { registerAutomationPrefsIpc } from "./ipc/automationPrefs";
 import { addRecentEmoji, sanitizeRecentEmojis } from "./recentEmojis";
@@ -51,6 +52,7 @@ import {
 //                         serviceContextMenu.ts (find, zoom, back/forward, menu)
 //   ipc/settings.ts       settings, custom icons, settings menu
 //   ipc/security.ts       workspace lock: master password + auto-lock timer
+//   passcodes/            saved passcodes (OS-encrypted) + ipc/passcodes.ts
 
 app.setName("Largs Hub");
 // build.appId when installed, a separate ID from source (appUserModelId.ts)
@@ -83,6 +85,7 @@ registerSecurityIpc({
     setDevToolsLocked(locked); // and closes any DevTools open on a page behind it
   },
 });
+registerPasscodesIpc();
 registerListGroupsIpc();
 registerAutomationPrefsIpc();
 registerUpdater({ getMainWindow, getUiView });

@@ -220,3 +220,37 @@ export interface AutoStopUpdate {
 
 // Why a call cycle cancelled itself: the other person reacted in the thread.
 export type NoticeReason = "replied" | "seen" | "typing";
+
+// --- Saved passcodes ---------------------------------------------------------
+
+// A saved passcode as the renderer sees it. The passcode itself never crosses
+// the bridge back out: main encrypts it with the OS (safeStorage) and only
+// decrypts it to type it into a page or put it on the clipboard.
+export interface Passcode {
+  id: string;
+  label: string;
+  // "" when the entry has no username
+  username: string;
+  // The service it's offered in first, or null for every service
+  serviceId: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// What Settings sends to add or edit one. `secret` is required when adding;
+// leaving it out (or blank) when editing keeps the saved passcode.
+export interface PasscodeDraft {
+  id?: string;
+  label: string;
+  username: string;
+  serviceId: string | null;
+  secret?: string;
+}
+
+export interface PasscodesResult {
+  ok: boolean;
+  error?: string;
+  // False when the OS can't encrypt (no keychain / DPAPI): nothing can be saved
+  available: boolean;
+  passcodes: Passcode[];
+}

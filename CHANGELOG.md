@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Save passcodes.** **Settings → Passcodes** keeps PINs, passwords and other codes, each with a name, an optional username and the service it's for (or all services). Right-click a text field in a service and choose **Fill passcode** to type one in, or its username; it's typed key by key, so a PIN split across separate boxes fills too. **Copy** puts a passcode on the clipboard and clears it after 30 seconds. Passcodes are encrypted by your operating system (Windows data protection, the macOS Keychain), can only be read on this computer under your account, and are never shown again once saved: editing one leaves the passcode as it is unless you type a new one. Removing a service keeps its passcodes and offers them in every service. Applies on Windows and macOS.
 - **Blur when inactive turns off straight away.** A service could stay blurred after you turned **Blur when inactive** off, for example after the app reopened from an update, until you reloaded it. Turning it off now clears the blur at once, and a service left blurred from an earlier switch is cleared when you open it. Applies on Windows and macOS.
 - **Download Reddit videos.** In a Reddit service, right-click a video and choose **Download Video** to save it as an MP4 with sound, at the best quality Reddit offers. It goes through your usual download settings (folder, toast, open when done). If Reddit doesn't offer a file for that video, the item shows as **Download Video (not available)**. Applies on Windows and macOS.
 

@@ -17,6 +17,8 @@ import type {
   ListGroupsResult,
   MessageListGroup,
   NoticeReason,
+  PasscodeDraft,
+  PasscodesResult,
   SecurityResult,
   SecurityState,
   SecurityUpdate,
@@ -109,6 +111,14 @@ export interface ElectronAPI {
     unlock: (password: string) => Promise<SecurityResult>;
     lockNow: () => Promise<SecurityState>;
     onStateChanged: (callback: (state: SecurityState) => void) => () => void;
+  };
+  passcodes: {
+    list: () => Promise<PasscodesResult>;
+    // secret left out or blank when editing keeps the saved passcode
+    save: (draft: PasscodeDraft) => Promise<PasscodesResult>;
+    remove: (id: string) => Promise<PasscodesResult>;
+    // Main copies it and clears the clipboard 30 s later
+    copy: (id: string) => Promise<PasscodesResult>;
   };
   saveCustomIcon: (fileName: string, dataUrl: string) => Promise<string>;
   deleteCustomIcon: (fileName: string) => Promise<void>;
