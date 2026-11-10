@@ -47,10 +47,10 @@ export function registerPasscodesIpc() {
     return result();
   });
 
-  ipcMain.handle("passcodes-copy", (event, id: unknown): PasscodesResult => {
+  ipcMain.handle("passcodes-copy", async (event, id: unknown): Promise<PasscodesResult> => {
     if (!isFromApp(event)) return result(false, "Not allowed.");
     if (isWorkspaceLocked()) return result(false, LOCKED);
-    return copyPasscode(id)
+    return (await copyPasscode(id))
       ? result()
       : result(false, "This passcode can't be read on this computer. Edit it and enter it again.");
   });

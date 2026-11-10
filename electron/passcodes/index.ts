@@ -22,18 +22,29 @@ export const passcodeVault = createPasscodeVault({
 const CLIPBOARD_CLEAR_MS = 30_000;
 let clipboardTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** Copies a passcode, and clears the clipboard 30 s later if it still holds it. */
-export function copyPasscode(id: unknown): boolean {
+/**
+ * Copies a passcode, and clears the clipboard 30 s later if it still holds it.
+ * Electron 45's clipboard reads and writes are promises, so both are awaited.
+ */
+export async function copyPasscode(id: unknown): Promise<boolean> {
   const secret = passcodeVault.reveal(id);
   if (secret === null) return false;
-  clipboard.writeText(secret);
+  await clipboard.writeText(secret);
   if (clipboardTimer) clearTimeout(clipboardTimer);
   clipboardTimer = setTimeout(() => {
     clipboardTimer = null;
-    // Leave it alone if something else has been copied since
-    if (clipboard.readText() === secret) clipboard.clear();
+    void clearIfStill(secret);
   }, CLIPBOARD_CLEAR_MS);
   return true;
+}
+
+// Leave it alone if something else has been copied since
+async function clearIfStill(secret: string): Promise<void> {
+  try {
+    if ((await clipboard.readText()) === secret) clipboard.clear();
+  } catch (err) {
+    console.error("[passcodes] clipboard clear failed:", err);
+  }
 }
 
 const KEY_GAP_MS = 12;
