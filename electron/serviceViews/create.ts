@@ -3,6 +3,7 @@ import { store, Service, isSafeServiceUrl } from "../store";
 import { isSignInPopup, shouldKeepInView } from "../navigationPolicy";
 import { externalServiceUrl } from "../externalLinks";
 import { hookDownloadSession } from "../downloads";
+import { formatPopupRequestLog } from "../downloadDiagnostics";
 import { trackGoogleSignIns } from "../googleLoginShare";
 import { messengerAdapter } from "../badge-adapters/messenger";
 import { applyAutomationThrottling } from "./automationThrottling";
@@ -218,6 +219,7 @@ export function createServiceView(
   // browser. To open one, users right-click it and choose "View Link" (which
   // opens the preview popup directly).
   view.webContents.setWindowOpenHandler(({ url, disposition }) => {
+    console.log(formatPopupRequestLog(partition, view.webContents.id, url, disposition));
     // "Sign in with Google" only works as a real popup that can report back to
     // its opener; loaded in place it blanked the service (signInPopup.ts).
     if (isSignInPopup(url, disposition)) {

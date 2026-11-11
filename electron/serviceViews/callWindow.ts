@@ -1,5 +1,6 @@
 import { BrowserWindow, WebContentsView, shell } from "electron";
 import { applyChromeIdentity } from "../chromeIdentity";
+import { formatHiddenPopupLog } from "../downloadDiagnostics";
 import { externalWebUrl } from "../externalLinks";
 import { isSignInPopup } from "../navigationPolicy";
 import { getDeps, partitionFor } from "./state";
@@ -49,9 +50,32 @@ export function attachCallPopupHandler(view: WebContentsView, partition: string)
     childWindow.hide(); // keep it hidden until we know what it is
     let settled = false;
     const onNavigate = (event: Electron.Event, navUrl: string) => {
-      if (settled || !/^https?:/i.test(navUrl)) return; // ignore the about:blank spin
+      if (settled) return;
+      if (!/^https?:/i.test(navUrl)) {
+        // Ignore the about:blank spin, but log anything else (a blob: video?)
+        if (!navUrl.startsWith("about:")) {
+          console.log(
+            formatHiddenPopupLog(
+              partition,
+              childWindow.webContents.id,
+              navUrl,
+              "ignored, stays hidden",
+            ),
+          );
+        }
+        return;
+      }
       settled = true;
-      if (/\/(group)?call/i.test(navUrl)) {
+      const isCall = /\/(group)?call/i.test(navUrl);
+      console.log(
+        formatHiddenPopupLog(
+          partition,
+          childWindow.webContents.id,
+          navUrl,
+          isCall ? "call window" : "shown",
+        ),
+      );
+      if (isCall) {
         // A call: reopen it in a dedicated in-app window, where WebRTC works
         // and Meta's opener can't blank it out.
         event.preventDefault();

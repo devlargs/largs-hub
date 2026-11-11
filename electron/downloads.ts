@@ -1,6 +1,7 @@
 import { BrowserWindow, WebContentsView, shell } from "electron";
 import path from "path";
 import { isSafeToAutoOpen } from "./autoOpenPolicy";
+import { type DownloadSource, formatDownloadLog } from "./downloadDiagnostics";
 import { store } from "./store";
 import { uniqueSavePath } from "./uniqueFilename";
 import {
@@ -24,8 +25,20 @@ interface DownloadDeps {
   getMainWindow(): BrowserWindow | null;
 }
 
+let deps: DownloadDeps | null = null;
+
 export function initDownloads(d: DownloadDeps) {
+  deps = d;
   initDownloadToast(d.getMainWindow);
+}
+
+// Which window a download's webContents belongs to: the service view in the
+// main window, or a popup the page opened (shown or still hidden).
+function downloadSource(contents: Electron.WebContents): DownloadSource {
+  const owner = BrowserWindow.fromWebContents(contents);
+  if (!owner) return "unknown";
+  if (owner === deps?.getMainWindow()) return "service view";
+  return owner.isVisible() ? "popup (visible)" : "popup (hidden)";
 }
 
 // Partitions whose persistent session already has the shared download listener.
@@ -47,7 +60,20 @@ export function hasActiveDownload(partition: string): boolean {
 export function hookDownloadSession(view: WebContentsView, partition: string) {
   if (hookedDownloadSessions.has(partition)) return;
   hookedDownloadSessions.add(partition);
-  view.webContents.session.on("will-download", (_event, item) => {
+  view.webContents.session.on("will-download", (_event, item, contents) => {
+    console.log(
+      formatDownloadLog({
+        partition,
+        source: downloadSource(contents),
+        webContentsId: contents.id,
+        pageUrl: contents.getURL(),
+        urlChain: item.getURLChain(),
+        mimeType: item.getMimeType(),
+        filename: item.getFilename(),
+        userGesture: item.hasUserGesture(),
+        totalBytes: item.getTotalBytes(),
+      }),
+    );
     activeDownloads.set(partition, (activeDownloads.get(partition) ?? 0) + 1);
     noteDownloadStarted();
     item.once("done", () => {

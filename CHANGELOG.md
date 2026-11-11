@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Behind the scenes: download diagnostics.** When Largs Hub is started from a terminal, it now prints a line for each download and each popup a service opens, saying where it came from. This is to track down Messenger videos downloading as soon as you open them, and will be removed once that's fixed. Link query values are left out of these lines. Applies on Windows and macOS.
 
 ## [0.1.97] (2026-11-10)
 - **Behind the scenes: development moves to Node.js 24.22.2.** `.nvmrc` now matches the version `package.json` requires, so CI and release builds install with it again. The app itself is unchanged on Windows and macOS.
