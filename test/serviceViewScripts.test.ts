@@ -9,6 +9,8 @@ import {
   REMOVE_BLUR_SCRIPT,
   REMOVE_CALL_OVERLAY_SCRIPT,
   REMOVE_PRIVACY_SCRIPT,
+  REMOVE_REDDIT_APP_PROMPT_SCRIPT,
+  REDDIT_APP_PROMPT_SELECTOR,
   buildCallOverlayScript,
   buildPrivacyScript,
   buildRedditVideoProbeScript,
@@ -37,6 +39,7 @@ const STATIC_SCRIPTS = {
   HANGUP_SCRIPT,
   REMOVE_CALL_OVERLAY_SCRIPT,
   GOOGLE_MESSAGES_STATUS_SCRIPT,
+  REMOVE_REDDIT_APP_PROMPT_SCRIPT,
 };
 
 describe("service view scripts", () => {
@@ -141,5 +144,88 @@ describe("clampPercent", () => {
 
   it("never bakes a non-number into the Reddit probe", () => {
     expect(buildRedditVideoProbeScript(Number.NaN, Infinity)).toContain("const x = 0, y = 0;");
+  });
+});
+
+describe("REMOVE_REDDIT_APP_PROMPT_SCRIPT", () => {
+  // Runs the script against a stand-in page: `sheets` is what the selector
+  // currently matches, and `mutate()` fires the observer and its timer.
+  const page = (sheetCount: number) => {
+    let sheets = Array.from({ length: sheetCount }, () => ({ removed: false }));
+    const bodyClasses = new Set(["rpl-scroll-lock"]);
+    const window: Record<string, unknown> = {};
+    let observerCallback: (() => void) | null = null;
+    const timers: (() => void)[] = [];
+    const document = {
+      documentElement: {},
+      body: { classList: { remove: (c: string) => bodyClasses.delete(c) } },
+      querySelectorAll: () => sheets.map((sheet) => ({ remove: () => (sheet.removed = true) })),
+    };
+    class MutationObserver {
+      constructor(cb: () => void) {
+        observerCallback = cb;
+      }
+      observe() {}
+    }
+    const setTimeout = (fn: () => void) => timers.push(fn);
+    const run = () =>
+      new Function(
+        "window",
+        "document",
+        "MutationObserver",
+        "setTimeout",
+        REMOVE_REDDIT_APP_PROMPT_SCRIPT,
+      )(window, document, MutationObserver, setTimeout);
+    return {
+      run,
+      bodyClasses,
+      get sheets() {
+        return sheets;
+      },
+      add: (n: number) => (sheets = Array.from({ length: n }, () => ({ removed: false }))),
+      mutate: () => {
+        observerCallback?.();
+        observerCallback?.();
+        timers.splice(0).forEach((fn) => fn());
+      },
+      timers,
+    };
+  };
+
+  it("removes a sheet already on the page and unlocks scrolling", () => {
+    const p = page(1);
+    p.run();
+    expect(p.sheets.every((s) => s.removed)).toBe(true);
+    expect(p.bodyClasses.has("rpl-scroll-lock")).toBe(false);
+  });
+
+  it("leaves the scroll lock alone when there's no sheet", () => {
+    const p = page(0);
+    p.run();
+    expect(p.bodyClasses.has("rpl-scroll-lock")).toBe(true);
+  });
+
+  it("removes a sheet Reddit adds later, batching mutations into one sweep", () => {
+    const p = page(0);
+    p.run();
+    p.add(2);
+    p.mutate();
+    expect(p.sheets.every((s) => s.removed)).toBe(true);
+    expect(p.bodyClasses.has("rpl-scroll-lock")).toBe(false);
+  });
+
+  it("installs only once per page", () => {
+    const p = page(0);
+    p.run();
+    p.run();
+    p.add(1);
+    p.mutate();
+    expect(p.timers).toHaveLength(0);
+    expect(p.sheets[0].removed).toBe(true);
+  });
+
+  it("targets only the app-promo sheet", () => {
+    expect(REDDIT_APP_PROMPT_SELECTOR).toContain("configured-xpromo-modal");
+    expect(REDDIT_APP_PROMPT_SELECTOR).toContain('[dialog-classname*="xpromo"]');
   });
 });

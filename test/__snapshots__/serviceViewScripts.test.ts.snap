@@ -151,6 +151,29 @@ exports[`service view scripts > REMOVE_PRIVACY_SCRIPT parses and matches its sna
   "
 `;
 
+exports[`service view scripts > REMOVE_REDDIT_APP_PROMPT_SCRIPT parses and matches its snapshot 1`] = `
+"
+  (() => {
+    if (window.__largsNoRedditAppPrompt) return;
+    window.__largsNoRedditAppPrompt = true;
+    const selector = 'configured-xpromo-modal, [dialog-id^="configured-xpromo"], [dialog-classname*="xpromo"]';
+    const sweep = () => {
+      const found = document.querySelectorAll(selector);
+      if (!found.length) return;
+      for (const el of found) el.remove();
+      if (document.body) document.body.classList.remove('rpl-scroll-lock');
+    };
+    let queued = false;
+    new MutationObserver(() => {
+      if (queued) return;
+      queued = true;
+      setTimeout(() => { queued = false; sweep(); }, 50);
+    }).observe(document.documentElement, { childList: true, subtree: true });
+    sweep();
+  })()
+"
+`;
+
 exports[`service view scripts > builds a parseable call overlay script with the countdown baked in 1`] = `
 "
     (() => {

@@ -233,3 +233,32 @@ export function buildRedditVideoProbeScript(x: number, y: number): string {
   })()
 `;
 }
+
+// Reddit: its "Get the best of Reddit in the app" sheet (<configured-xpromo-modal>
+// around a blocking <rpl-bottom-sheet>) comes up after half a minute with no
+// way to close it, and locks the page's scroll. Remove it whenever it appears,
+// and drop the scroll lock it left behind. Installed once per page load; the
+// observer catches the sheet however late Reddit adds it.
+export const REDDIT_APP_PROMPT_SELECTOR =
+  'configured-xpromo-modal, [dialog-id^="configured-xpromo"], [dialog-classname*="xpromo"]';
+
+export const REMOVE_REDDIT_APP_PROMPT_SCRIPT = `
+  (() => {
+    if (window.__largsNoRedditAppPrompt) return;
+    window.__largsNoRedditAppPrompt = true;
+    const selector = '${REDDIT_APP_PROMPT_SELECTOR}';
+    const sweep = () => {
+      const found = document.querySelectorAll(selector);
+      if (!found.length) return;
+      for (const el of found) el.remove();
+      if (document.body) document.body.classList.remove('rpl-scroll-lock');
+    };
+    let queued = false;
+    new MutationObserver(() => {
+      if (queued) return;
+      queued = true;
+      setTimeout(() => { queued = false; sweep(); }, 50);
+    }).observe(document.documentElement, { childList: true, subtree: true });
+    sweep();
+  })()
+`;
