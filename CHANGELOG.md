@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.98] (2026-11-20)
 - **Ctrl+number switches services on macOS too.** `Ctrl`+`1` (Home) and `Ctrl`+`2`–`9` now work on macOS alongside `Cmd`+`1`–`9`, whether the interface or a web app has focus, and holding `Ctrl` shows the sidebar numbers just like holding `Cmd`. Windows is unchanged.
 - **Longer hibernation times.** **Settings → General → Hibernate inactive services** now also offers 2, 4, 8 and 24 hours, so services you check now and then can stay loaded much longer before they're unloaded. Applies on Windows and macOS.
 - **No more "Get the Reddit App" sheet.** About half a minute into browsing, Reddit put up a "Get the best of Reddit in the app" sheet with no way to close it, which locked the page until you reloaded. A Reddit service now removes that sheet as soon as it appears and lets the page scroll again. Applies on Windows and macOS.
