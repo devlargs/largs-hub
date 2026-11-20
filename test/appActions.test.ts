@@ -75,18 +75,26 @@ describe("appShortcutFor", () => {
     expect(appShortcutFor(ctrl("1", { ctrlKey: false }))).toBeNull();
   });
 
-  it("switches with Cmd on macOS, leaving zoom and find on Ctrl", () => {
+  it("switches with Cmd or Ctrl on macOS, leaving zoom and find on Ctrl", () => {
+    const mac = ["meta", "control"] as const;
     const cmd = (key: string) => ctrl(key, { ctrlKey: false, metaKey: true });
-    expect(appShortcutFor(cmd("1"), "meta")).toEqual({ kind: "switch", target: { kind: "home" } });
-    expect(appShortcutFor(cmd("3"), "meta")).toEqual({
+    expect(appShortcutFor(cmd("1"), mac)).toEqual({ kind: "switch", target: { kind: "home" } });
+    expect(appShortcutFor(cmd("3"), mac)).toEqual({
       kind: "switch",
       target: { kind: "service", index: 1 },
     });
-    expect(appShortcutFor(ctrl("2"), "meta")).toBeNull();
-    expect(appShortcutFor(ctrl("1", { metaKey: true }), "meta")).toBeNull();
-    expect(appShortcutFor(ctrl("f"), "meta")).toEqual({ kind: "find" });
-    expect(appShortcutFor(ctrl("0"), "meta")).toEqual({ kind: "zoom", direction: "reset" });
-    expect(appShortcutFor(cmd("f"), "meta")).toBeNull();
+    expect(appShortcutFor(ctrl("2"), mac)).toEqual({
+      kind: "switch",
+      target: { kind: "service", index: 0 },
+    });
+    expect(appShortcutFor(ctrl("1", { metaKey: true }), mac)).toBeNull();
+    expect(appShortcutFor(ctrl("f"), mac)).toEqual({ kind: "find" });
+    expect(appShortcutFor(ctrl("0"), mac)).toEqual({ kind: "zoom", direction: "reset" });
+    expect(appShortcutFor(cmd("f"), mac)).toBeNull();
+  });
+
+  it("leaves Cmd+number to the page off macOS", () => {
+    expect(appShortcutFor(ctrl("2", { ctrlKey: false, metaKey: true }))).toBeNull();
   });
 });
 

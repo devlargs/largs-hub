@@ -33,7 +33,7 @@ const ZOOM_KEYS: Record<string, ZoomDirection> = {
 export type AppShortcut =
   | { kind: "zoom"; direction: ZoomDirection }
   | { kind: "find" }
-  // Ctrl+1 (Cmd+1 on macOS) is Home, 2-9 the services in sidebar order
+  // Ctrl+1 (Cmd+1 too on macOS) is Home, 2-9 the services in sidebar order
   | { kind: "switch"; target: SwitchTarget };
 
 export interface ShortcutKey {
@@ -45,14 +45,15 @@ export interface ShortcutKey {
 }
 
 // The shortcut a keydown in the interface stands for, if any. Zoom and find
-// are Ctrl on both platforms; switching uses `switchModifier`, Cmd on macOS.
+// are Ctrl on both platforms; switching takes any of `switchModifiers` (Ctrl,
+// plus Cmd on macOS).
 // Service views intercept the same keys in main.
 export function appShortcutFor(
   e: ShortcutKey,
-  switchModifier: SwitchModifier = "control",
+  switchModifiers: readonly SwitchModifier[] = ["control"],
 ): AppShortcut | null {
   const mods = { control: e.ctrlKey, meta: e.metaKey, alt: e.altKey, shift: e.shiftKey };
-  if (isSwitchChord(mods, switchModifier)) {
+  if (isSwitchChord(mods, switchModifiers)) {
     const target = switchTargetFor(e.key);
     if (target) return { kind: "switch", target };
   }

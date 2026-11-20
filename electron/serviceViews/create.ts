@@ -15,7 +15,7 @@ import {
   loadWithChromeIdentity,
 } from "../chromeIdentity";
 import { handleDevToolsShortcut } from "../devTools";
-import { isSwitchChord, resolveSwitch, switchModifierFor } from "../shared/shortcuts";
+import { isSwitchChord, resolveSwitch, switchModifiersFor } from "../shared/shortcuts";
 import { sidebarServices } from "../shared/serviceVisibility";
 import { getDeps, partitionFor } from "./state";
 import { isFindBarOpen } from "./layout";
@@ -31,7 +31,7 @@ import { attachSignInPopups, signInPopupOptions } from "./signInPopup";
 import { applyServiceSound, isServiceSilenced } from "./sound";
 import { attachLoadRecovery } from "./loadRecovery";
 
-const SWITCH_MODIFIER = switchModifierFor(process.platform);
+const SWITCH_MODIFIERS = switchModifiersFor(process.platform);
 
 // Build one service's WebContentsView: session partition, UA spoofing,
 // permission policy, per-load re-injection, popups and keyboard shortcuts.
@@ -196,8 +196,8 @@ export function createServiceView(
       openFindBarFor(service.id);
       return;
     }
-    // Service switching is Cmd+1-9 on macOS, Ctrl+1-9 elsewhere
-    if (input.type === "keyDown" && isSwitchChord(input, SWITCH_MODIFIER)) {
+    // Service switching is Ctrl+1-9, and Cmd+1-9 too on macOS
+    if (input.type === "keyDown" && isSwitchChord(input, SWITCH_MODIFIERS)) {
       // Numbered in sidebar order, so hidden services have no number
       const ids = sidebarServices(store.get("services")).map((s) => s.id);
       const target = resolveSwitch(input.key, ids);

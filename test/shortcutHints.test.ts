@@ -94,14 +94,14 @@ describe("shortcut hint tracker", () => {
     expect(changes).toEqual([true, false]);
   });
 
-  describe("with Cmd as the modifier (macOS)", () => {
+  describe("with Cmd and Ctrl as the modifiers (macOS)", () => {
     const cmdDown: KeyInput = { type: "keyDown", key: "Meta", control: false, meta: true };
     const cmdUp: KeyInput = { type: "keyUp", key: "Meta", control: false, meta: false };
 
     beforeEach(() => {
       tracker = createShortcutHintTracker({
         onChange: (visible) => changes.push(visible),
-        modifier: "meta",
+        modifiers: ["meta", "control"],
       });
     });
 
@@ -113,10 +113,19 @@ describe("shortcut hint tracker", () => {
       expect(changes).toEqual([true, false]);
     });
 
-    it("ignores a held Ctrl", () => {
+    it("shows the hints while Ctrl is held too", () => {
       tracker.handleInput(ctrlDown);
-      vi.advanceTimersByTime(SHORTCUT_HINT_HOLD_MS * 2);
-      expect(changes).toEqual([]);
+      vi.advanceTimersByTime(SHORTCUT_HINT_HOLD_MS);
+      tracker.handleInput({ type: "keyDown", key: "2", control: true, meta: false });
+      tracker.handleInput({ type: "keyUp", key: "Control", control: false, meta: false });
+      expect(changes).toEqual([true, false]);
+    });
+
+    it("hides them when input arrives without the held modifier", () => {
+      tracker.handleInput(cmdDown);
+      vi.advanceTimersByTime(SHORTCUT_HINT_HOLD_MS);
+      tracker.handleInput({ type: "keyDown", key: "a", control: false, meta: false });
+      expect(changes).toEqual([true, false]);
     });
   });
 });

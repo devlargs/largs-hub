@@ -1,5 +1,5 @@
-// Ctrl+1-9 (Cmd+1-9 on macOS) switches services, but nothing on screen said
-// which number was which. Holding that modifier on its own for a moment puts
+// Ctrl+1-9 (Cmd+1-9 too on macOS) switches services, but nothing on screen said
+// which number was which. Holding one of those modifiers on its own for a moment puts
 // the numbers on the sidebar.
 //
 // Pure and Electron-free (see test/shortcutHints.test.ts). window/state.ts feeds it
@@ -27,14 +27,14 @@ export interface ShortcutHintTracker {
 
 export function createShortcutHintTracker(options: {
   onChange: (visible: boolean) => void;
-  // Ctrl by default; main passes Cmd on macOS (switchModifierFor)
-  modifier?: SwitchModifier;
+  // Ctrl by default; main passes Cmd and Ctrl on macOS (switchModifiersFor)
+  modifiers?: readonly SwitchModifier[];
   holdMs?: number;
 }): ShortcutHintTracker {
   const holdMs = options.holdMs ?? SHORTCUT_HINT_HOLD_MS;
-  const modifier = options.modifier ?? "control";
-  const modifierKey = SWITCH_MODIFIER_KEY[modifier];
-  let held = false;
+  const modifiers = options.modifiers ?? ["control"];
+  // The modifier being held, if any
+  let held: SwitchModifier | null = null;
   let visible = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -50,18 +50,19 @@ export function createShortcutHintTracker(options: {
   };
 
   const release = () => {
-    held = false;
+    held = null;
     clearTimer();
     setVisible(false);
   };
 
   return {
     handleInput(input) {
-      if (input.key === modifierKey) {
+      const modifier = modifiers.find((m) => SWITCH_MODIFIER_KEY[m] === input.key);
+      if (modifier) {
         if (input.type === "keyUp") release();
         // Held keys auto-repeat keyDown; only the first one starts the clock
         else if (input.type === "keyDown" && !held) {
-          held = true;
+          held = modifier;
           timer = setTimeout(() => {
             timer = null;
             setVisible(true);
@@ -72,7 +73,7 @@ export function createShortcutHintTracker(options: {
       if (!held) return;
       // The modifier's keyUp can land in a view nobody is listening to; any
       // input without the modifier means it is no longer down.
-      if (!input[modifier]) {
+      if (!input[held]) {
         release();
         return;
       }

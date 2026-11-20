@@ -8,10 +8,10 @@ import { useServiceDrag } from "../hooks/useServiceDrag";
 import ServiceButton from "./sidebar/ServiceButton";
 import LockButton from "./sidebar/LockButton";
 import ShortcutHint from "./sidebar/ShortcutHint";
-import { SWITCH_MODIFIER_KEY, switchModifierFor } from "@shared/shortcuts";
+import { switchKeyShortcuts, switchModifiersFor } from "@shared/shortcuts";
 
 // Control on Windows, Meta (Cmd) on macOS
-const SWITCH_KEY = SWITCH_MODIFIER_KEY[switchModifierFor(window.electronAPI?.platform ?? "")];
+const SWITCH_MODIFIERS = switchModifiersFor(window.electronAPI?.platform ?? "");
 
 interface SidebarProps {
   // The services the sidebar shows: hidden ones are left out (sidebarServices)
@@ -62,7 +62,7 @@ export default function Sidebar({
       {/* Home button */}
       <button
         onClick={onAddService}
-        aria-keyshortcuts={`${SWITCH_KEY}+1`}
+        aria-keyshortcuts={switchKeyShortcuts(SWITCH_MODIFIERS, 1)}
         className={`
           relative w-12 h-12 rounded-xl flex items-center justify-center
           transition-all duration-200 cursor-pointer

@@ -1,15 +1,22 @@
-// Ctrl+number targets (Cmd+number on macOS), shared by main (keys pressed
+// Ctrl+number targets (Cmd+number works too on macOS), shared by main (keys pressed
 // inside a service view) and the renderer (keys pressed in the interface, the
 // sidebar's hint numbers). 1 is Home; 2-9 are the first eight services in
 // sidebar order, disabled ones included and hidden ones not. Pure — compiled
 // into both bundles.
 
-// The modifier held for the number shortcuts and their sidebar hints: Cmd on
-// macOS, like its other apps' tab switching, and Ctrl everywhere else
+// A modifier held for the number shortcuts and their sidebar hints
 export type SwitchModifier = "control" | "meta";
 
-export function switchModifierFor(platform: string): SwitchModifier {
-  return platform === "darwin" ? "meta" : "control";
+// Every modifier that switches: Ctrl everywhere, and on macOS Cmd as well,
+// like its other apps' tab switching. Ctrl stays on macOS so the Ctrl+number
+// habit from Windows keeps working there.
+export function switchModifiersFor(platform: string): readonly SwitchModifier[] {
+  return platform === "darwin" ? ["meta", "control"] : ["control"];
+}
+
+// aria-keyshortcuts for <modifier>+<key>: alternatives are space-separated
+export function switchKeyShortcuts(modifiers: readonly SwitchModifier[], key: number): string {
+  return modifiers.map((m) => `${SWITCH_MODIFIER_KEY[m]}+${key}`).join(" ");
 }
 
 // The key name Electron's Input and a DOM KeyboardEvent give the modifier itself
@@ -25,11 +32,18 @@ export interface ModifierState {
   shift: boolean;
 }
 
-// The switch modifier on its own: not with shift, alt or the other one of
+// A switch modifier on its own: not with shift, alt or the other one of
 // Ctrl/Cmd, so Ctrl+Cmd+1 or Cmd+Shift+1 stay with the page.
-export function isSwitchChord(mods: ModifierState, modifier: SwitchModifier): boolean {
-  const other = modifier === "control" ? mods.meta : mods.control;
-  return mods[modifier] && !other && !mods.alt && !mods.shift;
+export function isSwitchChord(
+  mods: ModifierState,
+  modifiers: SwitchModifier | readonly SwitchModifier[],
+): boolean {
+  const accepted: readonly SwitchModifier[] =
+    typeof modifiers === "string" ? [modifiers] : modifiers;
+  return accepted.some((modifier) => {
+    const other = modifier === "control" ? mods.meta : mods.control;
+    return mods[modifier] && !other && !mods.alt && !mods.shift;
+  });
 }
 
 export type SwitchTarget = { kind: "home" } | { kind: "service"; index: number };

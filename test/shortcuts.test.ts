@@ -3,7 +3,8 @@ import {
   isSwitchChord,
   resolveSwitch,
   shortcutNumberFor,
-  switchModifierFor,
+  switchKeyShortcuts,
+  switchModifiersFor,
   switchTargetFor,
 } from "../electron/shared/shortcuts";
 
@@ -68,11 +69,18 @@ describe("resolveSwitch", () => {
   });
 });
 
-describe("switchModifierFor", () => {
-  it("is Cmd on macOS and Ctrl everywhere else", () => {
-    expect(switchModifierFor("darwin")).toBe("meta");
-    expect(switchModifierFor("win32")).toBe("control");
-    expect(switchModifierFor("linux")).toBe("control");
+describe("switchModifiersFor", () => {
+  it("is Cmd and Ctrl on macOS and Ctrl everywhere else", () => {
+    expect(switchModifiersFor("darwin")).toEqual(["meta", "control"]);
+    expect(switchModifiersFor("win32")).toEqual(["control"]);
+    expect(switchModifiersFor("linux")).toEqual(["control"]);
+  });
+});
+
+describe("switchKeyShortcuts", () => {
+  it("lists each modifier as an alternative", () => {
+    expect(switchKeyShortcuts(["meta", "control"], 3)).toBe("Meta+3 Control+3");
+    expect(switchKeyShortcuts(["control"], 1)).toBe("Control+1");
   });
 });
 
@@ -87,6 +95,15 @@ describe("isSwitchChord", () => {
   it("leaves the other modifier to the page", () => {
     expect(isSwitchChord({ ...mods, meta: true }, "control")).toBe(false);
     expect(isSwitchChord({ ...mods, control: true }, "meta")).toBe(false);
+  });
+
+  it("takes either modifier on its own when given both (macOS)", () => {
+    const mac = ["meta", "control"] as const;
+    expect(isSwitchChord({ ...mods, meta: true }, mac)).toBe(true);
+    expect(isSwitchChord({ ...mods, control: true }, mac)).toBe(true);
+    expect(isSwitchChord({ ...mods, control: true, meta: true }, mac)).toBe(false);
+    expect(isSwitchChord({ ...mods, control: true, shift: true }, mac)).toBe(false);
+    expect(isSwitchChord(mods, mac)).toBe(false);
   });
 
   it("rejects Ctrl and Cmd together, shift or alt", () => {

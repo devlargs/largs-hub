@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { appShortcutFor } from "../lib/appActions";
-import { switchModifierFor, type SwitchTarget } from "@shared/shortcuts";
+import { switchModifiersFor, type SwitchTarget } from "@shared/shortcuts";
 
-const SWITCH_MODIFIER = switchModifierFor(window.electronAPI?.platform ?? "");
+const SWITCH_MODIFIERS = switchModifiersFor(window.electronAPI?.platform ?? "");
 
 interface AppShortcutOptions {
   locked: boolean;
@@ -13,7 +13,7 @@ interface AppShortcutOptions {
 }
 
 // Shortcuts while the interface (not a service view) has focus: Ctrl zoom,
-// Ctrl find in page and Ctrl+1-9 (Cmd+1-9 on macOS; 1 is Home). Service views
+// Ctrl find in page and Ctrl+1-9 (Cmd+1-9 too on macOS; 1 is Home). Service views
 // handle the same keys in main.
 export function useAppShortcuts(options: AppShortcutOptions): void {
   // Read inside the window-level key handler, which is registered once and
@@ -28,7 +28,7 @@ export function useAppShortcuts(options: AppShortcutOptions): void {
       const { locked, activeServiceId, onFind, onSwitch } = latest.current;
       // Nothing behind the lock screen is reachable, shortcuts included.
       if (locked) return;
-      const shortcut = appShortcutFor(e, SWITCH_MODIFIER);
+      const shortcut = appShortcutFor(e, SWITCH_MODIFIERS);
       if (!shortcut) return;
       switch (shortcut.kind) {
         case "zoom":

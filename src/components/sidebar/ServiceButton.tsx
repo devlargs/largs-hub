@@ -1,7 +1,7 @@
 import type { Service } from "../../types";
 import { badgeText, serviceLabel } from "../../lib/serviceLabel";
 import type { useServiceDrag } from "../../hooks/useServiceDrag";
-import { SWITCH_MODIFIER_KEY, shortcutNumberFor, switchModifierFor } from "@shared/shortcuts";
+import { shortcutNumberFor, switchKeyShortcuts, switchModifiersFor } from "@shared/shortcuts";
 import ShortcutHint from "./ShortcutHint";
 import ServiceIcon from "../ui/ServiceIcon";
 import PhoneStatusMark from "../phone-status/PhoneStatusMark";
@@ -9,7 +9,7 @@ import { usePhoneStatusStore } from "../../store/phoneStatus";
 import { needsAttention, phoneStatusLabel } from "../../lib/phoneStatusLabel";
 
 // Control on Windows, Meta (Cmd) on macOS
-const SWITCH_KEY = SWITCH_MODIFIER_KEY[switchModifierFor(window.electronAPI?.platform ?? "")];
+const SWITCH_MODIFIERS = switchModifiersFor(window.electronAPI?.platform ?? "");
 
 interface ServiceButtonProps {
   service: Service;
@@ -51,7 +51,7 @@ export default function ServiceButton({
       // Ctrl+1 (Cmd+1 on macOS) is Home, so Ctrl+N picks the (N-1)th
       // service in sidebar order, disabled ones included and hidden ones not —
       // the same lookup main and the app shell use.
-      aria-keyshortcuts={shortcut ? `${SWITCH_KEY}+${shortcut}` : undefined}
+      aria-keyshortcuts={shortcut ? switchKeyShortcuts(SWITCH_MODIFIERS, shortcut) : undefined}
       {...dragProps}
       onClick={onClick}
       onContextMenu={onContextMenu}
