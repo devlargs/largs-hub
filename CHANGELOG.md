@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Longer hibernation times.** **Settings → General → Hibernate inactive services** now also offers 2, 4, 8 and 24 hours, so services you check now and then can stay loaded much longer before they're unloaded. Applies on Windows and macOS.
 - **No more "Get the Reddit App" sheet.** About half a minute into browsing, Reddit put up a "Get the best of Reddit in the app" sheet with no way to close it, which locked the page until you reloaded. A Reddit service now removes that sheet as soon as it appears and lets the page scroll again. Applies on Windows and macOS.
 - **Behind the scenes: download diagnostics.** When Largs Hub is started from a terminal, it now prints a line for each download and each popup a service opens, saying where it came from. This is to track down Messenger videos downloading as soon as you open them, and will be removed once that's fixed. Link query values are left out of these lines. Applies on Windows and macOS.
 

@@ -37,6 +37,10 @@ export default function GeneralSection({ settings, save, toggle }: AppSettingsAp
             [15, "After 15 min"],
             [30, "After 30 min"],
             [60, "After 1 hour"],
+            [120, "After 2 hours"],
+            [240, "After 4 hours"],
+            [480, "After 8 hours"],
+            [1440, "After 24 hours"],
           ]}
         />
       </SettingRow>
