@@ -115,3 +115,44 @@ exports[`whatsapp automation scripts > WHATSAPP_NOTICE_SCRIPT parses and matches
   })()
 "
 `;
+
+exports[`whatsapp automation scripts > builds a parseable send script 1`] = `
+"
+    (async () => {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const findInput = () =>
+        document.querySelector('#main footer div[contenteditable="true"]') ||
+        document.querySelector('#main div[contenteditable="true"][role="textbox"]');
+      let input = null;
+      for (let i = 0; i < 20 && !input; i++) {
+        input = findInput();
+        if (!input) await wait(100);
+      }
+      if (!input) return "no-input";
+      input.focus();
+      document.execCommand("selectAll");
+      document.execCommand("delete");
+      document.execCommand("insertText", false, "hello");
+      const findSend = () => {
+        const footer = document.querySelector('#main footer') || document.querySelector('#main');
+        if (!footer) return null;
+        for (const el of footer.querySelectorAll('button, [role="button"]')) {
+          const label = (el.getAttribute('aria-label') || el.getAttribute('title') || '').trim();
+          const icon = el.querySelector('[data-icon]');
+          const name = icon ? icon.getAttribute('data-icon') || '' : '';
+          if (/^send$/i.test(label) || /^send$|ic-send/i.test(name)) return el;
+        }
+        return null;
+      };
+      for (let i = 0; i < 20; i++) {
+        const btn = findSend();
+        if (btn) { btn.click(); return "sent"; }
+        await wait(100);
+      }
+      const enter = { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true };
+      input.dispatchEvent(new KeyboardEvent("keydown", enter));
+      await wait(300);
+      return (input.textContent || "").trim() === "" ? "sent" : "no-send-button";
+    })()
+  "
+`;

@@ -150,13 +150,20 @@ describe("status text", () => {
 });
 
 describe("platform tabs", () => {
-  it("offers WhatsApp the call cycle only", () => {
-    expect(tabsFor("whatsapp").map((t) => t.type)).toEqual(["startCallCycle"]);
+  it("offers WhatsApp every tab but Send now", () => {
+    expect(tabsFor("whatsapp").map((t) => t.label)).toEqual([
+      "Schedule",
+      "Interval",
+      "Emoji",
+      "Call cycle",
+      "Random list",
+    ]);
     expect(tabsFor("messenger")).toHaveLength(6);
   });
 
   it("moves settings saved on another tab to the platform's first tab", () => {
-    expect(formForPlatform(form({ type: "sendEmoji" }), "whatsapp").type).toBe("startCallCycle");
+    expect(formForPlatform(form({ type: "sendChatMessage" }), "whatsapp").type).toBe("sendChat");
+    expect(formForPlatform(form({ type: "sendEmoji" }), "whatsapp").type).toBe("sendEmoji");
     expect(formForPlatform(form({ type: "sendEmoji" }), "messenger").type).toBe("sendEmoji");
   });
 

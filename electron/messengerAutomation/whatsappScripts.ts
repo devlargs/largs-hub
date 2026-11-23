@@ -113,3 +113,50 @@ export const WHATSAPP_HANGUP_SCRIPT = `
     return false;
   })()
 `;
+
+// Types a message into the open chat's compose box and sends it. The box is
+// looked up inside #main's footer so the chat-list search box (also
+// contenteditable) is never picked. WhatsApp's send button swaps in once the
+// box has text; if it never shows, Enter is pressed instead and the emptied
+// box is taken as proof it went. The message is embedded via JSON.stringify,
+// so quotes/newlines/emoji can't break out of the string literal.
+export function buildWhatsAppSendScript(message: string): string {
+  return `
+    (async () => {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const findInput = () =>
+        document.querySelector('#main footer div[contenteditable="true"]') ||
+        document.querySelector('#main div[contenteditable="true"][role="textbox"]');
+      let input = null;
+      for (let i = 0; i < 20 && !input; i++) {
+        input = findInput();
+        if (!input) await wait(100);
+      }
+      if (!input) return "no-input";
+      input.focus();
+      document.execCommand("selectAll");
+      document.execCommand("delete");
+      document.execCommand("insertText", false, ${JSON.stringify(message)});
+      const findSend = () => {
+        const footer = document.querySelector('#main footer') || document.querySelector('#main');
+        if (!footer) return null;
+        for (const el of footer.querySelectorAll('button, [role="button"]')) {
+          const label = (el.getAttribute('aria-label') || el.getAttribute('title') || '').trim();
+          const icon = el.querySelector('[data-icon]');
+          const name = icon ? icon.getAttribute('data-icon') || '' : '';
+          if (/^send$/i.test(label) || /^send$|ic-send/i.test(name)) return el;
+        }
+        return null;
+      };
+      for (let i = 0; i < 20; i++) {
+        const btn = findSend();
+        if (btn) { btn.click(); return "sent"; }
+        await wait(100);
+      }
+      const enter = { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true };
+      input.dispatchEvent(new KeyboardEvent("keydown", enter));
+      await wait(300);
+      return (input.textContent || "").trim() === "" ? "sent" : "no-send-button";
+    })()
+  `;
+}

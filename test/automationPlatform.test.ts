@@ -21,9 +21,16 @@ describe("automationPlatformFor", () => {
 });
 
 describe("platformSupports", () => {
-  it("gives WhatsApp the call cycle only", () => {
-    expect(PLATFORM_TASK_TYPES.whatsapp).toEqual(["startCallCycle"]);
+  it("gives WhatsApp the scheduled, interval, emoji, random-list sends and the call cycle", () => {
+    expect(PLATFORM_TASK_TYPES.whatsapp).toEqual([
+      "sendChat",
+      "sendChatInterval",
+      "sendEmoji",
+      "startCallCycle",
+      "sendRandomFromList",
+    ]);
     expect(platformSupports("whatsapp", "startCallCycle")).toBe(true);
+    expect(platformSupports("whatsapp", "sendRandomFromList")).toBe(true);
     expect(platformSupports("whatsapp", "sendChatMessage")).toBe(false);
   });
 

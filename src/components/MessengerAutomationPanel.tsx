@@ -27,7 +27,7 @@ import { usePanelPrefs } from "./messenger-automation/usePanelPrefs";
 
 interface MessengerAutomationPanelProps {
   serviceId: string;
-  // Which tabs the panel offers: WhatsApp only has the call cycle
+  // Which tabs the panel offers (shared/automationPlatform.ts)
   platform: AutomationPlatform;
   tasks: AutomationTask[];
   onClose: () => void;
