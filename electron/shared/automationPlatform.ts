@@ -11,18 +11,21 @@ export const PLATFORM_NAMES: Record<AutomationPlatform, string> = {
   whatsapp: "WhatsApp",
 };
 
-// WhatsApp only has the call cycle: its in-page call is driven by
-// messengerAutomation/inPageCall.ts, and the message tasks are Messenger's.
+// Both platforms offer every task. WhatsApp's page scripts are in
+// messengerAutomation/whatsappScripts.ts, and its call rings in the page
+// (messengerAutomation/inPageCall.ts) instead of a popup.
+const ALL_TASK_TYPES: readonly TaskSpec["type"][] = [
+  "sendChatMessage",
+  "sendChat",
+  "sendChatInterval",
+  "sendEmoji",
+  "startCallCycle",
+  "sendRandomFromList",
+];
+
 export const PLATFORM_TASK_TYPES: Record<AutomationPlatform, readonly TaskSpec["type"][]> = {
-  messenger: [
-    "sendChatMessage",
-    "sendChat",
-    "sendChatInterval",
-    "sendEmoji",
-    "startCallCycle",
-    "sendRandomFromList",
-  ],
-  whatsapp: ["startCallCycle"],
+  messenger: ALL_TASK_TYPES,
+  whatsapp: ALL_TASK_TYPES,
 };
 
 export function automationPlatformFor(url: string): AutomationPlatform | null {

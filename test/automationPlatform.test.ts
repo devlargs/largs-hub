@@ -21,10 +21,11 @@ describe("automationPlatformFor", () => {
 });
 
 describe("platformSupports", () => {
-  it("gives WhatsApp the call cycle only", () => {
-    expect(PLATFORM_TASK_TYPES.whatsapp).toEqual(["startCallCycle"]);
+  it("gives WhatsApp the same tasks as Messenger", () => {
+    expect(PLATFORM_TASK_TYPES.whatsapp).toEqual(PLATFORM_TASK_TYPES.messenger);
     expect(platformSupports("whatsapp", "startCallCycle")).toBe(true);
-    expect(platformSupports("whatsapp", "sendChatMessage")).toBe(false);
+    expect(platformSupports("whatsapp", "sendChatMessage")).toBe(true);
+    expect(platformSupports("whatsapp", "sendRandomFromList")).toBe(true);
   });
 
   it("gives Messenger every task", () => {

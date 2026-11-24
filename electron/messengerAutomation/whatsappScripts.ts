@@ -113,3 +113,42 @@ export const WHATSAPP_HANGUP_SCRIPT = `
     return false;
   })()
 `;
+
+// Types the message into the open chat's compose box and sends it, for the
+// message, emoji and list tasks. The box is the contenteditable in #main's
+// footer (the chat-list search is also contenteditable, so the scope matters).
+// The message is embedded via JSON.stringify, as in buildTypeAndSendScript.
+// Returns the same results as Messenger's: "sent", "no-input", "no-send-button".
+export function buildWhatsappTypeAndSendScript(message: string): string {
+  return `
+    (async () => {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      let input = null;
+      for (let i = 0; i < 20 && !input; i++) {
+        input = document.querySelector('#main footer div[contenteditable="true"]');
+        if (!input) await wait(100);
+      }
+      if (!input) return "no-input";
+      input.focus();
+      document.execCommand("selectAll");
+      document.execCommand("delete");
+      document.execCommand("insertText", false, ${JSON.stringify(message)});
+      const findSend = () => {
+        const footer = document.querySelector('#main footer');
+        if (!footer) return null;
+        for (const el of footer.querySelectorAll('button, [role="button"]')) {
+          const label = (el.getAttribute('aria-label') || el.getAttribute('title') || '').trim();
+          if (/^send$/i.test(label)) return el;
+        }
+        const icon = footer.querySelector('[data-icon="send"], [data-icon$="send-filled"]');
+        return icon ? icon.closest('button, [role="button"]') : null;
+      };
+      for (let i = 0; i < 20; i++) {
+        const btn = findSend();
+        if (btn) { btn.click(); return "sent"; }
+        await wait(100);
+      }
+      return "no-send-button";
+    })()
+  `;
+}

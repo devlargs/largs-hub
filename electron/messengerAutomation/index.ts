@@ -15,7 +15,7 @@ import {
   tasks,
 } from "./runtime";
 import { validateAutoStopMinutes, validateSpec } from "./validation";
-import { buildTypeAndSendScript } from "./scripts";
+import { buildSendScript } from "./sendScripts";
 import { armAutoStop, clearAutoStop, publicAutoStop, restorePersistedAutoStops } from "./autoStop";
 import { launchTask } from "./tasks";
 import { stopAllForService, stopTask } from "./lifecycle";
@@ -26,7 +26,7 @@ import {
   platformSupports,
 } from "../shared/automationPlatform";
 
-// Messenger automation (and the WhatsApp call cycle): scheduling/looping lives
+// Messenger and WhatsApp automation: scheduling/looping lives
 // in the main process so tasks survive page reloads and keep running while the
 // view is hidden or another service is active. Only the final "type + click
 // send" script is injected into the service's WebContentsView at fire time.
@@ -45,8 +45,9 @@ import {
 //   autoStop.ts    per-service auto-stop countdowns
 //   notice.ts      "she noticed you" detection for the call cycle (pure)
 //   validation.ts  task-spec and auto-stop validation (pure)
-//   scripts.ts     injected page scripts (pure, snapshot-tested)
-//   whatsappScripts.ts  the WhatsApp call cycle's page scripts (same)
+//   scripts.ts     injected Messenger page scripts (pure, snapshot-tested)
+//   whatsappScripts.ts  the WhatsApp page scripts (same)
+//   sendScripts.ts the "type and send" script for each platform (pure)
 
 export type { TaskSpec, AutomationTask, StartResult, AutoStopState, AutoStopResult };
 export type { AutomationDeps } from "./runtime";
@@ -96,7 +97,7 @@ export function registerMessengerAutomation(deps: AutomationDeps): void {
 
       if (taskSpec.type === "sendChatMessage") {
         // Immediate one-off — never enters the task list
-        const result = await inject(serviceId, buildTypeAndSendScript(taskSpec.message));
+        const result = await inject(serviceId, buildSendScript(platform, taskSpec.message));
         if (result !== "sent") {
           return fail(
             result === "no-input"

@@ -1,7 +1,11 @@
 import type { AutomationPrefs, MessageListGroup, NoticeReason, TaskSpec } from "../types";
-import { type AutomationPlatform, platformSupports } from "@shared/automationPlatform";
+import {
+  type AutomationPlatform,
+  PLATFORM_NAMES,
+  platformSupports,
+} from "@shared/automationPlatform";
 
-// The Messenger automation panel's form, labels and formatting, kept free of
+// The Messenger / WhatsApp automation panel's form, labels and formatting, kept free of
 // React so they can be unit-tested.
 
 export type TaskType = TaskSpec["type"];
@@ -39,7 +43,6 @@ export const NOTICE_LABELS: Record<NoticeReason, string> = {
 };
 
 export const HELPER_TEXT: Partial<Record<TaskType, string>> = {
-  sendChatMessage: "Sends into the conversation currently open in Messenger.",
   sendChat: "Fires at the chosen time — if it already passed today, it fires tomorrow.",
   sendChatInterval: "Repeats the message at a random delay between min and max seconds.",
   sendEmoji: "Sends 1 to max-repeat copies of the emoji at a random delay.",
@@ -54,6 +57,9 @@ const WHATSAPP_CALL_CYCLE_HELP =
   "Places a voice call in the open WhatsApp chat at a random delay between min and max seconds, with the ring muted. If it isn't answered within “Wait to ring” seconds, it hangs up and the cycle restarts. When the call is answered it stops and keeps the call going. It also stops on its own as soon as the chat shows a reply, blue ticks, or a typing indicator.";
 
 export function helperText(type: TaskType, platform: AutomationPlatform): string | undefined {
+  if (type === "sendChatMessage") {
+    return `Sends into the conversation currently open in ${PLATFORM_NAMES[platform]}.`;
+  }
   if (platform === "whatsapp" && type === "startCallCycle") return WHATSAPP_CALL_CYCLE_HELP;
   return HELPER_TEXT[type];
 }
