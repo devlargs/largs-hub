@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.100] (2026-11-24)
 - **Full automation for WhatsApp.** The automation panel (⚡) on a WhatsApp service now has every tab Messenger has, not just the call cycle: **Send now**, **Schedule**, **Interval**, **Emoji** and **Random list** type into the open WhatsApp chat and send, at the times and random delays you set. The Recent emoji pane, saved message lists, auto-stop and per-account settings work the same way. Applies on Windows and macOS.
 
 ## [0.1.98] (2026-11-20)
