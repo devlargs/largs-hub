@@ -1,7 +1,9 @@
 # Changelog
 
 ## [Unreleased]
-- **Message automation for WhatsApp.** The WhatsApp automation panel (⚡) now has **Schedule**, **Interval**, **Emoji** and **Random list** next to the call cycle, working the same way as Messenger's: send a message at a set time, repeat one at a random delay, send bursts of an emoji, or send a random message from one of your saved lists, never the same one twice in a row. They type into the chat that's open in WhatsApp. Applies on Windows and macOS.
+
+## [0.1.100] (2026-11-24)
+- **Full automation for WhatsApp.** The automation panel (⚡) on a WhatsApp service now has every tab Messenger has, not just the call cycle: **Send now**, **Schedule**, **Interval**, **Emoji** and **Random list** type into the open WhatsApp chat and send, at the times and random delays you set. The Recent emoji pane, saved message lists, auto-stop and per-account settings work the same way. Applies on Windows and macOS.
 
 ## [0.1.98] (2026-11-20)
 - **Ctrl+number switches services on macOS too.** `Ctrl`+`1` (Home) and `Ctrl`+`2`–`9` now work on macOS alongside `Cmd`+`1`–`9`, whether the interface or a web app has focus, and holding `Ctrl` shows the sidebar numbers just like holding `Cmd`. Windows is unchanged.

@@ -10,13 +10,13 @@ import { emojiBurst, nextDailyFireAt, randomDelayMs } from "./schedule";
 // The task scheduler: arming and looping tasks. Timers live here in the main
 // process so tasks survive page reloads and keep running while the view is
 // hidden or another service is active; only the scripts in scripts.ts are
-// injected into the Messenger or WhatsApp view, at fire time. Stopping is in lifecycle.ts,
+// injected into the service view, at fire time. Stopping is in lifecycle.ts,
 // the call cycle in callCycle.ts, restoring after a restart in restore.ts.
 
-// The send script for the service's platform, looked up at fire time so a
-// restored task gets the right one too.
-function sendScript(serviceId: string, message: string): string {
-  return buildSendScript(platformForService(serviceId), message);
+// The send script for the service's platform, looked up at fire time.
+// Messenger is the fallback, as in callPlatformFor.
+function sendScriptFor(serviceId: string, message: string): string {
+  return buildSendScript(platformForService(serviceId) ?? "messenger", message);
 }
 
 // `fireAt` is only passed by the launch-time restore, which already knows the
@@ -32,7 +32,7 @@ function startSendChat(
   task.nextFireAt = target;
   task.timer = setTimeout(
     async () => {
-      await inject(serviceId, sendScript(serviceId, spec.message));
+      await inject(serviceId, sendScriptFor(serviceId, spec.message));
       tasks.delete(task.id);
       pushUpdate();
     },
@@ -87,7 +87,7 @@ export function launchTask(serviceId: string, taskSpec: TaskSpec, options?: { fi
         serviceId,
         taskSpec,
         () => randomDelayMs(taskSpec.fromSec, taskSpec.toSec),
-        () => sendScript(serviceId, taskSpec.message),
+        () => sendScriptFor(serviceId, taskSpec.message),
       );
       return;
     case "sendRandomFromList": {
@@ -100,7 +100,7 @@ export function launchTask(serviceId: string, taskSpec: TaskSpec, options?: { fi
         () => randomDelayMs(taskSpec.fromSec, taskSpec.toSec),
         () => {
           lastIndex = pickNextIndex(taskSpec.messages.length, lastIndex);
-          return sendScript(serviceId, taskSpec.messages[lastIndex]);
+          return sendScriptFor(serviceId, taskSpec.messages[lastIndex]);
         },
       );
       return;
@@ -110,7 +110,7 @@ export function launchTask(serviceId: string, taskSpec: TaskSpec, options?: { fi
         serviceId,
         taskSpec,
         () => randomDelayMs(taskSpec.fromSec, taskSpec.toSec),
-        () => sendScript(serviceId, emojiBurst(taskSpec.emoji, taskSpec.maxLength)),
+        () => sendScriptFor(serviceId, emojiBurst(taskSpec.emoji, taskSpec.maxLength)),
       );
       return;
     case "startCallCycle":

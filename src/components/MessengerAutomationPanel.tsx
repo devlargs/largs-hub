@@ -27,7 +27,7 @@ import { usePanelPrefs } from "./messenger-automation/usePanelPrefs";
 
 interface MessengerAutomationPanelProps {
   serviceId: string;
-  // Which tabs the panel offers (shared/automationPlatform.ts)
+  // Which platform's wording and page scripts the panel uses
   platform: AutomationPlatform;
   tasks: AutomationTask[];
   onClose: () => void;

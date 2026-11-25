@@ -85,7 +85,7 @@ export function confirmPromptFor(action: string, serviceName: string): ConfirmPr
     case "confirm-disable-service":
       return {
         title: `Disable ${serviceName}?`,
-        body: "Disabling this service stops all of its Messenger automation: scheduled and interval messages, emoji bursts, call cycles and the auto-stop timer. You can enable the service again later, but the automation won't restart.",
+        body: "Disabling this service stops all of its automation: scheduled and interval messages, emoji bursts, call cycles and the auto-stop timer. You can enable the service again later, but the automation won't restart.",
         confirmLabel: "Disable",
       };
     case "confirm-clear-data":

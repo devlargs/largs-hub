@@ -45,9 +45,9 @@ import {
 //   autoStop.ts    per-service auto-stop countdowns
 //   notice.ts      "she noticed you" detection for the call cycle (pure)
 //   validation.ts  task-spec and auto-stop validation (pure)
-//   scripts.ts     injected page scripts (pure, snapshot-tested)
-//   whatsappScripts.ts  WhatsApp's send and call-cycle page scripts (same)
-//   sendScripts.ts the type-and-send script for each platform (pure)
+//   scripts.ts     injected Messenger page scripts (pure, snapshot-tested)
+//   whatsappScripts.ts  the WhatsApp page scripts (same)
+//   sendScripts.ts the "type and send" script for each platform (pure)
 
 export type { TaskSpec, AutomationTask, StartResult, AutoStopState, AutoStopResult };
 export type { AutomationDeps } from "./runtime";
