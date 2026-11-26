@@ -1,25 +1,22 @@
 import { BrowserWindow, ipcMain, powerMonitor, WebContentsView } from "electron";
 import { store } from "../store";
-import {
-  hashMasterPassword,
-  sanitizeCredential,
-  validateNewPassword,
-  verifyMasterPassword,
-} from "../masterPassword";
+import { hashMasterPassword, validateNewPassword } from "../masterPassword";
+import { checkPassword, credential } from "./passwordCheck";
 import {
   INITIAL_LOCK_STATE,
-  INITIAL_THROTTLE,
+  isEffectivelyLocked,
   LockEvent,
   LockState,
   msUntilLock,
   reduceLock,
-  registerFailure,
   sanitizeLockDelayMinutes,
-  sanitizeThrottle,
-  throttleMessage,
-  throttleWaitMs,
 } from "../lockPolicy";
-import type { SecurityResult, SecurityState, SecurityUpdate } from "../shared/types";
+import type {
+  RemoteLockInfo,
+  SecurityResult,
+  SecurityState,
+  SecurityUpdate,
+} from "../shared/types";
 import { isFromApp } from "../appOrigin";
 
 // IPC: the workspace lock (issue #102) — the "Add Security Controls" toggle,
@@ -33,17 +30,23 @@ import { isFromApp } from "../appOrigin";
 
 interface SecurityIpcDeps {
   getUiView(): WebContentsView | null;
-  // Called whenever the lock opens or closes so the main process can hide the
-  // service views behind the lock screen.
+  // Called whenever the workspace goes behind the lock screen or comes out
+  // (either lock, see isEffectivelyLocked) so the main process can hide the
+  // service views behind it.
   onLockedChanged(locked: boolean): void;
 }
 
 let deps: SecurityIpcDeps | null = null;
 let lockState: LockState = INITIAL_LOCK_STATE;
 let lockTimer: ReturnType<typeof setTimeout> | null = null;
+// The second lock: the account is active on another computer (cloud sync,
+// ipc/cloud.ts). Not tied to security controls or the master password, and
+// unlock-app never clears it; only this computer taking the session back, or
+// signing out, does.
+let remoteLock: RemoteLockInfo | null = null;
 
-function credential() {
-  return sanitizeCredential(store.get("masterPasswordCredential"));
+function effectiveLocked(): boolean {
+  return isEffectivelyLocked(lockState.locked, remoteLock !== null);
 }
 
 function lockOptions() {
@@ -61,42 +64,9 @@ function securityState(): SecurityState {
     hasPassword: credential() !== null,
     lockDelayMinutes: sanitizeLockDelayMinutes(store.get("lockDelayMinutes")),
     autoLockDisabled: store.get("autoLockDisabled") === true,
-    locked: lockState.locked,
+    locked: effectiveLocked(),
+    remoteLock,
   };
-}
-
-// One password check at a time. scrypt is async now, so without this a burst
-// of parallel attempts would all read the throttle before any of them had
-// recorded a failure, and slip past it.
-let checkInFlight = false;
-
-/**
- * The one gate every password goes through: unlocking, turning the lock off
- * and changing the password. Refuses unchecked while the throttle is blocking,
- * records a wrong password, and clears the throttle on a right one.
- */
-async function checkPassword(password: unknown, wrongMessage: string): Promise<SecurityResult> {
-  if (checkInFlight) return { ok: false, error: "Still checking the last attempt." };
-  const now = Date.now();
-  const throttle = sanitizeThrottle(store.get("unlockThrottle"), now);
-  const wait = throttleWaitMs(throttle, now);
-  if (wait > 0) return { ok: false, error: throttleMessage(wait), retryAfterMs: wait };
-
-  checkInFlight = true;
-  try {
-    if (await verifyMasterPassword(password, credential())) {
-      store.set("unlockThrottle", INITIAL_THROTTLE);
-      return { ok: true };
-    }
-    const next = registerFailure(throttle, Date.now());
-    store.set("unlockThrottle", next);
-    const nextWait = throttleWaitMs(next, Date.now());
-    return nextWait > 0
-      ? { ok: false, error: throttleMessage(nextWait), retryAfterMs: nextWait }
-      : { ok: false, error: wrongMessage };
-  } finally {
-    checkInFlight = false;
-  }
 }
 
 function broadcast() {
@@ -113,7 +83,7 @@ function clearTimer() {
 // Single place the state is replaced, so the timer, the UI and the service
 // views can never disagree with it.
 function setLockState(next: LockState) {
-  const wasLocked = lockState.locked;
+  const wasLocked = effectiveLocked();
   lockState = next;
 
   clearTimer();
@@ -122,19 +92,49 @@ function setLockState(next: LockState) {
     lockTimer = setTimeout(() => handleLockEvent("elapsed"), remaining);
   }
 
-  if (lockState.locked !== wasLocked) {
-    deps?.onLockedChanged(lockState.locked);
-  }
+  notifyIfChanged(wasLocked);
   broadcast();
+}
+
+function notifyIfChanged(wasLocked: boolean) {
+  const locked = effectiveLocked();
+  if (locked !== wasLocked) deps?.onLockedChanged(locked);
+}
+
+/**
+ * Sets or clears the remote lock (the account is in use on another computer).
+ * Works whether or not security controls are on.
+ */
+export function setRemoteLock(info: RemoteLockInfo | null): void {
+  const wasLocked = effectiveLocked();
+  remoteLock = info;
+  notifyIfChanged(wasLocked);
+  broadcast();
+}
+
+/**
+ * Re-reads the lock delay and "Don't lock automatically" after something other
+ * than these handlers changed them (cloud sync), re-arming or dropping a
+ * pending countdown.
+ */
+export function refreshLockOptions(): void {
+  const options = lockOptions();
+  // Same as set-lock-delay and set-auto-lock-disabled: a new delay re-arms the
+  // countdown, and switching auto-lock off drops it.
+  setLockState(options.autoLock ? lockState : reduceLock(lockState, "back", Date.now(), options));
+}
+
+export function isRemoteLocked(): boolean {
+  return remoteLock !== null;
 }
 
 function handleLockEvent(event: LockEvent) {
   setLockState(reduceLock(lockState, event, Date.now(), lockOptions()));
 }
 
-/** Whether the workspace is behind the lock screen right now. */
+/** Whether the workspace is behind the lock screen right now, for either lock. */
 export function isWorkspaceLocked(): boolean {
-  return lockState.locked;
+  return effectiveLocked();
 }
 
 // Called from window/create.ts once the window exists. Hiding to the tray is the same
@@ -164,8 +164,9 @@ export function registerSecurityIpc(d: SecurityIpcDeps) {
   // A fresh launch always starts at the password screen, however the app was
   // last left (issue #102).
   if (lockOptions().enabled) {
+    const wasLocked = effectiveLocked();
     lockState = { armedAt: null, locked: true };
-    deps.onLockedChanged(true);
+    notifyIfChanged(wasLocked);
   }
 
   ipcMain.handle("get-security-state", (): SecurityState => securityState());
@@ -187,7 +188,7 @@ export function registerSecurityIpc(d: SecurityIpcDeps) {
         state: securityState(),
       });
       if (!isFromApp(event) || typeof enabled !== "boolean") return refuse();
-      if (lockState.locked) return refuse("Unlock the workspace first.");
+      if (effectiveLocked()) return refuse("Unlock the workspace first.");
       const turningOff =
         !enabled && store.get("securityControlsEnabled") === true && credential() !== null;
       if (turningOff) {
@@ -201,7 +202,7 @@ export function registerSecurityIpc(d: SecurityIpcDeps) {
   );
 
   ipcMain.handle("set-lock-delay", (event, minutes: unknown): SecurityState => {
-    if (!isFromApp(event) || lockState.locked) return securityState();
+    if (!isFromApp(event) || effectiveLocked()) return securityState();
     store.set("lockDelayMinutes", sanitizeLockDelayMinutes(minutes));
     // Re-arms the pending countdown against the new delay.
     setLockState(lockState);
@@ -209,7 +210,7 @@ export function registerSecurityIpc(d: SecurityIpcDeps) {
   });
 
   ipcMain.handle("set-auto-lock-disabled", (event, disabled: unknown): SecurityState => {
-    if (!isFromApp(event) || lockState.locked || typeof disabled !== "boolean") {
+    if (!isFromApp(event) || effectiveLocked() || typeof disabled !== "boolean") {
       return securityState();
     }
     store.set("autoLockDisabled", disabled);
@@ -227,7 +228,7 @@ export function registerSecurityIpc(d: SecurityIpcDeps) {
       payload: { currentPassword?: unknown; password?: unknown; confirm?: unknown },
     ): Promise<SecurityResult> => {
       if (!isFromApp(event)) return { ok: false, error: "Not allowed." };
-      if (lockState.locked) return { ok: false, error: "Unlock the workspace first." };
+      if (effectiveLocked()) return { ok: false, error: "Unlock the workspace first." };
       // Checked before the current password, so a typo in the new one doesn't
       // cost a throttled attempt.
       const invalid = validateNewPassword(payload?.password, payload?.confirm);
@@ -254,8 +255,11 @@ export function registerSecurityIpc(d: SecurityIpcDeps) {
     return securityState();
   });
 
+  // Clears the password lock only. While the account is in use on another
+  // computer the remote lock screen is shown instead and stays up.
   ipcMain.handle("unlock-app", async (event, password: unknown): Promise<SecurityResult> => {
     if (!isFromApp(event)) return { ok: false, error: "Not allowed." };
+    if (remoteLock) return { ok: false, error: "Largs Hub is in use on another computer." };
     if (!lockState.locked) return { ok: true };
     const checked = await checkPassword(password, "Wrong password.");
     if (!checked.ok) return checked;

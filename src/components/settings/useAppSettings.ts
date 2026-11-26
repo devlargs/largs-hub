@@ -38,7 +38,10 @@ export function useAppSettings(): AppSettingsApi {
 
   useEffect(() => {
     if (!window.electronAPI) return;
-    window.electronAPI.getSettings().then(setSettings);
+    const load = () => window.electronAPI.getSettings().then(setSettings);
+    void load();
+    // Cloud sync replaced them from the account
+    return window.electronAPI.onSettingsUpdated(() => void load());
   }, []);
 
   const preview = useCallback(

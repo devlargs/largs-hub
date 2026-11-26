@@ -1,4 +1,5 @@
 import { useAppSettings } from "./settings/useAppSettings";
+import AccountSection from "./settings/AccountSection";
 import GeneralSection from "./settings/GeneralSection";
 import SecuritySection from "./settings/SecuritySection";
 import PasscodesSection from "./settings/PasscodesSection";
@@ -32,6 +33,7 @@ export default function SettingsPage({ hiddenServices, onUnhideService }: Hidden
           Settings
         </h1>
 
+        <AccountSection />
         <GeneralSection {...appSettings} />
         <SecuritySection />
         <PasscodesSection />

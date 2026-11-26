@@ -48,9 +48,17 @@ async function register(options: { enabled: boolean; throttle?: unknown }) {
   storeData.set("lockDelayMinutes", 10);
   storeData.set("unlockThrottle", options.throttle ?? { failures: 0, blockedUntil: null });
   vi.resetModules();
-  const { registerSecurityIpc } = await import("../electron/ipc/security");
-  registerSecurityIpc({ getUiView: () => null, onLockedChanged: () => undefined });
+  const security = await import("../electron/ipc/security");
+  lockedChanges.length = 0;
+  security.registerSecurityIpc({
+    getUiView: () => null,
+    onLockedChanged: (locked) => lockedChanges.push(locked),
+  });
+  return security;
 }
+
+// Every value onLockedChanged was called with since the last register()
+const lockedChanges: boolean[] = [];
 
 beforeEach(() => {
   vi.useRealTimers();
@@ -192,5 +200,60 @@ describe("don't lock automatically", () => {
   it("still lets the lock button lock", async () => {
     await call("set-auto-lock-disabled", true);
     expect((await call<SecurityState>("lock-now")).locked).toBe(true);
+  });
+});
+
+describe("remote lock (the account is in use on another computer)", () => {
+  const REMOTE = { deviceName: "Studio", platform: "darwin", since: 1 };
+
+  it("locks with security controls off, and unlocks again", async () => {
+    const security = await register({ enabled: false });
+    expect((await state()).locked).toBe(false);
+    security.setRemoteLock(REMOTE);
+    expect(await state()).toMatchObject({ locked: true, remoteLock: REMOTE });
+    expect(security.isWorkspaceLocked()).toBe(true);
+    security.setRemoteLock(null);
+    expect(await state()).toMatchObject({ locked: false, remoteLock: null });
+    expect(lockedChanges).toEqual([true, false]);
+  });
+
+  it("isn't cleared by the master password", async () => {
+    const security = await register({ enabled: true });
+    security.setRemoteLock(REMOTE);
+    const result = await call<SecurityResult>("unlock-app", PASSWORD);
+    expect(result.ok).toBe(false);
+    expect(await state()).toMatchObject({ locked: true, remoteLock: REMOTE });
+  });
+
+  it("leaves the password lock on when it clears", async () => {
+    const security = await register({ enabled: true });
+    security.setRemoteLock(REMOTE);
+    security.setRemoteLock(null);
+    expect(await state()).toMatchObject({ locked: true, remoteLock: null });
+    // Locked the whole time: no hide/show flicker of the service views
+    expect(lockedChanges).toEqual([true]);
+    expect((await call<SecurityResult>("unlock-app", PASSWORD)).ok).toBe(true);
+    expect((await state()).locked).toBe(false);
+  });
+
+  it("stays on when the password lock is unlocked first", async () => {
+    const security = await register({ enabled: true });
+    await call("unlock-app", PASSWORD);
+    security.setRemoteLock(REMOTE);
+    await call("lock-now");
+    security.setRemoteLock(null);
+    expect((await state()).locked).toBe(true);
+  });
+
+  it("refuses setting changes while it's on", async () => {
+    const security = await register({ enabled: false });
+    security.setRemoteLock(REMOTE);
+    await call("set-lock-delay", 30);
+    expect(storeData.get("lockDelayMinutes")).toBe(10);
+    const result = await call<SecurityResult>("set-master-password", {
+      password: "new password",
+      confirm: "new password",
+    });
+    expect(result.ok).toBe(false);
   });
 });

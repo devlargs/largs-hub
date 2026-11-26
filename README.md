@@ -34,7 +34,7 @@ _Windows: run the installer. macOS: open the `.dmg` and drag Largs Hub into Appl
 
 ## Why Largs Hub?
 
-Juggling a dozen browser tabs for the apps you use all day is noisy and easy to lose. Largs Hub gives each web app a dedicated home in a single, distraction-free window — with real unread badges, isolated logins, and a native desktop feel. It's fully open source, stores everything locally, and has no account, telemetry, or subscription.
+Juggling a dozen browser tabs for the apps you use all day is noisy and easy to lose. Largs Hub gives each web app a dedicated home in a single, distraction-free window — with real unread badges, isolated logins, and a native desktop feel. It's fully open source, has no telemetry or subscription, and works without an account. Sign in only if you want your services and settings to follow you between computers.
 
 ## Features
 
@@ -55,7 +55,8 @@ Juggling a dozen browser tabs for the apps you use all day is noisy and easy to 
 | ✅ **Todo**                            | A daily task list that carries unfinished work forward. The Todo service is the [Tasks](https://tasks.ralphlargo.com) web app, which keeps tasks on the device or in a Notion database you connect.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | 🤖 **Messenger & WhatsApp automation** | Optional automation panel for Messenger and WhatsApp: scheduled and interval messages, emoji bursts, random messages from saved lists, and automated call cycles (an in-app popup on Messenger, muted inside the page on WhatsApp). It remembers each account's last settings.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ⬆️ **Auto-updates**                    | Checks GitHub Releases, then downloads the latest version, verifies it against the sha256 checksum GitHub publishes, installs it and reopens the app, on Windows and macOS. An update with no checksum is never installed; it links to its GitHub page to download by hand.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| 🕵️ **Private by design**               | No account and no telemetry. Your services and settings live in a local `electron-store` file, and each service's login stays in its own session on your machine.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ☁️ **Accounts & sync**                 | Optional. Sign in with an email and password (**Settings → Account**) to keep your services and settings in sync across your Windows and Mac computers. One computer uses the account at a time: signing in on another one locks the first until you choose **Use Largs Hub here**. Web app logins don't sync. See [Accounts & sync](#accounts--sync).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 🕵️ **Private by design**               | No telemetry, and no account needed. Your services and settings live in a local `electron-store` file, and each service's login stays in its own session on your machine. Signed in, the services and synced settings are also saved to your account.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 ## Installation
 
@@ -127,6 +128,27 @@ Right-click a service in the sidebar for its options: enable, blur when inactive
 
 Repeat for each app you want in your workspace.
 
+## Accounts & sync
+
+Accounts are optional. Signed out, Largs Hub works exactly as it always has, with everything on this computer.
+
+**Settings → Account** lets you create an account with an email and password (at least 8 characters), sign in, reset a forgotten password by email, and sign out. Signed in, your workspace is saved to your account and changes sync a couple of seconds after you make them. Signing in on a new computer, Windows or Mac, brings back the same services in the same order, with the same names, addresses and switches, and the synced settings.
+
+**What syncs:** your services (with their per-service switches and zoom), the General settings other than **Launch at startup** (wake services, hibernation, close and minimize to tray), the Downloads switches, the privacy cover settings, the lock's **Lock after** and **Don't lock automatically**, saved message lists, recent emojis and each service's automation panel settings.
+
+**What doesn't sync:**
+
+- **Web app logins.** Gmail, Slack and the rest keep their cookies on each computer. On a new computer your services come back, but you sign in to each one again.
+- **Passcodes.** They're encrypted by this computer's operating system, so another computer couldn't read them.
+- **The master password** and whether the workspace lock is on.
+- **The download folder**, **Launch at startup**, **debug mode**, and the window's size and position.
+- **Custom icon images.** A service with an uploaded icon shows its built-in icon on a computer that doesn't have the image.
+- **Scheduled automations.** Running and scheduled Messenger and WhatsApp tasks stay on the computer that started them.
+
+**One computer at a time.** When you start using your account on another computer, this one locks within a couple of seconds and shows which computer has it (for example "DESKTOP-1 (Windows) is using this account"). Your services are paused behind that screen. **Use Largs Hub here** takes the account back: the other computer locks, and this one loads the latest workspace and unlocks. **Sign out on this device** signs out instead and keeps your services here. With the workspace lock on, the master password screen comes after. A launch at sign-in never takes the account from the computer you're using: on Windows the app knows it was started at sign-in; on macOS that's reported by the system, which recent versions may not do, in which case the Mac takes the account as if you'd opened it.
+
+The first time you sign in on a computer that already has services, to an account that has a workspace too, you choose which one to keep. Offline, the app works as usual and syncs once it's back online; it never locks itself because of what it last saw while offline. Signing out leaves your services and settings on the computer.
+
 ## Development
 
 ### Prerequisites
@@ -142,6 +164,8 @@ git clone https://github.com/devlargs/largs-hub.git
 cd largs-hub
 npm install
 ```
+
+Accounts and sync need a Firebase project. Copy `.env.example` to `.env` and fill in the web app config from the Firebase console. Without a `.env`, the app builds, runs and passes every check as normal, and **Settings → Account** says sync isn't set up.
 
 ### Run in development
 
@@ -174,8 +198,9 @@ Starts the Vite dev server, the Electron TypeScript watcher, and Electron itself
 - **[React 19](https://react.dev/)** + **[TypeScript](https://www.typescriptlang.org/)** — renderer UI, fully typed across main/preload/renderer
 - **[Vite](https://vite.dev/)** — dev server and bundler
 - **[Tailwind CSS 4](https://tailwindcss.com/)** — styling with Catppuccin-style theme variables
-- **[Zustand](https://github.com/pmndrs/zustand)** — lightweight renderer state (notification counts)
+- **[Zustand](https://github.com/pmndrs/zustand)** — lightweight renderer state (notification counts, update download, account and sync status)
 - **[electron-store](https://github.com/sindresorhus/electron-store)** — local persistence for services and preferences
+- **[Firebase](https://firebase.google.com/)** Auth (email and password) + Cloud Firestore — optional accounts and workspace sync, run from the renderer with the web SDK
 - **[electron-builder](https://www.electron.build/)** — packaging (NSIS installer on Windows, DMG on macOS)
 - **[Vitest](https://vitest.dev/)** + **ESLint** + **Prettier** — testing and code quality, run in CI on every push and PR
 
@@ -207,13 +232,15 @@ largs-hub/
 │   ├── tray.ts               # Tray / menu bar icon and menu
 │   ├── messengerAutomation/  # Messenger & WhatsApp automation: scheduler, IPC & scripts
 │   ├── badge-adapters/       # Per-service unread-count detection
-│   ├── ipc/                  # services (incl. the context menu), settings, security, passcode & list-group IPC
+│   ├── ipc/                  # services (incl. the context menu), settings, security, cloud, passcode & list-group IPC
+│   ├── cloudWorkspace.ts     # What syncs with an account, and the checks on a workspace from the cloud
+│   ├── cloudApply.ts         # Applying a synced workspace: store, views, tray, lock
 │   ├── passcodes/            # Saved passcodes, encrypted with safeStorage, and filling them into pages
-│   └── shared/               # Types, layout constants, shortcut and sidebar-visibility rules shared with the renderer
+│   └── shared/               # Types, layout constants, shortcut, sidebar-visibility and remote-lock rules shared with the renderer
 ├── src/                      # React renderer
 │   ├── components/           # UI components, with per-feature folders (settings/, sidebar/, …)
 │   ├── hooks/                # React hooks, incl. the ones that mirror main-process state
-│   ├── lib/                  # Pure renderer helpers
+│   ├── lib/                  # Renderer helpers, incl. Firebase (firebase.ts, cloudAuth.ts) and the sync engine (cloud-sync/)
 │   ├── store/                # Zustand stores
 │   ├── types.ts              # The window.electronAPI interface
 │   ├── App.tsx

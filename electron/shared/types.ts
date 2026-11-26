@@ -54,7 +54,12 @@ export interface SecurityState {
   lockDelayMinutes: number;
   // The workspace only locks on launch and from the lock button
   autoLockDisabled: boolean;
+  // Behind the lock screen for any reason: the master password, or the
+  // account being in use on another computer (remoteLock)
   locked: boolean;
+  // Set while the account is in use on another computer. Independent of the
+  // master password, and works with security controls off.
+  remoteLock: RemoteLockInfo | null;
 }
 
 export interface SecurityResult {
@@ -253,4 +258,77 @@ export interface PasscodesResult {
   // False when the OS can't encrypt (no keychain / DPAPI): nothing can be saved
   available: boolean;
   passcodes: Passcode[];
+}
+
+// --- Accounts and cloud sync -------------------------------------------------
+
+// This computer, as the account's session doc and the lock screen name it.
+export interface CloudDeviceInfo {
+  // Generated once per install (store key cloudDeviceId), never changed
+  deviceId: string;
+  deviceName: string;
+  // process.platform: "win32", "darwin", "linux"
+  platform: string;
+  // Started by the OS at sign-in rather than by the user. Such a launch never
+  // takes the session from another computer (cloudSync.ts).
+  wasLaunchedAtLogin: boolean;
+}
+
+// The account is in use on another computer, so this one is locked.
+export interface RemoteLockInfo {
+  deviceName: string;
+  platform: string;
+  since: number;
+}
+
+// The part of the workspace that follows the account between computers: the
+// services and the settings that mean the same thing on any machine. Plain
+// JSON (no Firestore types), so main can build, check and apply it.
+// What's left out, and why, is listed in electron/cloudWorkspace.ts.
+export interface CloudWorkspace {
+  schemaVersion: 1;
+  services: Service[];
+  wakeServicesAutomatically: boolean;
+  openFolderOnFinish: boolean;
+  openFileOnFinish: boolean;
+  downloadAlertOnFinish: boolean;
+  hibernateInactiveMinutes: number;
+  closeToTray: boolean;
+  minimizeToTray: boolean;
+  privacyCoverPercent: number;
+  privacyOpacity: number;
+  privacyHorizontalPercent: number;
+  privacyHorizontalOpacity: number;
+  serviceZoom: Record<string, number>;
+  messageListGroups: MessageListGroup[];
+  recentEmojis: string[];
+  automationPrefs: Record<string, AutomationPrefs>;
+  lockDelayMinutes: number;
+  autoLockDisabled: boolean;
+}
+
+export type CloudWorkspaceKey = Exclude<keyof CloudWorkspace, "schemaVersion">;
+
+// The workspace as main reads it, with its fingerprint (cloudWorkspace.ts)
+export interface CloudWorkspaceExport {
+  workspace: CloudWorkspace;
+  fingerprint: string;
+}
+
+export type CloudApplyResult = { ok: true; fingerprint: string } | { ok: false; error: string };
+
+// The users/{uid} doc's fields other than the Firestore timestamp, which only
+// the renderer knows about (src/lib/cloudSync.ts wraps this).
+export interface CloudWorkspaceDocFields {
+  schemaVersion: 1;
+  workspace: CloudWorkspace;
+  updatedByDeviceId: string;
+  updatedByDeviceName: string;
+}
+
+// The sessions/{uid} doc's fields other than claimedAt (a Firestore timestamp)
+export interface CloudSessionDocFields {
+  activeDeviceId: string | null;
+  activeDeviceName: string;
+  activePlatform: string;
 }
