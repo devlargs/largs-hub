@@ -1,6 +1,11 @@
 import type { WebContents, WebContentsView } from "electron";
 import { loadWithIdentityFor } from "../chromeIdentity";
-import { isRetryableLoadFailure, retryDelayMs, shouldReloadOnShow } from "../loadRecovery";
+import {
+  isRetryableLoadFailure,
+  retryDelayMs,
+  settlePendingLoad,
+  shouldReloadOnShow,
+} from "../loadRecovery";
 
 // Loads a service's page again when its load failed or got stuck, so a
 // service woken at launch before the network was up doesn't stay blank until
@@ -57,9 +62,11 @@ export function attachLoadRecovery(view: WebContentsView) {
     clearTimer(recovery);
   });
 
-  contents.on("dom-ready", () => {
-    recovery.loadingSince = null;
-  });
+  contents.on("dom-ready", () => settlePendingLoad(recovery));
+
+  // Covers a navigation that became a download: it never commits or reaches
+  // dom-ready, but loading stops. A load that is really stuck never gets here.
+  contents.on("did-stop-loading", () => settlePendingLoad(recovery));
 
   contents.on("did-fail-load", (_event, errorCode, _description, validatedUrl, isMainFrame) => {
     if (!isMainFrame) return;
@@ -75,6 +82,12 @@ export function attachLoadRecovery(view: WebContentsView) {
   });
 
   contents.once("destroyed", () => clearTimer(recovery));
+}
+
+/** A download started from this view: its navigation won't load a page. */
+export function noteViewDownload(contents: WebContents) {
+  const recovery = recoveries.get(contents);
+  if (recovery) settlePendingLoad(recovery);
 }
 
 /** Load the view's page again if it failed or is stuck. Call as it comes on screen. */

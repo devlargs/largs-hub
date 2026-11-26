@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **A download no longer repeats when you come back to a service.** After downloading a file in Messenger (or any service), switching to another service and back downloaded the same file again, leaving copies like `video (1).mp4`, `video (2).mp4`. The app mistook the download link for a page that got stuck loading and reloaded it. Applies on Windows and macOS.
 
 ## [0.1.103] (2026-11-26)
 - **Home screen fits every window size.** On shorter windows (most laptops) the feature icons under **Add Service** were cut off at the bottom. The Home screen now tightens its spacing on medium-height windows and scrolls when there still isn't room, so nothing is clipped. Applies on Windows and macOS.

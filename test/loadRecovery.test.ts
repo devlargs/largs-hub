@@ -4,6 +4,7 @@ import {
   STALLED_LOAD_MS,
   isRetryableLoadFailure,
   retryDelayMs,
+  settlePendingLoad,
   shouldReloadOnShow,
 } from "../electron/loadRecovery";
 
@@ -53,5 +54,25 @@ describe("shouldReloadOnShow", () => {
 
   it("leaves a loaded page alone", () => {
     expect(shouldReloadOnShow({ failedUrl: null, loadingSince: null }, now)).toBe(false);
+  });
+});
+
+describe("settlePendingLoad", () => {
+  it("stops a download navigation from counting as a stuck load", () => {
+    const load = {
+      failedUrl: null,
+      loadingSince: 0,
+      loadingUrl: "https://cdn.example/video.mp4?dl=1",
+    };
+    expect(shouldReloadOnShow(load, STALLED_LOAD_MS)).toBe(true);
+    settlePendingLoad(load);
+    expect(load.loadingUrl).toBeNull();
+    expect(shouldReloadOnShow(load, STALLED_LOAD_MS * 10)).toBe(false);
+  });
+
+  it("keeps a failed load for retry", () => {
+    const load = { failedUrl: "https://example.com/", loadingSince: 0, loadingUrl: null };
+    settlePendingLoad(load);
+    expect(shouldReloadOnShow(load, 0)).toBe(true);
   });
 });

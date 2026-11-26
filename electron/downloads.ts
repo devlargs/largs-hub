@@ -2,6 +2,9 @@ import { BrowserWindow, WebContentsView, shell } from "electron";
 import path from "path";
 import { isSafeToAutoOpen } from "./autoOpenPolicy";
 import { type DownloadSource, formatDownloadLog } from "./downloadDiagnostics";
+// Straight from the module, not the serviceViews barrel: the barrel pulls in
+// create.ts, which imports this file.
+import { noteViewDownload } from "./serviceViews/loadRecovery";
 import { store } from "./store";
 import { uniqueSavePath } from "./uniqueFilename";
 import {
@@ -74,6 +77,10 @@ export function hookDownloadSession(view: WebContentsView, partition: string) {
         totalBytes: item.getTotalBytes(),
       }),
     );
+    // A download link navigates the view without committing a page; without
+    // this, showing the service again would reload that URL and download the
+    // file again.
+    noteViewDownload(contents);
     activeDownloads.set(partition, (activeDownloads.get(partition) ?? 0) + 1);
     noteDownloadStarted();
     item.once("done", () => {
