@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+- **Home screen fits every window size.** On shorter windows (most laptops) the feature icons under **Add Service** were cut off at the bottom. The Home screen now tightens its spacing on medium-height windows and scrolls when there still isn't room, so nothing is clipped. Applies on Windows and macOS.
+- **Living background on the Home screen.** The background particles now drift, twinkle and link up with faint lines, and scatter away from your mouse pointer. With reduced motion turned on (Windows animation effects, macOS Reduce motion) they stay still. Applies on Windows and macOS.
 
 ## [0.1.102] (2026-11-26)
 - **Accounts and sign-in (optional).** **Settings → Account** lets you create an account with an email and password, sign in, get a password reset email, and sign out. Without an account Largs Hub works exactly as before. Applies on Windows and macOS.
