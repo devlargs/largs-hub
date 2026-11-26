@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.102] (2026-11-26)
 - **Accounts and sign-in (optional).** **Settings → Account** lets you create an account with an email and password, sign in, get a password reset email, and sign out. Without an account Largs Hub works exactly as before. Applies on Windows and macOS.
 - **Your workspace syncs between computers.** Signed in, your services and the settings that mean the same on any computer are saved to your account, and signing in on another Windows or Mac computer brings them back. Changes sync a couple of seconds after you make them, and offline changes sync once you're back online. Web app logins don't sync, so you sign in to each service again on a new computer; passcodes, the master password, the download folder, Launch at startup, window size, custom icon images and scheduled automations stay on each computer. Applies on Windows and macOS.
 - **One computer at a time.** When your account is in use on another computer, this one locks and shows which computer has it, with **Use Largs Hub here** to take it back (which locks the other one) and **Sign out on this device**. It works whether or not the workspace lock is on; with it on, the master password screen comes next. A launch at sign-in doesn't take the account from the computer you're using (on macOS this relies on the system reporting it). Applies on Windows and macOS.
