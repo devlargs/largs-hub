@@ -3,7 +3,12 @@ import os from "os";
 import { v4 as uuidv4 } from "uuid";
 import { store } from "../store";
 import { isFromApp } from "../appOrigin";
-import type { CloudApplyResult, CloudDeviceInfo, CloudWorkspaceExport } from "../shared/types";
+import type {
+  CloudApplyResult,
+  CloudDeviceInfo,
+  CloudPasscodeKeyResult,
+  CloudWorkspaceExport,
+} from "../shared/types";
 import { sanitizeRemoteLockInfo } from "../shared/remoteSession";
 import {
   pickCloudWorkspace,
@@ -12,8 +17,16 @@ import {
   workspaceFingerprint,
 } from "../cloudWorkspace";
 import { automationGate } from "../automationRunner";
+import {
+  accountChanged,
+  cloudPasscodeKeyring,
+  exportCloudPasscodes,
+  onCloudPasscodesChanged,
+  seedCloudPasscodes,
+  setCloudPasscodeKey,
+} from "../passcodes";
 import { applyCloudWorkspace, customIconExists } from "../cloudApply";
-import { setRemoteLock } from "./security";
+import { isWorkspaceLocked, setRemoteLock } from "./security";
 import { LAUNCHED_AT_LOGIN_ARG } from "./loginItem";
 
 // IPC: accounts and cloud sync. Firebase itself runs in the renderer
@@ -73,6 +86,8 @@ function wasLaunchedAtLogin(): boolean {
 
 function exportWorkspace(): CloudWorkspaceExport {
   const workspace = pickCloudWorkspace(store.store, os.homedir());
+  // Passcodes aren't in the store while signed in: they're in memory, sealed
+  workspace.passcodeVault = exportCloudPasscodes();
   return { workspace, fingerprint: workspaceFingerprint(workspace) };
 }
 
@@ -103,6 +118,9 @@ function setSyncEnabled(enabled: boolean) {
   for (const key of WATCHED_STORE_KEYS) {
     unsubscribers.push(store.onDidChange(key, onSyncedKeyChanged));
   }
+  // Anything changed before sync was on (passcodes moved into the account
+  // during the first sync) goes up now
+  onSyncedKeyChanged();
   // Synced with the account, so this computer runs the automation now
   automationGate.synced();
 }
@@ -113,6 +131,10 @@ const isUid = (value: unknown): value is string =>
 
 export function registerCloudIpc(d: CloudIpcDeps) {
   deps = d;
+  // A passcode saved, edited or removed is a change to push, like a setting
+  onCloudPasscodesChanged(() => {
+    if (unsubscribers.length > 0) onSyncedKeyChanged();
+  });
 
   ipcMain.handle("cloud-get-device-info", (): CloudDeviceInfo => ({
     deviceId: deviceId(),
@@ -140,6 +162,7 @@ export function registerCloudIpc(d: CloudIpcDeps) {
       clearChangeTimer();
       try {
         await applyCloudWorkspace(workspace);
+        seedCloudPasscodes(workspace.passcodeVault);
       } catch (error) {
         console.error("[cloud] Failed to apply the account's workspace:", error);
         return { ok: false, error: "The account's workspace couldn't be applied." };
@@ -148,9 +171,14 @@ export function registerCloudIpc(d: CloudIpcDeps) {
       }
       // What's in the store now, which can differ from what came in (an icon
       // file that isn't on this computer), so the next real change is compared
-      // against this.
-      const { fingerprint } = exportWorkspace();
-      lastSyncedFingerprint = fingerprint;
+      // against this. Passcodes count as the account has them: ones moved in
+      // from this computer just now are still to be pushed.
+      const { workspace: applied, fingerprint } = exportWorkspace();
+      lastSyncedFingerprint = workspaceFingerprint({
+        ...applied,
+        passcodeVault: workspace.passcodeVault,
+      });
+      if (fingerprint !== lastSyncedFingerprint) onSyncedKeyChanged();
 
       const uiView = deps?.getUiView();
       uiView?.webContents.send("services-updated", store.get("services"));
@@ -183,11 +211,35 @@ export function registerCloudIpc(d: CloudIpcDeps) {
   ipcMain.handle("cloud-set-account", (event, uid: unknown) => {
     if (!isFromApp(event)) return;
     if (uid === null) {
+      accountChanged("");
       store.set("cloudAccountUid", "");
       automationGate.signedOut();
     } else if (isUid(uid)) {
+      accountChanged(uid);
       store.set("cloudAccountUid", uid);
     }
+  });
+
+  // Passcodes in the account (passcodes/index.ts). The renderer never sees
+  // them: it only unwraps the key with the account password and hands it over.
+
+  // The account's copy, read before the first sync decides anything, so
+  // pushing this computer's workspace can't overwrite passcodes saved elsewhere
+  ipcMain.handle("cloud-seed-passcodes", (event, raw: unknown) => {
+    if (!isFromApp(event)) return;
+    seedCloudPasscodes(raw ?? null);
+  });
+
+  ipcMain.handle("cloud-passcode-keyring", (event) =>
+    isFromApp(event) ? cloudPasscodeKeyring() : null,
+  );
+
+  ipcMain.handle("cloud-set-passcode-key", (event, payload: unknown): CloudPasscodeKeyResult => {
+    if (!isFromApp(event)) return { ok: false, error: "Not allowed." };
+    if (isWorkspaceLocked()) return { ok: false, error: "Unlock the workspace first." };
+    const result = setCloudPasscodeKey(payload);
+    if (result.ok) deps?.getUiView()?.webContents.send("passcodes-changed");
+    return result;
   });
 
   ipcMain.handle("cloud-set-sync-enabled", (event, enabled: unknown) => {

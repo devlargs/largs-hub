@@ -1,7 +1,6 @@
-import { createHash } from "node:crypto";
 import path from "node:path";
 import type { StoreSchema } from "./store";
-import type { AutoStopState, CloudWorkspace, CloudWorkspaceKey, Service } from "./shared/types";
+import type { CloudWorkspace, CloudWorkspaceKey, Service } from "./shared/types";
 import { sanitizeService } from "./serviceSchema";
 import { sanitizeLockDelayMinutes } from "./lockPolicy";
 import { sanitizeStoredGroups } from "./messageLists";
@@ -9,8 +8,9 @@ import { sanitizeRecentEmojis } from "./recentEmojis";
 import { sanitizeStoredPrefs } from "./automationPrefs";
 import { DEFAULT_ZOOM, sanitizeZoom } from "./zoom";
 import { customIconFileName } from "./iconCleanup";
-import { restorableTasks } from "./automationRestore";
+import { restorableTasks, sanitizeAutoStops } from "./automationRestore";
 import { validateSpec } from "./messengerAutomation/validation";
+import { sanitizeVault } from "./passcodes/cloudCrypto";
 import {
   DEFAULT_WINDOW_SIZE,
   sanitizeCloudCredential,
@@ -40,7 +40,7 @@ import {
 //   cloudDeviceId                  - identifies this computer to the account
 
 // The workspace keys that aren't a store key of the same name and type
-type TranslatedKey = "windowSize" | "downloadFolderInHome";
+type TranslatedKey = "windowSize" | "downloadFolderInHome" | "passcodeVault";
 export type SyncedStoreKey = Exclude<CloudWorkspaceKey, TranslatedKey>;
 
 export const SYNCED_KEYS: readonly SyncedStoreKey[] = [
@@ -115,6 +115,7 @@ const DEFAULTS: Omit<CloudWorkspace, "schemaVersion" | "services"> = {
   downloadFolderInHome: null,
   automationTasks: [],
   automationAutoStops: [],
+  passcodeVault: null,
 };
 
 const BOOLEAN_KEYS = [
@@ -226,6 +227,8 @@ function normalize(r: Record<string, unknown>, options: SanitizeOptions): CloudW
       (task) => validateSpec(task.spec) === null,
     ),
     automationAutoStops: sanitizeAutoStops(r.automationAutoStops, ids),
+    // Sealed: main checks its shape here and opens it only with the key
+    passcodeVault: sanitizeVault(r.passcodeVault),
   };
   // A lock with no password can't lock anything, so it can't arrive switched on
   workspace.securityControlsEnabled =
@@ -253,24 +256,6 @@ export function pickCloudWorkspace(
   return normalize(raw, {});
 }
 
-// Auto-stops for services that exist, one per service, with sane numbers
-function sanitizeAutoStops(raw: unknown, serviceIds: readonly string[]): AutoStopState[] {
-  if (!Array.isArray(raw)) return [];
-  const seen = new Set<string>();
-  const out: AutoStopState[] = [];
-  for (const entry of raw) {
-    if (typeof entry !== "object" || entry === null) continue;
-    const { serviceId, minutes, expiresAt } = entry as Record<string, unknown>;
-    if (typeof serviceId !== "string" || !serviceIds.includes(serviceId) || seen.has(serviceId))
-      continue;
-    if (typeof minutes !== "number" || !Number.isFinite(minutes) || minutes <= 0) continue;
-    if (typeof expiresAt !== "number" || !Number.isFinite(expiresAt)) continue;
-    seen.add(serviceId);
-    out.push({ serviceId, minutes, expiresAt });
-  }
-  return out;
-}
-
 /**
  * A workspace from the cloud, checked like anything else crossing into the
  * store. Bad entries are dropped and bad values fall back to the defaults;
@@ -286,24 +271,4 @@ export function sanitizeCloudWorkspace(
   return normalize(r, options);
 }
 
-// JSON with object keys sorted at every level, so key order never changes it.
-function stableStringify(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
-  if (value && typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([, v]) => v !== undefined)
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(",")}}`;
-  }
-  return JSON.stringify(value) ?? "null";
-}
-
-/** A hash of the workspace, to skip pushes that change nothing. */
-export function workspaceFingerprint(workspace: CloudWorkspace): string {
-  return createHash("sha256").update(stableStringify(workspace)).digest("hex");
-}
-
-/** Size of the workspace as it would be stored, in bytes (roughly). */
-export function workspaceSize(workspace: CloudWorkspace): number {
-  return JSON.stringify(workspace).length;
-}
+export { workspaceFingerprint, workspaceSize } from "./cloudFingerprint";

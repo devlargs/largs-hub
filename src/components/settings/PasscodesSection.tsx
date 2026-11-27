@@ -4,10 +4,13 @@ import { passcodeServiceName, sortPasscodes } from "../../lib/passcodes";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import InfoPopover from "./InfoPopover";
 import PasscodeDialog from "./PasscodeDialog";
+import PasscodesUnlock from "./PasscodesUnlock";
 import { SecondaryButton, Section } from "./controls";
 
-const INFO =
-  "Save PINs, passwords and other codes, then right-click a field in any service and choose Fill passcode to type one in. Each passcode is encrypted by your computer's own keychain (Windows: your account's data protection; macOS: the Keychain), so it can only be read on this computer, under your account. Copy puts it on the clipboard and clears it after 30 seconds. Turn on Add Security Controls to keep them behind your master password.";
+const USE =
+  "Save PINs, passwords and other codes. They're offered when you click into a sign-in field of the service they're saved for, or right-click any text field and choose Fill passcode. Copy puts one on the clipboard and clears it after 30 seconds.";
+const LOCAL_INFO = `${USE} Each passcode is encrypted by your computer's own keychain (Windows: your account's data protection; macOS: the Keychain), so it can only be read on this computer, under your account. Turn on Add Security Controls to keep them behind your master password.`;
+const ACCOUNT_INFO = `${USE} Signed in, they're saved in your account and nowhere on this computer, encrypted end to end with a key only your account password unlocks, so not even the sync server can read them. They follow you to every computer you sign in on.`;
 
 // Settings → Passcodes. The list holds names and usernames only; the passcodes
 // themselves stay in the main process (ipc/passcodes.ts).
@@ -31,8 +34,10 @@ export default function PasscodesSection() {
     api.passcodes.list().then(setState);
     api.getServices().then(setServices);
     const unsubscribe = api.onServicesUpdated(setServices);
+    const offChanged = api.passcodes.onChanged(() => void api.passcodes.list().then(setState));
     return () => {
       unsubscribe();
+      offChanged();
       if (copiedTimer.current) clearTimeout(copiedTimer.current);
     };
   }, []);
@@ -52,6 +57,7 @@ export default function PasscodesSection() {
   };
 
   const passcodes = sortPasscodes(state.passcodes);
+  const reload = () => void window.electronAPI.passcodes.list().then(apply);
 
   return (
     <>
@@ -62,21 +68,30 @@ export default function PasscodesSection() {
               <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
                 Saved passcodes
               </span>
-              <InfoPopover label="Saved passcodes" text={INFO} />
+              <InfoPopover
+                label="Saved passcodes"
+                text={state.account ? ACCOUNT_INFO : LOCAL_INFO}
+              />
             </div>
             {state.available && (
               <SecondaryButton onClick={() => setEditing(null)}>Add passcode</SecondaryButton>
             )}
           </div>
 
-          {!state.available ? (
+          {state.account === "needs-password" ? (
+            <PasscodesUnlock onUnlocked={reload} />
+          ) : state.account === "waiting" ? (
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+              Your passcodes will appear once this computer has synced with your account.
+            </p>
+          ) : !state.available ? (
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>
               This computer can&apos;t encrypt passcodes right now, so none can be saved.
             </p>
           ) : passcodes.length === 0 ? (
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-              No saved passcodes yet. Add one, then right-click a field in a service and choose Fill
-              passcode.
+              No saved passcodes yet. Add one, and it&apos;s offered when you click into a sign-in
+              field of its service.
             </p>
           ) : (
             <div
@@ -154,7 +169,9 @@ export default function PasscodesSection() {
       {removing && (
         <ConfirmDialog
           title="Delete passcode?"
-          body={`"${removing.label}" will be removed from this computer. This can't be undone.`}
+          body={`"${removing.label}" will be removed from ${
+            state.account ? "your account, on every computer" : "this computer"
+          }. This can't be undone.`}
           confirmLabel="Delete"
           tone="danger"
           onConfirm={async () => apply(await window.electronAPI.passcodes.remove(removing.id))}

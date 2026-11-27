@@ -84,7 +84,13 @@ describe("pickCloudWorkspace", () => {
 
   it("holds the allowlisted keys and the translated ones, nothing else", () => {
     expect(Object.keys(workspace).sort()).toEqual(
-      ["schemaVersion", "windowSize", "downloadFolderInHome", ...SYNCED_KEYS].sort(),
+      [
+        "schemaVersion",
+        "windowSize",
+        "downloadFolderInHome",
+        "passcodeVault",
+        ...SYNCED_KEYS,
+      ].sort(),
     );
   });
 
@@ -295,6 +301,21 @@ describe("sanitizeCloudWorkspace", () => {
         sanitizeCloudWorkspace({ ...valid(), downloadFolderInHome: bad })?.downloadFolderInHome,
       ).toBeNull();
     }
+  });
+
+  it("keeps a sealed passcode vault and drops a malformed one", () => {
+    const vault = {
+      keyring: { v: 1, salt: "c2FsdA==", iterations: 600000, iv: "aXY=", wrappedKey: "d3I=" },
+      data: "QUJD",
+    };
+    expect(sanitizeCloudWorkspace({ ...valid(), passcodeVault: vault })?.passcodeVault).toEqual(
+      vault,
+    );
+    expect(
+      sanitizeCloudWorkspace({ ...valid(), passcodeVault: { ...vault, data: 5 } })?.passcodeVault,
+    ).toBeNull();
+    // The store never holds the account's passcodes, so a picked workspace has none
+    expect(pick(fullStore).passcodeVault).toBeNull();
   });
 
   it("round-trips a picked workspace unchanged", () => {

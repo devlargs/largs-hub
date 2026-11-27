@@ -3,7 +3,13 @@ import { migrateLegacyServiceShape } from "./serviceSchema";
 import { MessageListGroup } from "./messageLists";
 import type { MasterPasswordCredential } from "./masterPassword";
 import type { ThrottleState } from "./lockPolicy";
-import type { AutoStopState, AutomationPrefs, AutomationTask, Service } from "./shared/types";
+import type {
+  AutoStopState,
+  AutomationPrefs,
+  AutomationTask,
+  CloudPasscodeKeyring,
+  Service,
+} from "./shared/types";
 import type { StoredPasscode } from "./passcodes/vault";
 
 // Persistent app state (electron-store) and the shapes stored in it.
@@ -96,6 +102,11 @@ export interface StoreSchema {
   // last reported it. Read at launch, before the renderer is up: a signed-in
   // computer waits to sync before running automation (automationGate.ts).
   cloudAccountUid: string;
+  // Signed in, the account's passcode key, so a restart doesn't ask for the
+  // account password again. Encrypted by the OS (safeStorage) and never
+  // synced; dropped on sign-out (passcodes/index.ts). The passcodes themselves
+  // are never on disk while signed in.
+  cloudPasscodeKey: { uid: string; key: string; keyring: CloudPasscodeKeyring } | null;
 }
 
 export const store = new Store<StoreSchema>({
@@ -133,6 +144,7 @@ export const store = new Store<StoreSchema>({
     passcodes: [],
     cloudDeviceId: "",
     cloudAccountUid: "",
+    cloudPasscodeKey: null,
   },
 });
 

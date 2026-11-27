@@ -255,10 +255,48 @@ export interface PasscodeDraft {
 export interface PasscodesResult {
   ok: boolean;
   error?: string;
-  // False when the OS can't encrypt (no keychain / DPAPI): nothing can be saved
+  // False when passcodes can't be saved right now: the OS can't encrypt (no
+  // keychain / DPAPI), or, signed in, they aren't unlocked yet
   available: boolean;
   passcodes: Passcode[];
+  // Signed in, where the passcodes live: the account. Absent when signed out.
+  //   ready            unlocked on this computer
+  //   needs-password   the account password is needed to unlock them here
+  //   waiting          not synced with the account yet
+  account?: PasscodeAccountState;
 }
+
+export type PasscodeAccountState = "ready" | "needs-password" | "waiting";
+
+// Signed in, passcodes are kept in the account, end to end encrypted: a random
+// key encrypts them, and that key is stored in the account only wrapped by a
+// key derived from the account password (PBKDF2), so neither Firebase nor
+// anyone with the database can read them. Everything is base64.
+export interface CloudPasscodeKeyring {
+  v: 1;
+  salt: string;
+  iterations: number;
+  // AES-GCM nonce and the wrapped key (ciphertext + tag)
+  iv: string;
+  wrappedKey: string;
+}
+
+export interface CloudPasscodeVault {
+  keyring: CloudPasscodeKeyring;
+  // The passcode list, AES-256-GCM under the unwrapped key: nonce, ciphertext, tag
+  data: string;
+}
+
+// The unwrapped key going to main, which alone encrypts and decrypts with it
+export interface CloudPasscodeKeyPayload {
+  key: string;
+  keyring: CloudPasscodeKeyring;
+  // The account's passcodes were encrypted under a password that has since
+  // been reset, so they're unreadable: start an empty list under this key
+  startOver?: boolean;
+}
+
+export type CloudPasscodeKeyResult = { ok: true } | { ok: false; error: string };
 
 // --- Accounts and cloud sync -------------------------------------------------
 
@@ -339,6 +377,8 @@ export interface CloudWorkspace {
   // (electron/automationGate.ts).
   automationTasks: AutomationTask[];
   automationAutoStops: AutoStopState[];
+  // Saved passcodes, end to end encrypted (null: none saved with the account)
+  passcodeVault: CloudPasscodeVault | null;
 }
 
 export type CloudWorkspaceKey = Exclude<keyof CloudWorkspace, "schemaVersion">;

@@ -7,6 +7,9 @@ import type {
   AutomationTask,
   CloudApplyResult,
   CloudDeviceInfo,
+  CloudPasscodeKeyPayload,
+  CloudPasscodeKeyResult,
+  CloudPasscodeKeyring,
   CloudWorkspaceExport,
   ListGroupsResult,
   MessageListGroup,
@@ -216,6 +219,12 @@ const api = {
     setSyncEnabled: (enabled: boolean): Promise<void> =>
       ipcRenderer.invoke("cloud-set-sync-enabled", enabled),
     setAccount: (uid: string | null): Promise<void> => ipcRenderer.invoke("cloud-set-account", uid),
+    seedPasscodes: (vault: unknown): Promise<void> =>
+      ipcRenderer.invoke("cloud-seed-passcodes", vault),
+    passcodeKeyring: (): Promise<CloudPasscodeKeyring | null> =>
+      ipcRenderer.invoke("cloud-passcode-keyring"),
+    setPasscodeKey: (payload: CloudPasscodeKeyPayload): Promise<CloudPasscodeKeyResult> =>
+      ipcRenderer.invoke("cloud-set-passcode-key", payload),
     onWorkspaceChanged: (callback: (fingerprint: string) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, fingerprint: string) =>
         callback(fingerprint);
@@ -258,6 +267,12 @@ const api = {
       ipcRenderer.invoke("passcodes-save", draft),
     remove: (id: string): Promise<PasscodesResult> => ipcRenderer.invoke("passcodes-remove", id),
     copy: (id: string): Promise<PasscodesResult> => ipcRenderer.invoke("passcodes-copy", id),
+    // The account's passcodes were unlocked or changed outside Settings
+    onChanged: (callback: () => void) => {
+      const handler = () => callback();
+      ipcRenderer.on("passcodes-changed", handler);
+      return () => ipcRenderer.removeListener("passcodes-changed", handler);
+    },
   },
 
   // Custom icons

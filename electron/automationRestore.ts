@@ -1,4 +1,4 @@
-import type { AutomationTask, TaskSpec } from "./shared/types";
+import type { AutoStopState, AutomationTask, TaskSpec } from "./shared/types";
 
 // Deciding what to do with a Messenger automation task that was stored when the
 // app closed.
@@ -92,4 +92,22 @@ export function restorableTasks(raw: unknown, serviceIds: readonly string[]): Au
  */
 export function isAutoStopStillArmed(expiresAt: unknown, now: number): boolean {
   return typeof expiresAt === "number" && Number.isFinite(expiresAt) && expiresAt > now;
+}
+
+/** Auto-stops for services that exist, one per service, with sane numbers. */
+export function sanitizeAutoStops(raw: unknown, serviceIds: readonly string[]): AutoStopState[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: AutoStopState[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== "object" || entry === null) continue;
+    const { serviceId, minutes, expiresAt } = entry as Record<string, unknown>;
+    if (typeof serviceId !== "string" || !serviceIds.includes(serviceId) || seen.has(serviceId))
+      continue;
+    if (typeof minutes !== "number" || !Number.isFinite(minutes) || minutes <= 0) continue;
+    if (typeof expiresAt !== "number" || !Number.isFinite(expiresAt)) continue;
+    seen.add(serviceId);
+    out.push({ serviceId, minutes, expiresAt });
+  }
+  return out;
 }

@@ -16,6 +16,9 @@ import type {
   AutomationTask,
   CloudApplyResult,
   CloudDeviceInfo,
+  CloudPasscodeKeyPayload,
+  CloudPasscodeKeyResult,
+  CloudPasscodeKeyring,
   CloudWorkspaceExport,
   ListGroupsResult,
   MessageListGroup,
@@ -113,6 +116,11 @@ export interface ElectronAPI {
     setSyncEnabled: (enabled: boolean) => Promise<void>;
     // Who's signed in here, or null; main waits on it before running automation
     setAccount: (uid: string | null) => Promise<void>;
+    // Passcodes in the account: main holds and uses the key, the renderer only
+    // unwraps it with the account password (src/lib/cloud-sync/passcodes.ts)
+    seedPasscodes: (vault: unknown) => Promise<void>;
+    passcodeKeyring: () => Promise<CloudPasscodeKeyring | null>;
+    setPasscodeKey: (payload: CloudPasscodeKeyPayload) => Promise<CloudPasscodeKeyResult>;
     onWorkspaceChanged: (callback: (fingerprint: string) => void) => () => void;
   };
   security: {
@@ -136,6 +144,7 @@ export interface ElectronAPI {
     remove: (id: string) => Promise<PasscodesResult>;
     // Main copies it and clears the clipboard 30 s later
     copy: (id: string) => Promise<PasscodesResult>;
+    onChanged: (callback: () => void) => () => void;
   };
   saveCustomIcon: (fileName: string, dataUrl: string) => Promise<string>;
   deleteCustomIcon: (fileName: string) => Promise<void>;

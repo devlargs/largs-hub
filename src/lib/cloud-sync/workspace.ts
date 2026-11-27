@@ -32,6 +32,10 @@ export async function reconcile(s: Session): Promise<void> {
     // Another computer took the session meanwhile: it's theirs to sync
     if (s.closed || s.remoteLocked || !local) return;
     const remote = snap.exists() ? snap.data() : null;
+    // Passcodes first, whatever happens to the rest: keeping this computer's
+    // workspace below must still keep the passcodes saved from elsewhere, and
+    // any saved here before signing in join them (passcodes/index.ts)
+    await cloud().seedPasscodes(remote?.workspace?.passcodeVault ?? null);
     let action = decideReconcile({
       cloudDocExists: !!remote?.workspace,
       syncedBefore: hasSyncedBefore(s.uid),

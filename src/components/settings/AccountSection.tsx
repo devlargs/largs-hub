@@ -59,7 +59,7 @@ export default function AccountSection() {
     <Section title="Account">
       <SettingRow
         label={email ?? "Signed in"}
-        info="Your services and settings sync to this account, including the workspace lock, Launch at startup, the window size, the download folder (when it's inside your home folder) and scheduled automations, which only the computer using the account runs. Passcodes, custom icon images and the window's position stay on each computer. Web app logins (Gmail, Slack…) don't sync: sign in to each service again on a new computer."
+        info="Your services and settings sync to this account, including the workspace lock, Launch at startup, the window size, the download folder (when it's inside your home folder) and scheduled automations, which only the computer using the account runs. Saved passcodes are kept in the account instead of on this computer, end to end encrypted with your account password. Custom icon images and the window's position stay on each computer. Web app logins (Gmail, Slack…) don't sync: sign in to each service again on a new computer."
         status={`This device: ${deviceName ?? "this computer"}`}
       >
         <SecondaryButton onClick={() => void run("sign-out")}>

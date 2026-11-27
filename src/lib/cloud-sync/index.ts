@@ -20,12 +20,14 @@ import { push, reconcile, watchWorkspace } from "./workspace";
 import { claimSession, watchSession } from "./session";
 
 export { signOutOfCloud } from "./core";
+export { startPasscodesOver, unlockPasscodes, type UnlockResult } from "./passcodes";
 
 // The sync engine: one controller for the whole app, started from App.tsx
 // (useCloudSync), driven by Firebase's sign-in state.
 //   core.ts       the Firestore docs, the engine's state, helpers, sign out
 //   session.ts    sessions/{uid}: taking the session, the remote lock
 //   workspace.ts  users/{uid}: first sync, pushes, changes from elsewhere
+//   passcodes.ts  unlocking the account's passcodes with the account password
 
 /** The user just submitted the form, so this sign-in takes the session. */
 export function markInteractiveSignIn(): void {

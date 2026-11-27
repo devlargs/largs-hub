@@ -14,11 +14,26 @@ import {
   validateSignUp,
   type AuthResult,
 } from "./cloudAuthErrors";
-import { markInteractiveSignIn, signOutOfCloud } from "./cloud-sync";
+import { markInteractiveSignIn, signOutOfCloud, unlockPasscodes } from "./cloud-sync";
 
 // Signing in, creating an account and resetting a password, as results the
-// Account form can show. The password goes to Firebase and nowhere else: not
-// to the main process, not to storage, not to a log.
+// Account form can show. The password goes to Firebase, and to unwrapping the
+// account's passcode key right here (cloud-sync/passcodes.ts), and nowhere
+// else: not to the main process, not to storage, not to a log.
+
+// The password the sign-in just accepted also unlocks the account's passcodes
+// on this computer. Best effort: if it fails, Settings → Passcodes asks.
+async function unlockAfterSignIn(result: AuthResult, password: string): Promise<AuthResult> {
+  if (result.ok) {
+    try {
+      const unlocked = await unlockPasscodes(password, true);
+      if (!unlocked.ok) console.warn("[account] Passcodes stay locked:", unlocked.error);
+    } catch (error) {
+      console.warn("[account] Couldn't unlock passcodes:", authErrorCode(error));
+    }
+  }
+  return result;
+}
 
 async function attempt(run: () => Promise<unknown>): Promise<AuthResult> {
   try {
@@ -40,14 +55,20 @@ export async function signUp(
   const invalid = validateSignUp(email, password, confirm);
   if (invalid) return { ok: false, error: invalid };
   markInteractiveSignIn();
-  return attempt(() => createUserWithEmailAndPassword(getFirebase().auth, email.trim(), password));
+  return unlockAfterSignIn(
+    await attempt(() => createUserWithEmailAndPassword(getFirebase().auth, email.trim(), password)),
+    password,
+  );
 }
 
 export async function signIn(email: string, password: string): Promise<AuthResult> {
   const invalid = validateSignIn(email, password);
   if (invalid) return { ok: false, error: invalid };
   markInteractiveSignIn();
-  return attempt(() => signInWithEmailAndPassword(getFirebase().auth, email.trim(), password));
+  return unlockAfterSignIn(
+    await attempt(() => signInWithEmailAndPassword(getFirebase().auth, email.trim(), password)),
+    password,
+  );
 }
 
 // Always the same answer, whether or not the account exists (Firebase's email

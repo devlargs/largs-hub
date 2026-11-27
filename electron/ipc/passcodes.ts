@@ -1,7 +1,7 @@
 import { ipcMain } from "electron";
 import { store } from "../store";
 import { isFromApp } from "../appOrigin";
-import { copyPasscode, passcodeVault } from "../passcodes";
+import { copyPasscode, passcodeAccountState, passcodeVault } from "../passcodes";
 import type { PasscodesResult } from "../shared/types";
 import { isWorkspaceLocked } from "./security";
 
@@ -18,6 +18,7 @@ function result(ok = true, error?: string): PasscodesResult {
     ...(error ? { error } : {}),
     available: passcodeVault.available(),
     passcodes: passcodeVault.list(),
+    account: passcodeAccountState(),
   };
 }
 
