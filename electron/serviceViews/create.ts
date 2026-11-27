@@ -23,6 +23,7 @@ import { ZOOM_KEYS, getServiceZoom, openFindBarFor, stepServiceZoom } from "./fi
 import { applyPrivacyToView, isPrivacyMode } from "./overlays";
 import { attachCallPopupHandler } from "./callWindow";
 import { attachContextMenu } from "./contextMenu";
+import { attachPasscodeOffer } from "./passcodeOffer";
 import { attachBadgeExtraction } from "./polling";
 import { attachPhoneStatus } from "./phoneStatus";
 import { attachRedditAppPromptBlocker } from "./redditAppPrompt";
@@ -156,6 +157,7 @@ export function createServiceView(
   });
 
   attachContextMenu(view, service.id);
+  attachPasscodeOffer(view, service.id);
   attachBadgeExtraction(view, service, serviceHost);
   attachPhoneStatus(view, service, serviceHost);
   attachRedditAppPromptBlocker(view);

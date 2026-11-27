@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Saved passcodes are offered when you click into a login field.** Click the password box (or the email/username box) on a service's sign-in page and a menu opens under it listing the passcodes saved for that service; pick one to fill it in, or press Esc to type your own. Each field offers once per page, and passcodes saved for every service stay in the right-click menu. Applies on Windows and macOS.
 
 ## [0.1.104] (2026-11-26)
 - **A download no longer repeats when you come back to a service.** After downloading a file in Messenger (or any service), switching to another service and back downloaded the same file again, leaving copies like `video (1).mp4`, `video (2).mp4`. The app mistook the download link for a page that got stuck loading and reloaded it. Applies on Windows and macOS.
