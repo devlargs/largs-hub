@@ -4,7 +4,7 @@ exports[`buildPrivacyScript > draws the default top-half cover and no side cover
 "
     (function() {
       const panels = [
-        ['__largs_privacy_overlay__', 'position:fixed;top:0;left:0;background:#181825;z-index:2147483647;pointer-events:none;width:100vw;height:50vh;opacity:1;'],
+        ['__largs_privacy_overlay__', 'position:fixed;top:0;left:0;background-color:#181825;background-image:repeating-linear-gradient(45deg,rgba(205,214,244,0.06) 0 2px,transparent 2px 14px);z-index:2147483647;pointer-events:none;width:100vw;height:50vh;opacity:1;'],
         ['__largs_privacy_overlay_h__', ''],
       ];
       for (const [id, css] of panels) {

@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **The privacy cover has a pattern.** The panels that privacy mode draws over a service now carry a faint diagonal stripe, so a covered part of the page reads as a privacy screen rather than a blank or broken page. Applies on Windows and macOS.
 
 ## [0.1.105] (2026-11-27)
 - **Saved passcodes live in your account, end to end encrypted.** Signed in, your passcodes are kept in your account instead of on the computer, and follow you to every computer you sign in on. They're encrypted with a key that only your account password unlocks, so the sync server can't read them, not even their names. Passcodes saved before signing in move into your account and off the computer. A computer that was already signed in asks for your account password once in **Settings → Passcodes**. Signing out removes them from that computer. Applies on Windows and macOS.

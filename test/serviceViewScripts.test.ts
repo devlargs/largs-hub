@@ -91,6 +91,7 @@ describe("buildPrivacyScript", () => {
     expect(() => parses(code)).not.toThrow();
     expect(code).toContain(`['${PRIVACY_VERTICAL_ID}', 'position:fixed`);
     expect(code).toContain("height:50vh;opacity:1;");
+    expect(code).toContain("background-image:repeating-linear-gradient(45deg,");
     expect(code).toContain(`['${PRIVACY_HORIZONTAL_ID}', '']`);
     expect(code).toMatchSnapshot();
   });

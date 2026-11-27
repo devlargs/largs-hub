@@ -30,9 +30,14 @@ export const REMOVE_BLUR_SCRIPT = `
 // uncovered remainder. The vertical cover comes down from the top over a share
 // of the page height; the horizontal one comes in from the left over a share of
 // the page width. Each has its own size and opacity, and a size of 0 turns that
-// cover off.
+// cover off. The panels carry a faint diagonal stripe so a cover reads as a
+// deliberate privacy screen rather than a blank or broken page.
 export const PRIVACY_VERTICAL_ID = "__largs_privacy_overlay__";
 export const PRIVACY_HORIZONTAL_ID = "__largs_privacy_overlay_h__";
+
+// No single quotes: the CSS is embedded in a single-quoted string in the script.
+export const PRIVACY_PATTERN =
+  "repeating-linear-gradient(45deg,rgba(205,214,244,0.06) 0 2px,transparent 2px 14px)";
 
 export interface PrivacySettings {
   verticalPercent: unknown;
@@ -53,7 +58,9 @@ export function buildPrivacyScript(settings: PrivacySettings): string {
   const horizontalPercent = clampPercent(settings.horizontalPercent, 0);
   const horizontalOpacity = clampPercent(settings.horizontalOpacity, 100) / 100;
   const base =
-    "position:fixed;top:0;left:0;background:#181825;z-index:2147483647;pointer-events:none;";
+    "position:fixed;top:0;left:0;background-color:#181825;" +
+    `background-image:${PRIVACY_PATTERN};` +
+    "z-index:2147483647;pointer-events:none;";
   const verticalCss =
     verticalPercent > 0
       ? `${base}width:100vw;height:${verticalPercent}vh;opacity:${verticalOpacity};`
