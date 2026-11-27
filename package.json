@@ -1,6 +1,6 @@
 {
   "name": "largs-hub",
-  "version": "0.1.101",
+  "version": "0.1.104",
   "description": "An open-source workspace browser — manage all your web apps in one place",
   "main": "dist-electron/main.js",
   "engines": {
@@ -36,6 +36,7 @@
   "license": "MIT",
   "dependencies": {
     "electron-store": "^12.0.0",
+    "firebase": "^13.4.0",
     "react-icons": "^5.7.0",
     "uuid": "^14.0.3",
     "zustand": "^5.1.0"
@@ -63,6 +64,9 @@
     "typescript-eslint": "^8.73.0",
     "vite": "^8.3.8",
     "vitest": "^5.1.1"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.7"
   },
   "build": {
     "appId": "com.largshub.app",

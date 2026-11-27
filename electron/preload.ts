@@ -5,11 +5,15 @@ import type {
   AutomationPrefs,
   AutoStopUpdate,
   AutomationTask,
+  CloudApplyResult,
+  CloudDeviceInfo,
+  CloudWorkspaceExport,
   ListGroupsResult,
   MessageListGroup,
   NoticeReason,
   PasscodeDraft,
   PasscodesResult,
+  RemoteLockInfo,
   SecurityResult,
   SecurityState,
   SecurityUpdate,
@@ -190,6 +194,34 @@ const api = {
   updateSetting: (key: string, value: unknown): Promise<void> =>
     ipcRenderer.invoke("update-setting", key, value),
   selectDownloadFolder: (): Promise<string | null> => ipcRenderer.invoke("select-download-folder"),
+  // Settings changed by something other than the settings page (cloud sync)
+  onSettingsUpdated: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on("settings-updated", handler);
+    return () => ipcRenderer.removeListener("settings-updated", handler);
+  },
+
+  // Accounts and cloud sync. Firebase runs in the renderer; main owns the
+  // workspace and the lock. No password ever crosses this bridge.
+  cloud: {
+    getDeviceInfo: (): Promise<CloudDeviceInfo> => ipcRenderer.invoke("cloud-get-device-info"),
+    exportWorkspace: (): Promise<CloudWorkspaceExport | null> =>
+      ipcRenderer.invoke("cloud-export-workspace"),
+    applyWorkspace: (workspace: unknown): Promise<CloudApplyResult> =>
+      ipcRenderer.invoke("cloud-apply-workspace", workspace),
+    markSynced: (fingerprint: string): Promise<void> =>
+      ipcRenderer.invoke("cloud-mark-synced", fingerprint),
+    setRemoteLock: (info: RemoteLockInfo | null): Promise<void> =>
+      ipcRenderer.invoke("cloud-set-remote-lock", info),
+    setSyncEnabled: (enabled: boolean): Promise<void> =>
+      ipcRenderer.invoke("cloud-set-sync-enabled", enabled),
+    onWorkspaceChanged: (callback: (fingerprint: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, fingerprint: string) =>
+        callback(fingerprint);
+      ipcRenderer.on("cloud-workspace-changed", handler);
+      return () => ipcRenderer.removeListener("cloud-workspace-changed", handler);
+    },
+  },
 
   // Security controls (workspace lock). The stored credential stays in the main
   // process — the bridge only carries passwords in, and never back out.

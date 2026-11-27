@@ -112,6 +112,14 @@ jobs:
           # No Apple Developer ID: don't go looking for one in the keychain.
           # The afterPack hook ad-hoc signs the macOS app instead.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          # Accounts and cloud sync: Vite inlines these into the renderer at
+          # build time. Without them the build still works, with sync off.
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
 
       - uses: actions/upload-artifact@v7
         with:

@@ -1,9 +1,10 @@
-import { app, ipcMain, dialog, Menu, BrowserWindow, WebContentsView } from "electron";
+import { ipcMain, dialog, Menu, BrowserWindow, WebContentsView } from "electron";
 import fs from "fs";
 import { store } from "../store";
 import { refreshPrivacyOverlays } from "../serviceViews";
 import { syncTray } from "../tray";
 import { isFromApp } from "../appOrigin";
+import { applyLoginItem } from "./loginItem";
 import { refreshDevTools } from "../devTools";
 import {
   customIconsDir as iconsDir,
@@ -52,7 +53,7 @@ export function registerSettingsIpc(deps: SettingsIpcDeps) {
       store.set("wakeServicesAutomatically", value);
     } else if (key === "launchAtStartup" && typeof value === "boolean") {
       store.set("launchAtStartup", value);
-      app.setLoginItemSettings({ openAtLogin: value });
+      applyLoginItem(value);
     } else if (key === "openFolderOnFinish" && typeof value === "boolean") {
       store.set("openFolderOnFinish", value);
     } else if (key === "openFileOnFinish" && typeof value === "boolean") {

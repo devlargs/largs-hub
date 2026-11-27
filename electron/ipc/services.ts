@@ -1,5 +1,5 @@
 import { ipcMain, BrowserWindow, WebContentsView } from "electron";
-import { store, sanitizeService } from "../store";
+import { store, sanitizeService, type Service } from "../store";
 import {
   destroyServiceView,
   showService,
@@ -31,6 +31,34 @@ interface ServicesIpcDeps {
   getUiView(): WebContentsView | null;
 }
 
+/**
+ * Everything removing a service takes with it, once it's out of the stored
+ * list: its icon file, automation, view and session data. Shared with cloud
+ * sync (cloudApply.ts), where a service removed on another computer goes too.
+ */
+export async function forgetRemovedService(
+  serviceId: string,
+  removed: Service | undefined,
+  remaining: Service[],
+): Promise<void> {
+  // Take the uploaded icon with it, unless another service shares the file.
+  const orphanedIcon = supersededIconFile(removed?.icon, null, remaining);
+  if (orphanedIcon) deleteCustomIconFile(orphanedIcon);
+
+  // End its automation now rather than when a task next runs, then clean up
+  // the view.
+  stopAutomationForService(serviceId);
+  clearAutomationPrefs(serviceId);
+  // Its saved passcodes stay, offered in every service instead.
+  passcodeVault.unlinkService(serviceId);
+  destroyServiceView(serviceId, { clearCounts: true });
+
+  // Wipe the service's session partition. Removing a service means forgetting
+  // the account, and the id is gone from the store, so its cookies, storage
+  // and cache would otherwise be unreachable on disk forever.
+  await clearServiceSessionData(serviceId);
+}
+
 export function registerServicesIpc(deps: ServicesIpcDeps) {
   ipcMain.handle("get-services", () => {
     return store.get("services");
@@ -59,24 +87,7 @@ export function registerServicesIpc(deps: ServicesIpcDeps) {
     const removed = store.get("services").find((s) => s.id === serviceId);
     const services = store.get("services").filter((s) => s.id !== serviceId);
     store.set("services", services);
-
-    // Take the uploaded icon with it, unless another service shares the file.
-    const orphanedIcon = supersededIconFile(removed?.icon, null, services);
-    if (orphanedIcon) deleteCustomIconFile(orphanedIcon);
-
-    // End its automation now rather than when a task next runs, then clean up
-    // the view.
-    stopAutomationForService(serviceId);
-    clearAutomationPrefs(serviceId);
-    // Its saved passcodes stay, offered in every service instead.
-    passcodeVault.unlinkService(serviceId);
-    destroyServiceView(serviceId, { clearCounts: true });
-
-    // Wipe the service's session partition. Removing a service means forgetting
-    // the account, and the id is gone from the store, so its cookies, storage
-    // and cache would otherwise be unreachable on disk forever.
-    await clearServiceSessionData(serviceId);
-
+    await forgetRemovedService(serviceId, removed, services);
     return services;
   });
 

@@ -146,3 +146,11 @@ export function throttleMessage(waitMs: number): string {
   const minutes = Math.ceil(seconds / 60);
   return `Too many attempts. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
 }
+
+// The workspace has two independent locks: the master password (LockState)
+// and the account being in use on another computer (the remote lock,
+// ipc/security.ts). It's behind the lock screen while either is on, and
+// clearing one leaves the other as it was.
+export function isEffectivelyLocked(passwordLocked: boolean, remoteLocked: boolean): boolean {
+  return passwordLocked || remoteLocked;
+}

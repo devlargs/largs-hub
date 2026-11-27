@@ -10,6 +10,7 @@ export default function SecuritySection() {
     lockDelayMinutes: 10,
     autoLockDisabled: false,
     locked: false,
+    remoteLock: null,
   });
   // Which master-password prompt is open, if any: "set" is the first-run prompt
   // behind the toggle, "disable" asks for the password before switching it
@@ -19,6 +20,8 @@ export default function SecuritySection() {
   useEffect(() => {
     if (!window.electronAPI) return;
     window.electronAPI.security.getState().then(setSecurity);
+    // Follows changes made elsewhere too: cloud sync bringing in the lock delay
+    return window.electronAPI.security.onStateChanged(setSecurity);
   }, []);
 
   // Switching the toggle on for the first time has to collect a password

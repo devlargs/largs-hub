@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [0.1.104] (2026-11-26)
+- **A download no longer repeats when you come back to a service.** After downloading a file in Messenger (or any service), switching to another service and back downloaded the same file again, leaving copies like `video (1).mp4`, `video (2).mp4`. The app mistook the download link for a page that got stuck loading and reloaded it. Applies on Windows and macOS.
+
+## [0.1.103] (2026-11-26)
+- **Home screen fits every window size.** On shorter windows (most laptops) the feature icons under **Add Service** were cut off at the bottom. The Home screen now tightens its spacing on medium-height windows and scrolls when there still isn't room, so nothing is clipped. Applies on Windows and macOS.
+- **Living background on the Home screen.** The background particles now drift, twinkle and link up with faint lines, and scatter away from your mouse pointer. With reduced motion turned on (Windows animation effects, macOS Reduce motion) they stay still. Applies on Windows and macOS.
+
+## [0.1.102] (2026-11-26)
+- **Accounts and sign-in (optional).** **Settings → Account** lets you create an account with an email and password, sign in, get a password reset email, and sign out. Without an account Largs Hub works exactly as before. Applies on Windows and macOS.
+- **Your workspace syncs between computers.** Signed in, your services and the settings that mean the same on any computer are saved to your account, and signing in on another Windows or Mac computer brings them back. Changes sync a couple of seconds after you make them, and offline changes sync once you're back online. Web app logins don't sync, so you sign in to each service again on a new computer; passcodes, the master password, the download folder, Launch at startup, window size, custom icon images and scheduled automations stay on each computer. Applies on Windows and macOS.
+- **One computer at a time.** When your account is in use on another computer, this one locks and shows which computer has it, with **Use Largs Hub here** to take it back (which locks the other one) and **Sign out on this device**. It works whether or not the workspace lock is on; with it on, the master password screen comes next. A launch at sign-in doesn't take the account from the computer you're using (on macOS this relies on the system reporting it). Applies on Windows and macOS.
+
 ## [0.1.100] (2026-11-24)
 - **Full automation for WhatsApp.** The automation panel (⚡) on a WhatsApp service now has every tab Messenger has, not just the call cycle: **Send now**, **Schedule**, **Interval**, **Emoji** and **Random list** type into the open WhatsApp chat and send, at the times and random delays you set. The Recent emoji pane, saved message lists, auto-stop and per-account settings work the same way. Applies on Windows and macOS.
 

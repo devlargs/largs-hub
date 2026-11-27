@@ -116,6 +116,47 @@ body,
   }
 }
 
+/* Welcome screen – tighter layout for medium-height windows (most laptops), so the
+   feature row fits without scrolling. The content still scrolls if it doesn't. */
+@media (max-height: 880px) {
+  .welcome-content {
+    padding-top: 24px !important;
+    padding-bottom: 24px !important;
+  }
+  .welcome-globe {
+    margin-bottom: 24px !important;
+  }
+  .welcome-globe svg {
+    width: 112px !important;
+    height: 112px !important;
+  }
+  .welcome-title {
+    font-size: 40px !important;
+    margin-bottom: 14px !important;
+  }
+  .welcome-subtitle {
+    font-size: 16px !important;
+    margin-bottom: 28px !important;
+  }
+  .welcome-cta {
+    padding: 14px 36px !important;
+    margin-bottom: 16px !important;
+  }
+  .welcome-connector-line {
+    height: 28px !important;
+  }
+  .welcome-connector-svg {
+    height: 28px !important;
+  }
+  .welcome-feature {
+    gap: 10px !important;
+  }
+  .welcome-feature-icon {
+    width: 44px !important;
+    height: 44px !important;
+  }
+}
+
 /* Welcome screen – compact layout for short viewports */
 @media (max-height: 640px) {
   .welcome-globe {

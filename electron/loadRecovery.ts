@@ -32,6 +32,22 @@ export interface LoadHealth {
   loadingSince: number | null;
 }
 
+/** A pending main-frame load and where it is headed. */
+export interface PendingLoad extends LoadHealth {
+  loadingUrl: string | null;
+}
+
+/**
+ * Forget the main-frame load under way: it stopped, or it turned into a
+ * download. A download link is a navigation that never commits a page, so it
+ * would otherwise look stuck, and showing the view again would load the file's
+ * URL once more and download it again.
+ */
+export function settlePendingLoad(load: PendingLoad): void {
+  load.loadingSince = null;
+  load.loadingUrl = null;
+}
+
 /** Whether a view being brought on screen should load its page again. */
 export function shouldReloadOnShow(health: LoadHealth, now: number): boolean {
   if (health.failedUrl !== null) return true;

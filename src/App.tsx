@@ -10,6 +10,8 @@ import FindBar from "./components/FindBar";
 import MessengerAutomationPanel from "./components/MessengerAutomationPanel";
 import ContentPane, { AppPage } from "./components/ContentPane";
 import LockScreen from "./components/LockScreen";
+import RemoteLockScreen from "./components/lock-screen/RemoteLockScreen";
+import WorkspaceChoiceDialog from "./components/account/WorkspaceChoiceDialog";
 import ConfirmDialog from "./components/ui/ConfirmDialog";
 import { useNotificationStore } from "./store/notifications";
 import type { ConfirmPrompt } from "./lib/appActions";
@@ -27,6 +29,7 @@ import { useAppShortcuts } from "./hooks/useAppShortcuts";
 import { useAutomationPanel } from "./hooks/useAutomationPanel";
 import { useServiceEvents } from "./hooks/useServiceEvents";
 import { usePhoneStatusSync } from "./hooks/usePhoneStatusSync";
+import { useCloudSync } from "./hooks/useCloudSync";
 
 function App() {
   const [services, setServices] = useState<Service[]>([]);
@@ -38,7 +41,7 @@ function App() {
   const [confirm, setConfirm] = useState<(ConfirmPrompt & { onConfirm: () => void }) | null>(null);
   const removeNotificationService = useNotificationStore((s) => s.removeService);
 
-  const { locked, canLock } = useWorkspaceLock();
+  const { locked, canLock, remoteLock } = useWorkspaceLock();
   const shortcutHints = useShortcutHints();
   const automationTasks = useAutomationTasks();
   const linkPreviewUrl = useLinkPreview();
@@ -50,6 +53,7 @@ function App() {
   const automationPanel = useAutomationPanel(activeService);
   useNotificationSync();
   usePhoneStatusSync();
+  useCloudSync();
   // Hide the service view so the modal renders above it
   useUiLayer(showAddModal);
 
@@ -271,8 +275,12 @@ function App() {
           onClose={() => setConfirm(null)}
         />
       )}
-      {/* Last, and fixed inset-0, so it covers the titlebar and sidebar too. */}
-      {locked && <LockScreen />}
+      {/* Waits for any lock to go: it traps focus, which would take the
+          caret from the password field. */}
+      {!locked && <WorkspaceChoiceDialog />}
+      {/* Last, and fixed inset-0, so it covers the titlebar and sidebar too.
+          The account being in use elsewhere comes first; the password after. */}
+      {locked && (remoteLock ? <RemoteLockScreen info={remoteLock} /> : <LockScreen />)}
     </div>
   );
 }

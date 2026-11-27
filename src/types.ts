@@ -14,11 +14,15 @@ import type {
   AutomationPrefs,
   AutoStopUpdate,
   AutomationTask,
+  CloudApplyResult,
+  CloudDeviceInfo,
+  CloudWorkspaceExport,
   ListGroupsResult,
   MessageListGroup,
   NoticeReason,
   PasscodeDraft,
   PasscodesResult,
+  RemoteLockInfo,
   SecurityResult,
   SecurityState,
   SecurityUpdate,
@@ -98,6 +102,17 @@ export interface ElectronAPI {
   getSettings: () => Promise<AppSettings>;
   updateSetting: (key: string, value: unknown) => Promise<void>;
   selectDownloadFolder: () => Promise<string | null>;
+  onSettingsUpdated: (callback: () => void) => () => void;
+  cloud: {
+    getDeviceInfo: () => Promise<CloudDeviceInfo>;
+    exportWorkspace: () => Promise<CloudWorkspaceExport | null>;
+    // Checked in main before anything is stored
+    applyWorkspace: (workspace: unknown) => Promise<CloudApplyResult>;
+    markSynced: (fingerprint: string) => Promise<void>;
+    setRemoteLock: (info: RemoteLockInfo | null) => Promise<void>;
+    setSyncEnabled: (enabled: boolean) => Promise<void>;
+    onWorkspaceChanged: (callback: (fingerprint: string) => void) => () => void;
+  };
   security: {
     getState: () => Promise<SecurityState>;
     setEnabled: (enabled: boolean, currentPassword?: string) => Promise<SecurityUpdate>;

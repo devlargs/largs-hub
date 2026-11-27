@@ -89,6 +89,9 @@ export interface StoreSchema {
   // "enc:<base64>"); the label and username are plain. Only passcodes/ reads
   // or writes it.
   passcodes: StoredPasscode[];
+  // Cloud sync: this install's id in the account's session doc, generated on
+  // first use and never changed (ipc/cloud.ts). Never synced itself.
+  cloudDeviceId: string;
 }
 
 export const store = new Store<StoreSchema>({
@@ -124,6 +127,7 @@ export const store = new Store<StoreSchema>({
     autoLockDisabled: false,
     unlockThrottle: { failures: 0, blockedUntil: null },
     passcodes: [],
+    cloudDeviceId: "",
   },
 });
 

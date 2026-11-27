@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { AutomationTask, SecurityState } from "../types";
+import type { AutomationTask, RemoteLockInfo, SecurityState } from "../types";
 import { useNotificationStore } from "../store/notifications";
 
 // State the main process owns and the interface only mirrors: each hook reads
@@ -20,13 +20,26 @@ export function useUiLayer(open: boolean): void {
 // The workspace lock (issue #102). Main owns the state — a fresh launch, the
 // auto-lock countdown and every unlock are decided there. `canLock`: the
 // "Add Security Controls" toggle is on and a password is set, so the sidebar
-// shows its lock button.
-export function useWorkspaceLock(): { locked: boolean; canLock: boolean } {
-  const [lock, setLock] = useState({ locked: false, canLock: false });
+// shows its lock button. `remoteLock`: the account is in use on another
+// computer, which shows its own lock screen ahead of the password one.
+export function useWorkspaceLock(): {
+  locked: boolean;
+  canLock: boolean;
+  remoteLock: RemoteLockInfo | null;
+} {
+  const [lock, setLock] = useState<{
+    locked: boolean;
+    canLock: boolean;
+    remoteLock: RemoteLockInfo | null;
+  }>({ locked: false, canLock: false, remoteLock: null });
   useEffect(() => {
     if (!window.electronAPI) return;
     const apply = (state: SecurityState) =>
-      setLock({ locked: state.locked, canLock: state.enabled && state.hasPassword });
+      setLock({
+        locked: state.locked,
+        canLock: state.enabled && state.hasPassword,
+        remoteLock: state.remoteLock,
+      });
     window.electronAPI.security.getState().then(apply);
     return window.electronAPI.security.onStateChanged(apply);
   }, []);

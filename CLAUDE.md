@@ -91,7 +91,13 @@ Keep new logic in the module that owns it, and follow the file-size rule under C
 
 ### State
 
-All persistence is `electron-store` in the main process (`StoreSchema` in `electron/store.ts`): services, window bounds, download settings. React holds runtime state only and syncs via IPC; there are small zustand stores for notification counts (`src/store/notifications.ts`) and the update download (`src/store/update.ts`).
+All persistence is `electron-store` in the main process (`StoreSchema` in `electron/store.ts`): services, window bounds, download settings. React holds runtime state only and syncs via IPC; there are small zustand stores for notification counts (`src/store/notifications.ts`), the update download (`src/store/update.ts`) and the account/sync status (`src/store/cloud.ts`).
+
+### Accounts and cloud sync (optional)
+
+Firebase (Auth email/password + Firestore, web modular SDK) runs **in the renderer** only: `src/lib/firebase.ts` (lazy-loaded; `firebaseEnv.ts` says whether the build has the six `VITE_FIREBASE_*` values, and with any missing the whole feature switches itself off), `cloudAuth.ts`, and the engine in `src/lib/cloud-sync/` (`core.ts`, `session.ts`, `workspace.ts`, `index.ts`). Main stays the source of truth for the workspace and the lock: the renderer reads the workspace only through `window.electronAPI.cloud.exportWorkspace()` and writes it only through `cloud.applyWorkspace()`, which `electron/ipc/cloud.ts` checks with `sanitizeCloudWorkspace` (`electron/cloudWorkspace.ts`, pure: the `SYNCED_KEYS` allowlist, with why each other key never syncs) and applies with `electron/cloudApply.ts`. Main watches the synced keys while sync is on and sends `cloud-workspace-changed` after a 2 s debounce, skipping its own applies and unchanged fingerprints (the echo-loop guard). Two Firestore docs per account, no subcollections (the security rules only allow these): `users/{uid}` (the workspace) and `sessions/{uid}` (the one active computer). Passwords never reach main. A new synced setting goes in `CloudWorkspace` (`electron/shared/types.ts`), `SYNCED_KEYS` and `normalize` in `cloudWorkspace.ts`; anything device-specific or secret stays out.
+
+**Remote lock.** `electron/ipc/security.ts` has two independent lock reasons: the password lock (`lockState`) and `remoteLock` (the account is active on another computer, set by the renderer via `cloud.setRemoteLock` from `decideRemoteLock` in `electron/shared/remoteSession.ts`, which never locks on cached data). `isWorkspaceLocked()` and `SecurityState.locked` are the effective value (either lock); `onLockedChanged` fires when that flips, so service-view suppression and DevTools gating cover both. The remote lock works with security controls off, `unlock-app` never clears it, and the remote lock screen (`lock-screen/RemoteLockScreen.tsx`) shows ahead of the password one. Handlers that refuse "while locked" check the effective value.
 
 ### Styling
 

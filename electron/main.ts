@@ -12,6 +12,8 @@ import { installAppMenu } from "./devMode";
 import { setDevToolsLocked } from "./devTools";
 import { registerSettingsIpc } from "./ipc/settings";
 import { registerSecurityIpc } from "./ipc/security";
+import { registerCloudIpc } from "./ipc/cloud";
+import { refreshLoginItem } from "./ipc/loginItem";
 import { registerPasscodesIpc } from "./ipc/passcodes";
 import { registerListGroupsIpc } from "./ipc/listGroups";
 import { registerAutomationPrefsIpc } from "./ipc/automationPrefs";
@@ -51,7 +53,9 @@ import {
 //   ipc/services.ts       service CRUD/toggles, plus serviceNavigation.ts and
 //                         serviceContextMenu.ts (find, zoom, back/forward, menu)
 //   ipc/settings.ts       settings, custom icons, settings menu
-//   ipc/security.ts       workspace lock: master password + auto-lock timer
+//   ipc/security.ts       workspace lock: master password + auto-lock timer,
+//                         plus the remote lock (account in use elsewhere)
+//   ipc/cloud.ts          cloud sync: workspace export/apply, change watcher
 //   passcodes/            saved passcodes (OS-encrypted) + ipc/passcodes.ts
 
 app.setName("Largs Hub");
@@ -85,6 +89,7 @@ registerSecurityIpc({
     setDevToolsLocked(locked); // and closes any DevTools open on a page behind it
   },
 });
+registerCloudIpc({ getUiView });
 registerPasscodesIpc();
 registerListGroupsIpc();
 registerAutomationPrefsIpc();
@@ -124,6 +129,8 @@ registerMessengerAutomation({
 
 app.whenReady().then(() => {
   installAppMenu(); // no DevTools or reload in packaged builds (issue #111)
+  // Windows: give an existing login item the launched-at-login argument
+  refreshLoginItem(store.get("launchAtStartup"));
   // Serves uploaded service icons to the UI view.
   //
   // Registered on the *default* session rather than app-wide (issue #67).

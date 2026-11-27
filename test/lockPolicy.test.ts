@@ -5,6 +5,7 @@ import {
   FREE_ATTEMPTS,
   INITIAL_LOCK_STATE,
   INITIAL_THROTTLE,
+  isEffectivelyLocked,
   LockState,
   MAX_BLOCK_MS,
   ThrottleState,
@@ -247,5 +248,14 @@ describe("automatic locking off", () => {
 
   it("still locks from the lock button", () => {
     expect(reduceLock(INITIAL_LOCK_STATE, "manual", NOW, MANUAL_ONLY).locked).toBe(true);
+  });
+});
+
+describe("isEffectivelyLocked", () => {
+  it("is locked while either lock is on", () => {
+    expect(isEffectivelyLocked(false, false)).toBe(false);
+    expect(isEffectivelyLocked(true, false)).toBe(true);
+    expect(isEffectivelyLocked(false, true)).toBe(true);
+    expect(isEffectivelyLocked(true, true)).toBe(true);
   });
 });
