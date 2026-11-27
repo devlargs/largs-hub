@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.1.106] (2026-11-27)
 - **The privacy cover has a pattern.** The panels that privacy mode draws over a service now carry a faint diagonal stripe, so a covered part of the page reads as a privacy screen rather than a blank or broken page. Applies on Windows and macOS.
 
 ## [0.1.105] (2026-11-27)
