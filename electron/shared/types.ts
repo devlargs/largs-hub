@@ -281,10 +281,30 @@ export interface RemoteLockInfo {
   since: number;
 }
 
+// The workspace lock's password as stored: a salted scrypt hash, never the
+// password itself (electron/masterPassword.ts). Here because it syncs.
+export interface MasterPasswordCredential {
+  algorithm: "scrypt";
+  // Hex-encoded, one per credential, so two identical passwords hash differently
+  salt: string;
+  hash: string;
+  keyLength: number;
+  cost: number;
+  blockSize: number;
+  parallelization: number;
+}
+
+// The window's size, without its position: a position on one computer's
+// screens can be off-screen on another's.
+export interface CloudWindowSize {
+  width: number;
+  height: number;
+}
+
 // The part of the workspace that follows the account between computers: the
-// services and the settings that mean the same thing on any machine. Plain
-// JSON (no Firestore types), so main can build, check and apply it.
-// What's left out, and why, is listed in electron/cloudWorkspace.ts.
+// services and the settings. Plain JSON (no Firestore types), so main can
+// build, check and apply it. What's left out, and why, is listed in
+// electron/cloudWorkspace.ts.
 export interface CloudWorkspace {
   schemaVersion: 1;
   services: Service[];
@@ -305,6 +325,20 @@ export interface CloudWorkspace {
   automationPrefs: Record<string, AutomationPrefs>;
   lockDelayMinutes: number;
   autoLockDisabled: boolean;
+  securityControlsEnabled: boolean;
+  masterPasswordCredential: MasterPasswordCredential | null;
+  launchAtStartup: boolean;
+  debugMode: boolean;
+  windowMaximized: boolean;
+  windowSize: CloudWindowSize;
+  // The download folder as a path under the home folder, "/"-separated, so it
+  // means the same on Windows and macOS. "" is the system default; null is a
+  // folder outside the home folder, which each computer keeps for itself.
+  downloadFolderInHome: string | null;
+  // Scheduled automation. Only the computer that has the session runs it
+  // (electron/automationGate.ts).
+  automationTasks: AutomationTask[];
+  automationAutoStops: AutoStopState[];
 }
 
 export type CloudWorkspaceKey = Exclude<keyof CloudWorkspace, "schemaVersion">;

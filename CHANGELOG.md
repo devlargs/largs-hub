@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **All your settings sync with your account.** Signed in, the workspace lock (on or off, and the master password), Launch at startup, debug mode, the window's size, the download folder and scheduled automations now sync too. The download folder syncs as a folder in your home folder, so it means the same on Windows and macOS, and is created if it's missing; one on another drive stays on its own computer. Only the computer using the account runs scheduled automations, so a message is never sent from two computers: they pause when another computer takes the account and pick up when you take it back. Applies on Windows and macOS.
 - **Saved passcodes are offered when you click into a login field.** Click the password box (or the email/username box) on a service's sign-in page and a menu opens under it listing the passcodes saved for that service; pick one to fill it in, or press Esc to type your own. Each field offers once per page, and passcodes saved for every service stay in the right-click menu. Applies on Windows and macOS.
 
 ## [0.1.104] (2026-11-26)

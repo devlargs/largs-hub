@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
+import path from "node:path";
 import type { StoreSchema } from "./store";
-import type { CloudWorkspace, CloudWorkspaceKey, Service } from "./shared/types";
+import type { AutoStopState, CloudWorkspace, CloudWorkspaceKey, Service } from "./shared/types";
 import { sanitizeService } from "./serviceSchema";
 import { sanitizeLockDelayMinutes } from "./lockPolicy";
 import { sanitizeStoredGroups } from "./messageLists";
@@ -8,6 +9,16 @@ import { sanitizeRecentEmojis } from "./recentEmojis";
 import { sanitizeStoredPrefs } from "./automationPrefs";
 import { DEFAULT_ZOOM, sanitizeZoom } from "./zoom";
 import { customIconFileName } from "./iconCleanup";
+import { restorableTasks } from "./automationRestore";
+import { validateSpec } from "./messengerAutomation/validation";
+import {
+  DEFAULT_WINDOW_SIZE,
+  sanitizeCloudCredential,
+  sanitizeHomeRelative,
+  sanitizeWindowSize,
+  toHomeRelative,
+  type PathApi,
+} from "./cloudDeviceSettings";
 
 // What the account syncs between computers, and the checks a workspace read
 // back from the cloud has to pass before it reaches the store.
@@ -15,24 +26,24 @@ import { customIconFileName } from "./iconCleanup";
 // Pure (no electron imports) so it can be unit-tested: ipc/cloud.ts owns the
 // store and the side effects of applying one.
 //
-// Synced: SYNCED_KEYS below. Never synced, because it only means something on
-// this computer or is a secret:
-//   windowBounds, windowMaximized  - this screen's size and layout
+// Synced: SYNCED_KEYS below, copied as they are, plus two that are translated
+// for the other computer (cloudDeviceSettings.ts): the window's size (its
+// position stays here) and the download folder, as a path under the home
+// folder. Never synced, because it only means something on this computer or
+// belongs to this install:
+//   windowBounds x/y               - this screen's layout
 //   lastActiveServiceId            - where you were on this computer
 //   lastGoogleSignInServiceId      - points at a login, and logins don't sync
-//   downloadFolder                 - a local path, which may not exist elsewhere
-//   launchAtStartup                - a per-machine OS setting
-//   debugMode                      - DevTools access is decided per computer
-//   securityControlsEnabled,
-//   masterPasswordCredential,
-//   unlockThrottle                 - the workspace lock's secret and its state
-//   passcodes                      - encrypted with this computer's safeStorage,
-//                                    so another one couldn't decrypt them
-//   automationTasks,
-//   automationAutoStops            - scheduled to run on this computer
+//   unlockThrottle                 - wrong-password attempts made here
+//   passcodes                      - while signed in they live in the account
+//                                    only, encrypted end to end (passcodes/)
 //   cloudDeviceId                  - identifies this computer to the account
 
-export const SYNCED_KEYS: readonly CloudWorkspaceKey[] = [
+// The workspace keys that aren't a store key of the same name and type
+type TranslatedKey = "windowSize" | "downloadFolderInHome";
+export type SyncedStoreKey = Exclude<CloudWorkspaceKey, TranslatedKey>;
+
+export const SYNCED_KEYS: readonly SyncedStoreKey[] = [
   "services",
   "wakeServicesAutomatically",
   "openFolderOnFinish",
@@ -51,11 +62,27 @@ export const SYNCED_KEYS: readonly CloudWorkspaceKey[] = [
   "automationPrefs",
   "lockDelayMinutes",
   "autoLockDisabled",
+  "securityControlsEnabled",
+  "masterPasswordCredential",
+  "launchAtStartup",
+  "debugMode",
+  "windowMaximized",
+  "automationTasks",
+  "automationAutoStops",
+];
+
+// The store keys a change to which means there's something to push
+export const WATCHED_STORE_KEYS: readonly (keyof StoreSchema)[] = [
+  ...SYNCED_KEYS,
+  "windowBounds",
+  "downloadFolder",
 ];
 
 // Fails to compile if a synced key isn't a store key of the same type.
-type SyncedStoreFields = Pick<StoreSchema, CloudWorkspaceKey>;
-const _sameShape: (w: Omit<CloudWorkspace, "schemaVersion">) => SyncedStoreFields = (w) => w;
+type SyncedStoreFields = Pick<StoreSchema, SyncedStoreKey>;
+const _sameShape: (
+  w: Omit<CloudWorkspace, "schemaVersion" | TranslatedKey>,
+) => SyncedStoreFields = (w) => w;
 
 // Firestore's limit is 1 MiB per document; leave room for the doc's own fields.
 export const MAX_WORKSPACE_BYTES = 900_000;
@@ -79,6 +106,15 @@ const DEFAULTS: Omit<CloudWorkspace, "schemaVersion" | "services"> = {
   automationPrefs: {},
   lockDelayMinutes: 10,
   autoLockDisabled: false,
+  securityControlsEnabled: false,
+  masterPasswordCredential: null,
+  launchAtStartup: false,
+  debugMode: false,
+  windowMaximized: true,
+  windowSize: DEFAULT_WINDOW_SIZE,
+  downloadFolderInHome: null,
+  automationTasks: [],
+  automationAutoStops: [],
 };
 
 const BOOLEAN_KEYS = [
@@ -89,6 +125,9 @@ const BOOLEAN_KEYS = [
   "closeToTray",
   "minimizeToTray",
   "autoLockDisabled",
+  "launchAtStartup",
+  "debugMode",
+  "windowMaximized",
 ] as const;
 
 const PERCENT_KEYS = [
@@ -179,7 +218,18 @@ function normalize(r: Record<string, unknown>, options: SanitizeOptions): CloudW
     recentEmojis: sanitizeRecentEmojis(r.recentEmojis),
     automationPrefs: sanitizeStoredPrefs(r.automationPrefs, ids),
     lockDelayMinutes: sanitizeLockDelayMinutes(r.lockDelayMinutes),
+    masterPasswordCredential: sanitizeCloudCredential(r.masterPasswordCredential),
+    windowSize: sanitizeWindowSize(r.windowSize),
+    downloadFolderInHome: sanitizeHomeRelative(r.downloadFolderInHome),
+    // A task from the account passes the same check as one started here
+    automationTasks: restorableTasks(r.automationTasks, ids).filter(
+      (task) => validateSpec(task.spec) === null,
+    ),
+    automationAutoStops: sanitizeAutoStops(r.automationAutoStops, ids),
   };
+  // A lock with no password can't lock anything, so it can't arrive switched on
+  workspace.securityControlsEnabled =
+    r.securityControlsEnabled === true && workspace.masterPasswordCredential !== null;
   for (const key of BOOLEAN_KEYS) {
     workspace[key] = typeof r[key] === "boolean" ? r[key] : DEFAULTS[key];
   }
@@ -187,11 +237,38 @@ function normalize(r: Record<string, unknown>, options: SanitizeOptions): CloudW
   return workspace;
 }
 
-/** The synced part of the store, and nothing else. */
-export function pickCloudWorkspace(store: Partial<StoreSchema>): CloudWorkspace {
+/**
+ * The synced part of the store, and nothing else. `home` is this computer's
+ * home folder, which the download folder is stored relative to.
+ */
+export function pickCloudWorkspace(
+  store: Partial<StoreSchema>,
+  home: string,
+  pathApi: PathApi = path,
+): CloudWorkspace {
   const raw: Record<string, unknown> = {};
   for (const key of SYNCED_KEYS) raw[key] = store[key];
+  raw.windowSize = store.windowBounds;
+  raw.downloadFolderInHome = toHomeRelative(store.downloadFolder ?? "", home, pathApi);
   return normalize(raw, {});
+}
+
+// Auto-stops for services that exist, one per service, with sane numbers
+function sanitizeAutoStops(raw: unknown, serviceIds: readonly string[]): AutoStopState[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: AutoStopState[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== "object" || entry === null) continue;
+    const { serviceId, minutes, expiresAt } = entry as Record<string, unknown>;
+    if (typeof serviceId !== "string" || !serviceIds.includes(serviceId) || seen.has(serviceId))
+      continue;
+    if (typeof minutes !== "number" || !Number.isFinite(minutes) || minutes <= 0) continue;
+    if (typeof expiresAt !== "number" || !Number.isFinite(expiresAt)) continue;
+    seen.add(serviceId);
+    out.push({ serviceId, minutes, expiresAt });
+  }
+  return out;
 }
 
 /**

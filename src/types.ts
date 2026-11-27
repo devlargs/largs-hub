@@ -111,6 +111,8 @@ export interface ElectronAPI {
     markSynced: (fingerprint: string) => Promise<void>;
     setRemoteLock: (info: RemoteLockInfo | null) => Promise<void>;
     setSyncEnabled: (enabled: boolean) => Promise<void>;
+    // Who's signed in here, or null; main waits on it before running automation
+    setAccount: (uid: string | null) => Promise<void>;
     onWorkspaceChanged: (callback: (fingerprint: string) => void) => () => void;
   };
   security: {

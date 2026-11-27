@@ -113,12 +113,19 @@ export function setRemoteLock(info: RemoteLockInfo | null): void {
 }
 
 /**
- * Re-reads the lock delay and "Don't lock automatically" after something other
- * than these handlers changed them (cloud sync), re-arming or dropping a
- * pending countdown.
+ * Re-reads the lock's settings after something other than these handlers
+ * changed them (cloud sync): the delay and "Don't lock automatically" re-arm
+ * or drop a pending countdown, and a lock switched off unlocks.
  */
 export function refreshLockOptions(): void {
   const options = lockOptions();
+  // The lock was switched off (or lost its password) on another computer:
+  // nothing here can lock any more, so a lock screen up now comes down, as it
+  // does when the toggle is switched off here.
+  if (!options.enabled) {
+    setLockState(INITIAL_LOCK_STATE);
+    return;
+  }
   // Same as set-lock-delay and set-auto-lock-disabled: a new delay re-arms the
   // countdown, and switching auto-lock off drops it.
   setLockState(options.autoLock ? lockState : reduceLock(lockState, "back", Date.now(), options));

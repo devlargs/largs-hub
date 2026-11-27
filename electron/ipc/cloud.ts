@@ -8,9 +8,10 @@ import { sanitizeRemoteLockInfo } from "../shared/remoteSession";
 import {
   pickCloudWorkspace,
   sanitizeCloudWorkspace,
-  SYNCED_KEYS,
+  WATCHED_STORE_KEYS,
   workspaceFingerprint,
 } from "../cloudWorkspace";
+import { automationGate } from "../automationRunner";
 import { applyCloudWorkspace, customIconExists } from "../cloudApply";
 import { setRemoteLock } from "./security";
 import { LAUNCHED_AT_LOGIN_ARG } from "./loginItem";
@@ -71,7 +72,7 @@ function wasLaunchedAtLogin(): boolean {
 }
 
 function exportWorkspace(): CloudWorkspaceExport {
-  const workspace = pickCloudWorkspace(store.store);
+  const workspace = pickCloudWorkspace(store.store, os.homedir());
   return { workspace, fingerprint: workspaceFingerprint(workspace) };
 }
 
@@ -99,10 +100,16 @@ function setSyncEnabled(enabled: boolean) {
   unsubscribers = [];
   clearChangeTimer();
   if (!enabled) return;
-  for (const key of SYNCED_KEYS) {
+  for (const key of WATCHED_STORE_KEYS) {
     unsubscribers.push(store.onDidChange(key, onSyncedKeyChanged));
   }
+  // Synced with the account, so this computer runs the automation now
+  automationGate.synced();
 }
+
+// Firebase uids are 28 characters; anything else isn't one
+const isUid = (value: unknown): value is string =>
+  typeof value === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(value);
 
 export function registerCloudIpc(d: CloudIpcDeps) {
   deps = d;
@@ -164,7 +171,23 @@ export function registerCloudIpc(d: CloudIpcDeps) {
       return;
     }
     const info = sanitizeRemoteLockInfo(raw);
-    if (info) setRemoteLock(info);
+    if (!info) return;
+    setRemoteLock(info);
+    // Another computer has the session: it runs the automation, not this one
+    automationGate.remoteLocked();
+  });
+
+  // Who's signed in here (null: nobody, or accounts are off in this build).
+  // Remembered for the next launch, which has to know before the renderer is
+  // up whether to wait for the account before running automation.
+  ipcMain.handle("cloud-set-account", (event, uid: unknown) => {
+    if (!isFromApp(event)) return;
+    if (uid === null) {
+      store.set("cloudAccountUid", "");
+      automationGate.signedOut();
+    } else if (isUid(uid)) {
+      store.set("cloudAccountUid", uid);
+    }
   });
 
   ipcMain.handle("cloud-set-sync-enabled", (event, enabled: unknown) => {

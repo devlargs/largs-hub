@@ -34,7 +34,11 @@ export function markInteractiveSignIn(): void {
 
 /** Starts the engine. Returns its teardown. */
 export function startCloudSync(): () => void {
-  if (!firebaseEnabled) return () => undefined;
+  if (!firebaseEnabled) {
+    // No accounts in this build: nothing to wait for before running automation
+    void cloud().setAccount(null);
+    return () => undefined;
+  }
   const offAuth = onAuthStateChanged(getFirebase().auth, (user) => void handleUser(user));
   const offChanged = cloud().onWorkspaceChanged(() => void push(false));
   const onOnline = () => void resume();
@@ -57,6 +61,7 @@ async function handleUser(user: User | null) {
   await endSession();
   if (!user) {
     engine.interactiveSignIn = false;
+    await cloud().setAccount(null);
     // Main outlives this page (macOS keeps running with the window closed),
     // so a lock from before the page was recreated is cleared here too.
     await cloud().setSyncEnabled(false);
@@ -73,6 +78,7 @@ async function handleUser(user: User | null) {
   const interactive = engine.interactiveSignIn;
   engine.interactiveSignIn = false;
 
+  await cloud().setAccount(user.uid);
   const device = await cloud().getDeviceInfo();
   if (generation !== engine.generation) return;
   const s: Session = {

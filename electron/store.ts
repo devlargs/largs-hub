@@ -92,6 +92,10 @@ export interface StoreSchema {
   // Cloud sync: this install's id in the account's session doc, generated on
   // first use and never changed (ipc/cloud.ts). Never synced itself.
   cloudDeviceId: string;
+  // The account signed in on this computer ("" for none), as the renderer
+  // last reported it. Read at launch, before the renderer is up: a signed-in
+  // computer waits to sync before running automation (automationGate.ts).
+  cloudAccountUid: string;
 }
 
 export const store = new Store<StoreSchema>({
@@ -128,6 +132,7 @@ export const store = new Store<StoreSchema>({
     unlockThrottle: { failures: 0, blockedUntil: null },
     passcodes: [],
     cloudDeviceId: "",
+    cloudAccountUid: "",
   },
 });
 

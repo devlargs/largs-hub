@@ -16,9 +16,15 @@ import {
 } from "./runtime";
 import { validateAutoStopMinutes, validateSpec } from "./validation";
 import { buildSendScript } from "./sendScripts";
-import { armAutoStop, clearAutoStop, publicAutoStop, restorePersistedAutoStops } from "./autoStop";
+import {
+  armAutoStop,
+  clearAutoStop,
+  publicAutoStop,
+  restorePersistedAutoStops,
+  suspendAutoStops,
+} from "./autoStop";
 import { launchTask } from "./tasks";
-import { stopAllForService, stopTask } from "./lifecycle";
+import { stopAllForService, stopTask, suspendTasks } from "./lifecycle";
 import { restorePersistedTasks, sweepOverdue } from "./restore";
 import {
   PLATFORM_NAMES,
@@ -191,6 +197,17 @@ export function restoreAutomationState(): void {
   if (!registered) return;
   restorePersistedTasks();
   restorePersistedAutoStops(stopAllForService);
+}
+
+/**
+ * Stops running every task and auto-stop here, but keeps them stored, so they
+ * go on (or come back) wherever the account is in use (automationGate.ts).
+ * Unlike stopping a task, this writes nothing.
+ */
+export function suspendAutomation(): void {
+  if (!registered) return;
+  suspendTasks();
+  suspendAutoStops();
 }
 
 /**

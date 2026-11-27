@@ -1,7 +1,7 @@
 import { app, BrowserWindow, WebContentsView } from "electron";
 import path from "path";
 import { store, StoreSchema } from "../store";
-import { restoreAutomationState } from "../messengerAutomation";
+import { automationGate } from "../automationRunner";
 import { initTray, isQuitting, isTrayAvailable, refreshTray, syncTray } from "../tray";
 import { windowCloseAction, windowMinimizeAction } from "../trayMenu";
 import { MAC_TRAFFIC_LIGHT_POSITION } from "../shared/layout";
@@ -158,7 +158,8 @@ export function createWindow() {
     refreshTaskbarBadge();
     // Only now do the service views a stored task needs to inject into exist
     // (issue #75). Restoring earlier would tear each task down on its first fire.
-    restoreAutomationState();
+    // Signed in, they wait for the account instead (automationGate.ts).
+    automationGate.launched(store.get("cloudAccountUid") !== "");
   });
 
   // An overlay set before the window is on screen is discarded by Windows

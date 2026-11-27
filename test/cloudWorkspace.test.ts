@@ -1,3 +1,4 @@
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   pickCloudWorkspace,
@@ -20,9 +21,22 @@ const service = (id: string, extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 
+const CREDENTIAL = {
+  algorithm: "scrypt",
+  salt: "ab12",
+  hash: "cd34",
+  keyLength: 64,
+  cost: 16384,
+  blockSize: 8,
+  parallelization: 1,
+};
+
+const HOME = "C:\\Users\\me";
+const pick = (store: StoreSchema) => pickCloudWorkspace(store, HOME, path.win32);
+
 const fullStore = {
   services: [service("a"), service("b", { muted: true })],
-  windowBounds: { width: 1, height: 2 },
+  windowBounds: { width: 1400, height: 900, x: 30, y: 40 },
   windowMaximized: false,
   lastActiveServiceId: "a",
   lastGoogleSignInServiceId: "a",
@@ -43,11 +57,21 @@ const fullStore = {
   recentEmojis: ["👍"],
   closeToTray: true,
   minimizeToTray: false,
-  automationTasks: [{ id: "t" }],
-  automationAutoStops: [{ serviceId: "a" }],
+  automationTasks: [
+    {
+      id: "t",
+      serviceId: "a",
+      spec: { type: "sendChat", message: "hi", time: "0930" },
+      status: "running",
+      nextFireAt: 5,
+      fireCount: 0,
+      createdAt: 1,
+    },
+  ],
+  automationAutoStops: [{ serviceId: "a", minutes: 30, expiresAt: 99 }],
   automationPrefs: { a: { type: "sendChat", time: "09:30" } },
   securityControlsEnabled: true,
-  masterPasswordCredential: { hash: "x", salt: "y" },
+  masterPasswordCredential: CREDENTIAL,
   lockDelayMinutes: 30,
   autoLockDisabled: true,
   unlockThrottle: { failures: 2, blockedUntil: null },
@@ -56,29 +80,45 @@ const fullStore = {
 } as unknown as StoreSchema;
 
 describe("pickCloudWorkspace", () => {
-  const workspace = pickCloudWorkspace(fullStore);
+  const workspace = pick(fullStore);
 
-  it("holds the allowlisted keys and nothing else", () => {
-    expect(Object.keys(workspace).sort()).toEqual(["schemaVersion", ...SYNCED_KEYS].sort());
+  it("holds the allowlisted keys and the translated ones, nothing else", () => {
+    expect(Object.keys(workspace).sort()).toEqual(
+      ["schemaVersion", "windowSize", "downloadFolderInHome", ...SYNCED_KEYS].sort(),
+    );
   });
 
-  it("never carries secrets or this computer's own state", () => {
+  it("never carries this computer's own state or the local passcodes", () => {
     for (const key of [
       "passcodes",
-      "masterPasswordCredential",
       "downloadFolder",
       "windowBounds",
-      "automationTasks",
-      "automationAutoStops",
       "cloudDeviceId",
-      "launchAtStartup",
-      "debugMode",
-      "securityControlsEnabled",
       "unlockThrottle",
+      "lastActiveServiceId",
     ]) {
       expect(workspace).not.toHaveProperty(key);
     }
     expect(JSON.stringify(workspace)).not.toContain("enc:abc");
+  });
+
+  it("carries the lock, startup, debug, window and automation settings", () => {
+    expect(workspace).toMatchObject({
+      securityControlsEnabled: true,
+      masterPasswordCredential: CREDENTIAL,
+      launchAtStartup: true,
+      debugMode: true,
+      windowMaximized: false,
+      windowSize: { width: 1400, height: 900 },
+      downloadFolderInHome: "Downloads",
+    });
+    expect(workspace.automationTasks.map((t) => t.id)).toEqual(["t"]);
+    expect(workspace.automationAutoStops).toEqual([{ serviceId: "a", minutes: 30, expiresAt: 99 }]);
+  });
+
+  it("leaves a download folder outside the home folder unsynced", () => {
+    expect(pick({ ...fullStore, downloadFolder: "D:\\Downloads" }).downloadFolderInHome).toBeNull();
+    expect(pick({ ...fullStore, downloadFolder: "" }).downloadFolderInHome).toBe("");
   });
 
   it("keeps the synced values", () => {
@@ -100,7 +140,7 @@ describe("pickCloudWorkspace", () => {
 });
 
 describe("sanitizeCloudWorkspace", () => {
-  const valid = () => ({ ...pickCloudWorkspace(fullStore) }) as Record<string, unknown>;
+  const valid = () => ({ ...pick(fullStore) }) as Record<string, unknown>;
 
   it("rejects anything that isn't a version 1 workspace", () => {
     expect(sanitizeCloudWorkspace(null)).toBeNull();
@@ -218,15 +258,54 @@ describe("sanitizeCloudWorkspace", () => {
     expect(result?.services.map((s) => s.icon)).toEqual(["custom:here.png", "slack.png"]);
   });
 
+  it("switches the lock off when it arrives without a usable password", () => {
+    const noPassword = sanitizeCloudWorkspace({ ...valid(), masterPasswordCredential: null });
+    expect(noPassword?.securityControlsEnabled).toBe(false);
+    const costly = sanitizeCloudWorkspace({
+      ...valid(),
+      masterPasswordCredential: { ...CREDENTIAL, cost: 1 << 20 },
+    });
+    expect(costly?.masterPasswordCredential).toBeNull();
+    expect(costly?.securityControlsEnabled).toBe(false);
+  });
+
+  it("drops automation for missing services, bad specs and bad auto-stops", () => {
+    const task = (fullStore.automationTasks as unknown[])[0] as Record<string, unknown>;
+    const result = sanitizeCloudWorkspace({
+      ...valid(),
+      automationTasks: [
+        task,
+        { ...task, id: "gone", serviceId: "gone" },
+        { ...task, id: "bad", spec: { type: "sendChat", message: "", time: "0930" } },
+      ],
+      automationAutoStops: [
+        { serviceId: "a", minutes: 30, expiresAt: 99 },
+        { serviceId: "a", minutes: 10, expiresAt: 5 },
+        { serviceId: "b", minutes: -1, expiresAt: 5 },
+        { serviceId: "gone", minutes: 5, expiresAt: 5 },
+      ],
+    });
+    expect(result?.automationTasks.map((t) => t.id)).toEqual(["t"]);
+    expect(result?.automationAutoStops.map((a) => a.serviceId)).toEqual(["a"]);
+  });
+
+  it("refuses a download folder that leaves the home folder or enters app data", () => {
+    for (const bad of ["../x", "AppData/Roaming", "Library/LaunchAgents", ".ssh", "a//b", "C:"]) {
+      expect(
+        sanitizeCloudWorkspace({ ...valid(), downloadFolderInHome: bad })?.downloadFolderInHome,
+      ).toBeNull();
+    }
+  });
+
   it("round-trips a picked workspace unchanged", () => {
-    const picked = pickCloudWorkspace(fullStore);
+    const picked = pick(fullStore);
     expect(sanitizeCloudWorkspace(JSON.parse(JSON.stringify(picked)))).toEqual(picked);
   });
 });
 
 describe("workspaceFingerprint", () => {
   it("doesn't depend on key order", () => {
-    const workspace = pickCloudWorkspace(fullStore);
+    const workspace = pick(fullStore);
     const reversed = Object.fromEntries(Object.entries(workspace).reverse()) as typeof workspace;
     reversed.services = workspace.services.map(
       (s) => Object.fromEntries(Object.entries(s).reverse()) as typeof s,
@@ -235,14 +314,14 @@ describe("workspaceFingerprint", () => {
   });
 
   it("changes when the workspace does", () => {
-    const workspace = pickCloudWorkspace(fullStore);
+    const workspace = pick(fullStore);
     expect(workspaceFingerprint({ ...workspace, closeToTray: !workspace.closeToTray })).not.toBe(
       workspaceFingerprint(workspace),
     );
   });
 
   it("matches between the store and the same workspace read back from the cloud", () => {
-    const picked = pickCloudWorkspace(fullStore);
+    const picked = pick(fullStore);
     const fromCloud = sanitizeCloudWorkspace(JSON.parse(JSON.stringify(picked)))!;
     expect(workspaceFingerprint(fromCloud)).toBe(workspaceFingerprint(picked));
   });

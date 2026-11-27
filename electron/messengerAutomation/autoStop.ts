@@ -84,3 +84,13 @@ export function restorePersistedAutoStops(onExpire: OnExpire) {
   }
   persistAutoStops();
 }
+
+/**
+ * Stops every armed countdown on this computer without forgetting it: the
+ * stored list is left as it is, for the computer that runs automation now
+ * (cloud sync), or for this one to pick up again.
+ */
+export function suspendAutoStops() {
+  for (const armed of autoStops.values()) clearTimeout(armed.timer);
+  autoStops.clear();
+}

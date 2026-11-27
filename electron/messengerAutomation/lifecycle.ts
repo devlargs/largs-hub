@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import type { TaskSpec } from "../shared/types";
 import { LivenessAction, livenessFor } from "../automationLiveness";
-import { InternalTask, deps, pushUpdate, tasks } from "./runtime";
+import { InternalTask, deps, pushUpdate, sendToUi, tasks } from "./runtime";
 import { clearAutoStop } from "./autoStop";
 import { callPlatformFor } from "./callPlatforms";
 
@@ -35,6 +35,21 @@ export function stopTask(taskId: string, hangUp = true): boolean {
   tasks.delete(taskId);
   pushUpdate();
   return true;
+}
+
+/**
+ * Clears every task's timers and drops it from memory without saving the
+ * empty list, so the stored tasks stay as they are (suspendAutomation).
+ */
+export function suspendTasks() {
+  for (const task of tasks.values()) {
+    if (task.timer) clearTimeout(task.timer);
+    if (task.noticeTimer) clearTimeout(task.noticeTimer);
+    if (task.spec.type === "startCallCycle") callPlatformFor(task.serviceId).hangUp(task.serviceId);
+  }
+  tasks.clear();
+  deps().onTasksChanged();
+  sendToUi("messenger-automation-updated", []);
 }
 
 export function stopAllForService(serviceId: string) {

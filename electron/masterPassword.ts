@@ -1,4 +1,5 @@
 import { randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from "node:crypto";
+import type { MasterPasswordCredential } from "./shared/types";
 
 // Master-password hashing for the workspace lock.
 //
@@ -10,16 +11,7 @@ import { randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from "node:c
 // salted scrypt hash; see the caveat in the settings copy — electron-store
 // writes plain JSON, so this is a screen lock, not encryption of the workspace.
 
-export interface MasterPasswordCredential {
-  algorithm: "scrypt";
-  // Hex-encoded, one per credential, so two identical passwords hash differently
-  salt: string;
-  hash: string;
-  keyLength: number;
-  cost: number;
-  blockSize: number;
-  parallelization: number;
-}
+export type { MasterPasswordCredential } from "./shared/types";
 
 const COST = 16384;
 const BLOCK_SIZE = 8;

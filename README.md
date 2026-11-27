@@ -134,16 +134,19 @@ Accounts are optional. Signed out, Largs Hub works exactly as it always has, wit
 
 **Settings → Account** lets you create an account with an email and password (at least 8 characters), sign in, reset a forgotten password by email, and sign out. Signed in, your workspace is saved to your account and changes sync a couple of seconds after you make them. Signing in on a new computer, Windows or Mac, brings back the same services in the same order, with the same names, addresses and switches, and the synced settings.
 
-**What syncs:** your services (with their per-service switches and zoom), the General settings other than **Launch at startup** (wake services, hibernation, close and minimize to tray), the Downloads switches, the privacy cover settings, the lock's **Lock after** and **Don't lock automatically**, saved message lists, recent emojis and each service's automation panel settings.
+**What syncs:** your services (with their per-service switches and zoom), every General setting including **Launch at startup**, the Downloads settings, the privacy cover settings, the workspace lock (whether it's on, the master password, **Lock after** and **Don't lock automatically**), debug mode, the window's size and whether it's maximized, saved message lists, recent emojis, each service's automation panel settings, and scheduled automations.
+
+- **Download folder.** It syncs as a folder inside your home folder, so `C:\Users\you\Downloads\Hub` on Windows becomes `~/Downloads/Hub` on a Mac, and it's created if it isn't there yet. A folder outside your home folder (another drive, a USB stick) stays on the computer that chose it. A folder inside app data (`AppData`, `Library`) or a hidden folder is never taken from the account.
+- **Window.** Its size syncs and is used the next time the window opens; where it sits on the screen stays on each computer.
+- **Workspace lock.** Turning it on or off, or changing the master password, on one computer does the same on the others; turning it off elsewhere unlocks a computer that's at the lock screen. Only the password's salted hash is stored, never the password.
+- **Scheduled automations.** Only the computer using the account runs them, so a message is never sent twice. When another computer takes the account, the tasks pause here and carry on there; a signed-in computer that just started waits until it has synced before running any.
 
 **What doesn't sync:**
 
 - **Web app logins.** Gmail, Slack and the rest keep their cookies on each computer. On a new computer your services come back, but you sign in to each one again.
 - **Passcodes.** They're encrypted by this computer's operating system, so another computer couldn't read them.
-- **The master password** and whether the workspace lock is on.
-- **The download folder**, **Launch at startup**, **debug mode**, and the window's size and position.
+- **The window's position** and the wrong-password attempt count.
 - **Custom icon images.** A service with an uploaded icon shows its built-in icon on a computer that doesn't have the image.
-- **Scheduled automations.** Running and scheduled Messenger and WhatsApp tasks stay on the computer that started them.
 
 **One computer at a time.** When you start using your account on another computer, this one locks within a couple of seconds and shows which computer has it (for example "DESKTOP-1 (Windows) is using this account"). Your services are paused behind that screen. **Use Largs Hub here** takes the account back: the other computer locks, and this one loads the latest workspace and unlocks. **Sign out on this device** signs out instead and keeps your services here. With the workspace lock on, the master password screen comes after. A launch at sign-in never takes the account from the computer you're using: on Windows the app knows it was started at sign-in; on macOS that's reported by the system, which recent versions may not do, in which case the Mac takes the account as if you'd opened it.
 

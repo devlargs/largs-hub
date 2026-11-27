@@ -1,4 +1,5 @@
 import fs from "fs";
+import os from "os";
 import { store, type Service, type StoreSchema } from "./store";
 import type { CloudWorkspace } from "./shared/types";
 import { SYNCED_KEYS } from "./cloudWorkspace";
@@ -14,6 +15,10 @@ import { syncTray } from "./tray";
 import { forgetRemovedService } from "./ipc/services";
 import { refreshLockOptions } from "./ipc/security";
 import { customIconsDir, resolveCustomIconPath } from "./customIcons";
+import { fromHomeRelative } from "./cloudDeviceSettings";
+import { applyLoginItem } from "./ipc/loginItem";
+import { refreshDevTools } from "./devTools";
+import { automationGate } from "./automationRunner";
 
 // Writing a workspace from the cloud into the store, and doing what the normal
 // setters would have done afterwards: views for added and removed services,
@@ -43,6 +48,8 @@ export async function applyCloudWorkspace(workspace: CloudWorkspace): Promise<vo
     }
   }
 
+  applyWindowSize(workspace);
+  applyDownloadFolder(workspace);
   await reconcileServiceViews(before.services, workspace.services);
 
   if (
@@ -54,10 +61,52 @@ export async function applyCloudWorkspace(workspace: CloudWorkspace): Promise<vo
   refreshPrivacyOverlays();
   if (
     before.lockDelayMinutes !== workspace.lockDelayMinutes ||
-    before.autoLockDisabled !== workspace.autoLockDisabled
+    before.autoLockDisabled !== workspace.autoLockDisabled ||
+    before.securityControlsEnabled !== workspace.securityControlsEnabled ||
+    !sameJson(before.masterPasswordCredential, workspace.masterPasswordCredential)
   ) {
     refreshLockOptions();
   }
+  if (before.launchAtStartup !== workspace.launchAtStartup) {
+    applyLoginItem(workspace.launchAtStartup);
+  }
+  if (before.debugMode !== workspace.debugMode) refreshDevTools();
+  if (
+    !sameJson(before.automationTasks, workspace.automationTasks) ||
+    !sameJson(before.automationAutoStops, workspace.automationAutoStops)
+  ) {
+    automationGate.replaced();
+  }
+}
+
+// The size is used the next time the window opens; its position stays this
+// computer's own, and a window open now isn't resized under the person.
+function applyWindowSize(workspace: CloudWorkspace) {
+  const bounds = store.get("windowBounds");
+  const { width, height } = workspace.windowSize;
+  if (bounds.width !== width || bounds.height !== height) {
+    store.set("windowBounds", { ...bounds, width, height });
+  }
+}
+
+// null: the other computer's folder is outside its home folder, so this one
+// keeps its own. A folder that doesn't exist here yet is created, the way a
+// browser creates its download folder; if that fails, this computer's stays.
+function applyDownloadFolder(workspace: CloudWorkspace) {
+  const relative = workspace.downloadFolderInHome;
+  if (relative === null) return;
+  const folder = relative === "" ? "" : fromHomeRelative(relative, os.homedir());
+  if (folder === store.get("downloadFolder")) return;
+  if (folder) {
+    try {
+      fs.mkdirSync(folder, { recursive: true });
+      if (!fs.statSync(folder).isDirectory()) return;
+    } catch (error) {
+      console.warn("[cloud] Couldn't use the synced download folder here:", error);
+      return;
+    }
+  }
+  store.set("downloadFolder", folder);
 }
 
 // Same as add-, update- and remove-service would have done, service by service.

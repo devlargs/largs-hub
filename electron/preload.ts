@@ -215,6 +215,7 @@ const api = {
       ipcRenderer.invoke("cloud-set-remote-lock", info),
     setSyncEnabled: (enabled: boolean): Promise<void> =>
       ipcRenderer.invoke("cloud-set-sync-enabled", enabled),
+    setAccount: (uid: string | null): Promise<void> => ipcRenderer.invoke("cloud-set-account", uid),
     onWorkspaceChanged: (callback: (fingerprint: string) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, fingerprint: string) =>
         callback(fingerprint);
